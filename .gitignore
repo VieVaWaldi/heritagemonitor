@@ -1,5 +1,7 @@
 # Custom
 
+infra/.env
+
 # Webstorm
 .idea/
 
