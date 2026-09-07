@@ -27,6 +27,29 @@ docker compose down -v
 docker compose restart postgres
 ```
 
+## DB Web UIs
+
+Two optional admin UIs, gated behind the `tools` Compose profile.
+
+```bash
+# Start everything, core services + both UIs
+docker compose --profile tools up -d
+
+# Or add the UIs to an already-running stack
+docker compose --profile tools up -d dbgate opensearch-dashboards
+```
+
+* **DbGate** http://localhost:5600: Postgres UI client.
+* **OpenSearch Dashboards** http://localhost:5601: OpenSearch UI Client 
+
+Notes:
+* Discover needs an **index pattern** before it'll show a given OpenSearch index (Dashboards
+  Management → Index Patterns), unlike DbGate, indices don't just appear as browsable tables.
+  Dev Tools (`GET <index>/_search`) works immediately with no setup, if you just want a quick look.
+* Both containers keep their own state in named volumes (`dbgate-data`, and Dashboards' own indices
+  live inside `os-data` alongside the app's real OpenSearch data)
+* Local dev only, these images are not part of the prod deployment ... yet?
+
 # More documentation
 
 ## Data persistence
@@ -51,13 +74,6 @@ passed through as `opensearch` (the container/service name), same as `POSTGRES_H
 The `shared` service has no exposed ports and does nothing but `tsc --watch` `packages/shared` — `api` and `web`
 both wait on its healthcheck (`dist/index.js` exists) before starting. See `packages/shared/README.md` for why it's
 a separate container instead of each app compiling it themselves.
-
-## DB Web UIs (planned)
-
-Evaluating lightweight DB/search browsers for local inspection — not yet added to compose:
-
-- Postgres: CloudBeaver or pgAdmin
-- OpenSearch: OpenSearch Dashboards, or a REST client (Postman/Insomnia) against `:9200`
 
 ## Host machine requirements (before first run)
 

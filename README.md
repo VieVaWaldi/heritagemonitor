@@ -22,8 +22,11 @@ docker compose -f infra/docker-compose.yml up -d --build
 
 * Node http://localhost:3001/v1/health
 * Web http://localhost:3000/health
-* OpenSearch http://localhost:9200/
-* Postgres `docker exec -it hm-postgres psql -U hm_admin -d hm_db -c "SELECT version();"`
+
+Start DbGate (Postgres UI) and OpenSearch UI with `docker compose --profile tools up -d`
+
+* Postgres UI http://localhost:5600/
+* OpenSearch UI http://localhost:5601/ (Gotta create the indices in the UI to see existing ones, its weird i know)
 
 ## Structure
 
