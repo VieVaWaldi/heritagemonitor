@@ -1,14 +1,19 @@
+import cors from '@fastify/cors'
 import Fastify from 'fastify'
+import {healthRoutes} from "./modules/health/health.routes.js";
 
 const fastify = Fastify({
     logger: true,
 })
 
-// Temporary health check — proves the server boots and Docker networking works.
-// Will move into its own module once real routes exist (see RULES.md: "Keep routes in modules").
-fastify.get('/health', async () => {
-    return {status: 'ok'}
+await fastify.register(cors, {
+    origin: (process.env.CORS_ORIGIN ?? 'http://localhost:3000').split(','),
 })
+
+// All versioning lives here, not in each module's own route file
+fastify.register(async (v1) => {
+    v1.register(healthRoutes)
+}, {prefix: '/v1'})
 
 const start = async () => {
     try {

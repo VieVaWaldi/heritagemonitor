@@ -1,8 +1,12 @@
-# Backend
+# Frontend
 
 ## Debugging
 
 Default enabled with script: `dev:debug`
+
+@Walter Not done yet:
+
+---
 
 *WebStorm one-time setup:*
 
@@ -11,5 +15,5 @@ Default enabled with script: `dev:debug`
 3. Set a breakpoint in src/index.ts
 4. docker compose up -d (starts the container with the inspector listening), then run the WebStorm debug config to
    attach
-5. Hit http://localhost:3001/v1/health — breakpoint should catch if placed inside that handler
+5. Hit http://localhost:3001/health — breakpoint should catch if placed inside that handler
 

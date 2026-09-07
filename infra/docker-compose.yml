@@ -1,9 +1,27 @@
 name: heritagemonitor
 
 services:
+  # Builds packages/shared once and keeps rebuilding it on change (tsc
+  # --watch). api and web only ever import its compiled dist/ output.
+  shared:
+    build:
+      context: ..
+      dockerfile: packages/shared/Dockerfile
+    container_name: hm-shared
+    restart: unless-stopped
+    volumes:
+      - ../packages/shared:/app/packages/shared
+      - /app/packages/shared/node_modules
+    healthcheck:
+      test: [ "CMD", "test", "-f", "/app/packages/shared/dist/index.js" ]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   api:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
     container_name: hm-api
     restart: unless-stopped
     environment:
@@ -12,32 +30,53 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: 5432
+      OPENSEARCH_HOST: ${OPENSEARCH_HOST}
+      OPENSEARCH_PORT: 9200
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     depends_on:
       postgres:
         condition: service_healthy
       opensearch:
         condition: service_healthy
+      shared:
+        condition: service_healthy
     ports:
       - "3001:3001"
       - "9229:9229"  # Node inspector — for WebStorm Debug "Attach to Node.js/Chrome"
     volumes:
-      - ../apps/api:/app
-      - /app/node_modules
+      - ../apps/api:/app/apps/api
+      - ../packages/db:/app/packages/db
+      - ../packages/search:/app/packages/search
+      - ../packages/shared:/app/packages/shared
+      - /app/apps/api/node_modules
+      - /app/packages/db/node_modules
+      - /app/packages/search/node_modules
+      - /app/packages/shared/node_modules
 
   web:
     build:
-      context: ../apps/web
+      context: ..
+      dockerfile: apps/web/Dockerfile
     container_name: hm-web
     restart: unless-stopped
+    environment:
+      # Browser-visible (client-side polling hits this directly) — see
+      # apps/web/RULES.md #11, links/urls stay in env vars, never hardcoded.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     depends_on:
-      - api
+      api:
+        condition: service_started
+      shared:
+        condition: service_healthy
     ports:
       - "3000:3000"
       - "9230:9230"  # Node inspector — for WebStorm "Attach to Node.js/Chrome"
     volumes:
-      - ../apps/web:/app
-      - /app/node_modules
-      - /app/.next
+      - ../apps/web:/app/apps/web
+      - ../packages/shared:/app/packages/shared
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+      - /app/packages/shared/node_modules
 
   postgres:
     image: postgres:18
@@ -48,7 +87,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pg-data:/var/lib/postgresql
     healthcheck:

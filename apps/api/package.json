@@ -13,6 +13,11 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@heritagemonitor/db": "workspace:*",
+    "@heritagemonitor/search": "workspace:*",
+    "@heritagemonitor/shared": "workspace:*",
+    "drizzle-orm": "^0.44.7",
     "fastify": "^5.12.1"
   },
   "devDependencies": {

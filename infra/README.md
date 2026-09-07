@@ -1,7 +1,8 @@
 # Infra
 
 Local (and eventually prod) orchestration and data layer for HeritageMonitor.
-Postgres + OpenSearch run via Docker Compose. This folder only orchestrates containers, no app code lives here.
+Api, Web, Shared Types, Postgres & OpenSearch run via Docker Compose.
+This folder only orchestrates containers, no app code lives here.
 
 ## Everyday commands
 
@@ -26,6 +27,8 @@ docker compose down -v
 docker compose restart postgres
 ```
 
+# More documentation
+
 ## Data persistence
 
 Data lives in two named Docker volumes: `pg-data`, `os-data`. These are NOT inside this
@@ -35,15 +38,21 @@ them.
 
 ## Docker Gotchas
 
-The POSTGRES_PORT: 5432 is hardcoded deliberately, not ${POSTGRES_PORT}. POSTGRES_PORT in .env is the
-host-published port (what we use to reach Postgres via localhost:5432). But inside Docker's internal network,
-containers always talk to each other on Postgres's actual internal port, 5432, regardless of what we've mapped it to on
-the host. Reusing the same variable for both would be wrong the moment we ever change the hosts port mapping.
+`POSTGRES_PORT: 5432` on the `postgres` service is hardcoded, not `${POSTGRES_PORT}` — that env var is only the
+*host*-published port (`localhost:${POSTGRES_PORT}`, e.g. `5433`, deliberately not `5432` to avoid colliding with a
+locally-installed Postgres). Containers always reach each other on Postgres's real internal port, `5432`, regardless
+of the host mapping. Same distinction: `drizzle.config.ts` connects via `localhost`, `packages/db`'s runtime client
+connects via `postgres` (container-to-container).
 
-This is the important distinction to internalize: drizzle.config.ts connects via localhost, while src/index.ts's runtime
-client connects via postgres (the API container, talking to another container).
+Same pattern again on the `api` service for OpenSearch: `OPENSEARCH_PORT: 9200` is hardcoded (OpenSearch's real
+internal port), while `${OPENSEARCH_PORT}` in `infra/.env` is only the host-published port. `OPENSEARCH_HOST` is
+passed through as `opensearch` (the container/service name), same as `POSTGRES_HOST`.
 
-## Web UIs (planned)
+The `shared` service has no exposed ports and does nothing but `tsc --watch` `packages/shared` — `api` and `web`
+both wait on its healthcheck (`dist/index.js` exists) before starting. See `packages/shared/README.md` for why it's
+a separate container instead of each app compiling it themselves.
+
+## DB Web UIs (planned)
 
 Evaluating lightweight DB/search browsers for local inspection — not yet added to compose:
 

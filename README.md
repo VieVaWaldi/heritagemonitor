@@ -20,8 +20,8 @@ docker compose -f infra/docker-compose.yml up -d --build
 
 ## Quick Sanity Checks
 
-* Node http://localhost:3001/health
-* Web http://localhost:3000
+* Node http://localhost:3001/v1/health
+* Web http://localhost:3000/health
 * OpenSearch http://localhost:9200/
 * Postgres `docker exec -it hm-postgres psql -U hm_admin -d hm_db -c "SELECT version();"`
 
