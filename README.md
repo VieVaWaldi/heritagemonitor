@@ -1,4 +1,4 @@
-# HeritageMonitor MonoRepo
+# HeritageMonitor
 
 HM is a research platform. It is structured as a monorepo with a Next.js frontend, a Node.js/Fastify backend, uses
 OpenSearch as a research data search engine and Postgres for every other kind of data.
