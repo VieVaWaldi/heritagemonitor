@@ -38,8 +38,7 @@ root/
 ├── packages/
 │   ├── db/         ← Postgres schema + ORM Drizzle client 
 │   ├── search/     ← OpenSearch client + index mappings
-│   ├── shared/     ← shared TS types, Zod validation schemas, utility functions
-│   └── config/     ← shared eslint/tsconfig config
+│   └── shared/     ← shared TS types, Zod validation schemas, utility functions
 ├── infra/
 │   └── docker-compose.yml       ← Postgres + OpenSearch, local dev
 ├── package.json                 ← workspace root

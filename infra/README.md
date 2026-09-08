@@ -1,7 +1,7 @@
 # Infra
 
 Local (and eventually prod) orchestration and data layer for HeritageMonitor.
-Api, Web, Shared Types, Postgres & OpenSearch run via Docker Compose.
+Api, Web, Shared Types, Postgres & OpenSearch run via Docker Compose, as well as tools.
 This folder only orchestrates containers, no app code lives here.
 
 ## Everyday commands
@@ -27,7 +27,9 @@ docker compose down -v
 docker compose restart postgres
 ```
 
-## DB Web UIs
+## Tooling
+
+### DB Web UIs
 
 Two optional admin UIs, gated behind the `tools` Compose profile.
 
@@ -75,7 +77,7 @@ The `shared` service has no exposed ports and does nothing but `tsc --watch` `pa
 both wait on its healthcheck (`dist/index.js` exists) before starting. See `packages/shared/README.md` for why it's
 a separate container instead of each app compiling it themselves.
 
-## Host machine requirements (before first run)
+## Prod WIP WIP WIP WIP 
 
 @Walter When setting up on prod for the first time do some research on whats actually needed here HW wise.
 

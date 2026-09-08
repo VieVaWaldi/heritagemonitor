@@ -70,7 +70,10 @@ services:
         condition: service_healthy
     ports:
       - "3000:3000"
-      - "9230:9230"  # Node inspector — for WebStorm "Attach to Node.js/Chrome"
+      - "9230:9230"  # Node inspector — the `next dev` CLI process itself, not where page code runs
+      - "9231:9231"  # Node inspector — Turbopack's render worker, bumped +1 from 9230 by Next.js
+                     # itself to avoid clashing with the parent. Attach WebStorm here, not 9230 —
+                     # see "Debugger port: ####" in `docker compose logs web` if this ever drifts.
     volumes:
       - ../apps/web:/app/apps/web
       - ../packages/shared:/app/packages/shared
