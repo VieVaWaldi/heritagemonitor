@@ -1,14 +1,24 @@
 import cors from '@fastify/cors'
-import Fastify from 'fastify'
+import Fastify, {LogController} from 'fastify'
 import {healthRoutes} from "./modules/health/health.routes.js";
+import foundation from './plugins/foundation.js'
+import {buildLoggerOptions} from './plugins/logging.js'
+import {genReqId} from './plugins/requestId.js'
 
 const fastify = Fastify({
-    logger: true,
+    logger: buildLoggerOptions(),
+    genReqId,
+    logController: new LogController({disableRequestLogging: true}),
 })
 
 await fastify.register(cors, {
     origin: (process.env.CORS_ORIGIN ?? 'http://localhost:3000').split(','),
 })
+
+// Must be registered before /v1 below — Fastify's register() creates an
+// encapsulation scope, so anything foundation decorates wouldn't be visible
+// to v1 routes if it were registered inside that block instead.
+await fastify.register(foundation)
 
 // All versioning lives here, not in each module's own route file
 fastify.register(async (v1) => {

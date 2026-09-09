@@ -1,5 +1,9 @@
 # Backend
 
+## Logging, middleware & monitoring
+
+See [src/plugins/README.md](src/plugins/README.md).
+
 ## Debugging
 
 Default enabled with script: `dev:debug`

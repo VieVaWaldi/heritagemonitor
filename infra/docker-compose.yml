@@ -25,6 +25,9 @@ services:
     container_name: hm-api
     restart: unless-stopped
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CACHE_MAX_ENTRIES: ${CACHE_MAX_ENTRIES:-1000}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
@@ -43,6 +46,11 @@ services:
     ports:
       - "3001:3001"
       - "9229:9229"  # Node inspector — for WebStorm Debug "Attach to Node.js/Chrome"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ../apps/api:/app/apps/api
       - ../packages/db:/app/packages/db
@@ -74,6 +82,11 @@ services:
       - "9231:9231"  # Node inspector — Turbopack's render worker, bumped +1 from 9230 by Next.js
                      # itself to avoid clashing with the parent. Attach WebStorm here, not 9230 —
                      # see "Debugger port: ####" in `docker compose logs web` if this ever drifts.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ../apps/web:/app/apps/web
       - ../packages/shared:/app/packages/shared
@@ -91,6 +104,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - pg-data:/var/lib/postgresql
     healthcheck:
@@ -119,6 +137,11 @@ services:
     ports:
       - "${OPENSEARCH_PORT:-9200}:9200"
       - "9600:9600"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - os-data:/usr/share/opensearch/data
     healthcheck:

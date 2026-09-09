@@ -11,6 +11,11 @@ When working in apps/api always read apps/api/RULES.md.
 
 When working in apps/web always read apps/web/RULES.md.
 
+## Verification
+
+Everything you create you must verify. That is modules, apis, ui or commands etc behaving as expected.
+The human (I) will do the same, but together we are more thorough.
+
 ## Boundaries
 
 apps/web never talks to Postgres or OpenSearch directly. It only calls apps/api over HTTP.

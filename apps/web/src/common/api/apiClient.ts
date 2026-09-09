@@ -19,7 +19,10 @@ interface Parser<T> {
 }
 
 export async function apiGet<T>(path: string, schema: Parser<T>, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${path}`, init)
+    const headers = new Headers(init?.headers)
+    headers.set('X-Request-Id', crypto.randomUUID())
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {...init, headers})
 
     if (!response.ok) {
         throw new ApiError(`GET ${path} failed with status ${response.status}`, response.status)
