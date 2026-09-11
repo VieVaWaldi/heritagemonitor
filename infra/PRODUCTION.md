@@ -5,6 +5,15 @@ Server nickname: **DIGICHerVM**.
 What was built, configured, and verified to get `heritagemonitor` running in production.
 Backups: `packages/db/README.md`. Retiring the old app: `~/SUNSET_DIGICHER.md`.
 
+## Quick build & run (local, just to see the prod stack work)
+
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build  # build + start the prod stack
+docker compose -f infra/docker-compose.prod.yml ps                                        # check health status
+docker compose -f infra/docker-compose.prod.yml logs -f                                   # follow logs (all services)
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod down           # stop (add -v to also wipe pg-data-prod/os-data-prod)
+```
+
 ## Architecture
 
 See `~/README.md` for the full operational rundown.
