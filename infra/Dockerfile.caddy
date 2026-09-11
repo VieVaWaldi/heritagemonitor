@@ -1,0 +1,7 @@
+# Build context: infra/ itself (see docker-compose.prod.yml), not the
+# monorepo root, this needs nothing from apps/ or packages/, just the
+# Caddyfile sitting right here. Baked in, not bind-mounted, matching this
+# whole prod setup's "no bind mounts" approach (see infra/PRODUCTION.md).
+FROM caddy:2-alpine
+
+COPY Caddyfile /etc/caddy/Caddyfile

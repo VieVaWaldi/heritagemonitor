@@ -1,0 +1,16 @@
+# Only thing in this stack that ever touches the host network, everything
+# else (web, api, postgres*, opensearch*) is reachable only over Docker's
+# internal network. *postgres/opensearch also get a 127.0.0.1-only mapping
+# for host-side tooling (drizzle-kit migrate, an SSH tunnel), never external.
+#
+# Routing rule: match by path SHAPE, not a specific version, so shipping a
+# future /v2 alongside /v1 never requires touching this file again.
+:8080 {
+	@api path_regexp ^/v[0-9]+(/|$)
+	handle @api {
+		reverse_proxy api:3001
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

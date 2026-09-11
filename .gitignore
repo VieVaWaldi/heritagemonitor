@@ -1,7 +1,10 @@
 # Custom
 
 rmme.md
+# Real secrets — every infra/.env* variant except the checked-in template.
 infra/.env
+infra/.env.prod
+infra/.env.*.local
 
 # Webstorm
 .idea/

@@ -1,6 +1,6 @@
 # Infra
 
-Local (and eventually prod) orchestration and data layer for HeritageMonitor.
+Orchestration and data layer for HeritageMonitor.
 Api, Web, Shared Types, Postgres & OpenSearch run via Docker Compose, as well as tools.
 This folder only orchestrates containers, no app code lives here.
 
@@ -27,7 +27,7 @@ docker compose down -v
 docker compose restart postgres
 ```
 
-## Tooling
+## Dev Tooling
 
 ### DB Web UIs
 
@@ -52,8 +52,6 @@ Notes:
   live inside `os-data` alongside the app's real OpenSearch data)
 * Local dev only, these images are not part of the prod deployment ... yet?
 
-# More documentation
-
 ## Data persistence
 
 Data lives in two named Docker volumes: `pg-data`, `os-data`. These are NOT inside this
@@ -73,49 +71,9 @@ Same pattern again on the `api` service for OpenSearch: `OPENSEARCH_PORT: 9200` 
 internal port), while `${OPENSEARCH_PORT}` in `infra/.env` is only the host-published port. `OPENSEARCH_HOST` is
 passed through as `opensearch` (the container/service name), same as `POSTGRES_HOST`.
 
-The `shared` service has no exposed ports and does nothing but `tsc --watch` `packages/shared` — `api` and `web`
-both wait on its healthcheck (`dist/index.js` exists) before starting. See `packages/shared/README.md` for why it's
-a separate container instead of each app compiling it themselves.
-
-## Prod WIP WIP WIP WIP 
-
-@Walter When setting up on prod for the first time do some research on whats actually needed here HW wise.
-
-These are OS-level settings Docker Compose cannot set for you. Run once per machine
-(and re-check after a host reboot — some of these don't persist automatically).
-
-### `vm.max_map_count` (Linux only, required for OpenSearch)
-
-OpenSearch/Lucene needs a higher limit than the Linux default (65530) or it will
-fail to start.
-
-```bash
-sudo sysctl -w vm.max_map_count=262144
-```
-
-This resets on reboot unless made persistent:
-
-```bash
-echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
-```
-
-Not needed on macOS/Windows Docker Desktop, the setting applies inside the Linux VM
-Docker Desktop manages, which is usually pre-configured high enough. Verify with
-`docker compose logs opensearch` if OpenSearch fails to start — this is the most common
-first-boot failure.
-
-### `memlock` / `nofile` ulimits
-
-Already handled inside `docker-compose.yml` via the `ulimits:` block on the
-`opensearch` service (`memlock: unlimited`, `nofile: 65536`) — nothing to do
-on the host for local dev.
-
-### JVM heap size (`OPENSEARCH_JAVA_OPTS`)
-
-Set in `docker-compose.yml`, currently `-Xms1g -Xmx1g` — sized for local dev.
-
-**Do not use this value for the Draco HPC deployment.** Production/HPC nodes should use
-something like `-Xms16g -Xmx16g` (or whatever fits half the node's available RAM — never
-more than 50%, per OpenSearch's own guidance). When we get to that deployment, override
-this via a separate `docker-compose.prod.yml` (or `docker-compose.override.yml`) rather
-than editing the base file, so dev and prod don't fight each other.
+The `libs` service has no exposed ports and does nothing but `tsc --watch` every pure-TS workspace package
+(`shared`, `db`, `search`) — `api` and `web` both wait on its healthcheck (all three `dist/index.js` exist) before
+starting. `db` and `search` need this too, not just `shared`: their `package.json` `exports` point at compiled
+`dist/` output, same as `shared`, because `apps/api`'s prod image runs plain `node dist/index.js` — it can't resolve
+an `exports` map pointing at raw `.ts` source the way `tsx` (dev only) can. See `packages/shared/README.md` for the
+original reasoning on why this is a separate container instead of each app compiling it themselves.

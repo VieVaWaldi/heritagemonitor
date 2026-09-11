@@ -6,9 +6,21 @@
   "engines": {
     "node": ">=24"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./indices": "./src/indices/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./indices": {
+      "types": "./dist/indices/index.d.ts",
+      "default": "./dist/indices/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
     "@opensearch-project/opensearch": "^3.6.0"

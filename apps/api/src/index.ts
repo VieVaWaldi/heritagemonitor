@@ -9,6 +9,10 @@ const fastify = Fastify({
     logger: buildLoggerOptions(),
     genReqId,
     logController: new LogController({disableRequestLogging: true}),
+    // api's port is never published to the host in prod. Caddy is the only
+    // thing that can reach it, over Docker's internal network, so trusting
+    // its X-Forwarded-* headers is safe and needed for correct client IPs/proto.
+    trustProxy: true,
 })
 
 await fastify.register(cors, {

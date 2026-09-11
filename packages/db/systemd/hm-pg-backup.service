@@ -1,0 +1,9 @@
+[Unit]
+Description=HeritageMonitor Postgres backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=lu72hip
+ExecStart=/home/lu72hip/heritagemonitor/packages/db/backup.sh

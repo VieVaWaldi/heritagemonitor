@@ -6,10 +6,12 @@ import {defineConfig} from 'drizzle-kit'
 // your host machine. So it connects via localhost, using the port
 // infra/docker-compose.yml publishes to your host.
 
-// infra/.env is the single source of truth for these values (same file Docker
-// Compose reads) — loaded explicitly here since it lives outside this
-// package's own folder and Drizzle Kit doesn't auto-discover it there.
-config({path: '../../infra/.env'})
+// infra/.env (dev) or infra/.env.prod is the single source of truth for these
+// values (same file Docker Compose reads) — loaded explicitly here since it
+// lives outside this package's own folder and Drizzle Kit doesn't
+// auto-discover it there. Picked by NODE_ENV so `pnpm db:migrate` stays
+// zero-friction in dev and `NODE_ENV=production pnpm db:migrate` targets prod.
+config({path: process.env.NODE_ENV === 'production' ? '../../infra/.env.prod' : '../../infra/.env'})
 
 export default defineConfig({
     dialect: 'postgresql',

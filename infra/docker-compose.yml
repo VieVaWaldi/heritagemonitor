@@ -1,19 +1,25 @@
 name: heritagemonitor
 
 services:
-  # Builds packages/shared once and keeps rebuilding it on change (tsc
-  # --watch). api and web only ever import its compiled dist/ output.
-  shared:
+  # Builds every pure-TS workspace library (shared, db, search) once and keeps
+  # rebuilding on change (tsc --watch each). api and web only ever import
+  # their compiled dist/ output, never src/ directly — see infra/README.md's
+  # Docker Gotchas for why db/search need this too, not just shared.
+  libs:
     build:
       context: ..
-      dockerfile: packages/shared/Dockerfile
-    container_name: hm-shared
+      dockerfile: infra/Dockerfile.libs
+    container_name: hm-libs
     restart: unless-stopped
     volumes:
       - ../packages/shared:/app/packages/shared
+      - ../packages/db:/app/packages/db
+      - ../packages/search:/app/packages/search
       - /app/packages/shared/node_modules
+      - /app/packages/db/node_modules
+      - /app/packages/search/node_modules
     healthcheck:
-      test: [ "CMD", "test", "-f", "/app/packages/shared/dist/index.js" ]
+      test: [ "CMD", "sh", "-c", "test -f /app/packages/shared/dist/index.js && test -f /app/packages/db/dist/index.js && test -f /app/packages/search/dist/index.js" ]
       interval: 2s
       timeout: 2s
       retries: 30
@@ -31,9 +37,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_HOST: ${POSTGRES_HOST}
+      # :- not just ${VAR} — an unset OR empty .env value must fall back to the
+      # service name, otherwise it sails past packages/db's `??` fallback (which
+      # only catches null/undefined, not "") and tries to connect to host "".
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: 5432
-      OPENSEARCH_HOST: ${OPENSEARCH_HOST}
+      OPENSEARCH_HOST: ${OPENSEARCH_HOST:-opensearch}
       OPENSEARCH_PORT: 9200
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     depends_on:
@@ -41,7 +50,7 @@ services:
         condition: service_healthy
       opensearch:
         condition: service_healthy
-      shared:
+      libs:
         condition: service_healthy
     ports:
       - "3001:3001"
@@ -74,7 +83,7 @@ services:
     depends_on:
       api:
         condition: service_started
-      shared:
+      libs:
         condition: service_healthy
     ports:
       - "3000:3000"

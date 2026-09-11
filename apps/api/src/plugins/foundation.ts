@@ -4,6 +4,7 @@ import fp from 'fastify-plugin'
 import {registerAuthPlaceholder} from './auth.js'
 import {InMemoryCache} from './cache.js'
 import {registerErrorHandling} from './errors.js'
+import {registerNoStore} from './noStore.js'
 import {registerRequestLog} from './requestLog.js'
 
 declare module 'fastify' {
@@ -21,6 +22,7 @@ async function foundation(fastify: FastifyInstance) {
     registerErrorHandling(fastify)
     registerAuthPlaceholder(fastify)
     registerRequestLog(fastify)
+    registerNoStore(fastify)
 
     const maxCacheEntries = Number(process.env.CACHE_MAX_ENTRIES) || undefined
     fastify.decorate('cache', new InMemoryCache(maxCacheEntries))

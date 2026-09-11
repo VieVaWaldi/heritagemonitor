@@ -4,6 +4,26 @@
 
 See [src/plugins/README.md](src/plugins/README.md).
 
+## Caching
+
+Two unrelated things, both called "cache":
+
+- **`plugins/cache.ts`** (`fastify.cache`) — an in-process `Map` with TTLs, 
+  decorated onto every route. Opt-in: nothing calls it unless a route explicitly does
+  `fastify.cache.get()/.set()`. Single-process only, if `api` ever runs
+  multiple replicas, each gets its own separate cache.
+- **`plugins/noStore.ts`** sends `Cache-Control: no-store` on *every* response, globally,
+  telling any client or proxy never to cache a response and reuse it later. Unrelated to the
+  above; this is about external HTTP caching, not the api's own internal one.
+
+`no-store` being global is correct today (nothing here benefits from caching), but it'll need
+to become per-route once a genuinely cacheable endpoint exists — e.g. a publication detail
+view, safe to cache for a day+ given the dataset only refreshes monthly. For that kind of
+route, prefer actively invalidating `fastify.cache` when the ingestion pipeline loads new data
+over guessing a TTL, and consider a permissive header (`Cache-Control: public, max-age=...`)
+instead of `no-store` — letting an upstream proxy cache a response means a repeat request
+might never reach this VM at all, which beats even a fast in-memory hit.
+
 ## Debugging
 
 Default enabled with script: `dev:debug`

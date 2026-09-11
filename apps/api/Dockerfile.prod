@@ -1,0 +1,80 @@
+# Multi-stage prod build. Unlike the dev Dockerfile, this one's COPY steps ARE
+# the deployed code, infra/docker-compose.prod.yml mounts nothing over it, so
+# whatever's baked in here is what actually runs. 
+# No tsx, no dev deps, no source bind mounts.
+
+FROM node:24-alpine AS build
+
+# This prod VM sits behind a network proxy, without these, corepack/pnpm can't
+# reach the registry during the build. BuildKit only auto-fills them from
+# ~/.docker/config.json's proxies block if declared here explicitly (not
+# automatic, even with --build-arg passed on the command line).
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+# Node's native fetch (which corepack uses internally) ignores HTTP_PROXY/
+# HTTPS_PROXY entirely unless this is set. Opt-in since Node 22.21/24.0,
+# default-off to avoid unintended proxying. Hardcoded default, not passed
+# through from outside, since there's no reason it'd ever need to be "0" here.
+ARG NODE_USE_ENV_PROXY=1
+
+RUN corepack enable && corepack prepare pnpm@10 --activate
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY packages/db/package.json packages/db/package.json
+COPY packages/search/package.json packages/search/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN pnpm install --frozen-lockfile
+
+COPY apps/api apps/api
+COPY packages/db packages/db
+COPY packages/search packages/search
+COPY packages/shared packages/shared
+
+# Order matters: shared/db/search must land in dist/ before api's own build,
+# since api's tsc build resolves their `exports` against compiled .d.ts, not
+# raw src/ (see infra/README.md's Docker Gotchas / infra/Dockerfile.libs).
+RUN pnpm --filter @heritagemonitor/shared build && \
+    pnpm --filter @heritagemonitor/db build && \
+    pnpm --filter @heritagemonitor/search build && \
+    pnpm --filter @heritagemonitor/api build
+
+
+FROM node:24-alpine AS runtime
+
+# Same as the build stage above. BuildKit scopes ARGs per stage, 
+# so a fresh FROM needs these re-declared even within the same file.
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ARG NODE_USE_ENV_PROXY=1
+
+RUN corepack enable && corepack prepare pnpm@10 --activate
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY packages/db/package.json packages/db/package.json
+COPY packages/search/package.json packages/search/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN pnpm install --prod --frozen-lockfile
+
+# Compiled output only — no src/, no tsx, no devDependencies from the build stage.
+COPY --from=build /app/apps/api/dist apps/api/dist
+COPY --from=build /app/packages/db/dist packages/db/dist
+COPY --from=build /app/packages/search/dist packages/search/dist
+COPY --from=build /app/packages/shared/dist packages/shared/dist
+
+WORKDIR /app/apps/api
+
+EXPOSE 3001
+
+CMD ["node", "dist/index.js"]

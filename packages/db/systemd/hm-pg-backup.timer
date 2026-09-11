@@ -1,0 +1,11 @@
+[Unit]
+Description=Run HeritageMonitor Postgres backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+# Catches up and runs ASAP if the VM was off/rebooting exactly at 03:00
+# otherwise that day's backup would just be silently skipped.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

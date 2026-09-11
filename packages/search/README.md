@@ -1,5 +1,10 @@
 # Packages: OpenSearch
 
+OpenSearch holds the scientometric search data which comes from the HPC.
+
+Compiled to `dist/` (same reasoning as `packages/shared` — see its README), via the `libs`
+Docker service in dev, or `pnpm --filter @heritagemonitor/search build` outside Docker.
+
 We target 100 Million searchable documents.
 Issue: 5 TB of HDD and only 32 GB of RAM.
 
