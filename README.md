@@ -4,6 +4,7 @@ HM is a research platform. It is structured as a monorepo with a Next.js fronten
 OpenSearch as a research data search engine and Postgres for every other kind of data.
 
 For orchestration of the apps and docker services go to [infra/README.md](infra/README.md).
+For prod setup go to [infra/PRODUCTION.md](infra/PRODUCTION.md).
 
 ## First-time setup && After updating packages
 
