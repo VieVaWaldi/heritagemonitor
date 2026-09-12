@@ -1,6 +1,7 @@
 import cors from '@fastify/cors'
 import Fastify, {LogController} from 'fastify'
 import {healthRoutes} from "./modules/health/health.routes.js";
+import {monitoringRoutes} from "./modules/monitoring/monitoring.routes.js";
 import foundation from './plugins/foundation.js'
 import {buildLoggerOptions} from './plugins/logging.js'
 import {genReqId} from './plugins/requestId.js'
@@ -27,6 +28,7 @@ await fastify.register(foundation)
 // All versioning lives here, not in each module's own route file
 fastify.register(async (v1) => {
     v1.register(healthRoutes)
+    v1.register(monitoringRoutes)
 }, {prefix: '/v1'})
 
 const start = async () => {

@@ -82,6 +82,7 @@ services:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CACHE_MAX_ENTRIES: ${CACHE_MAX_ENTRIES:-1000}
+      REQUEST_METRICS_RETENTION_DAYS: ${REQUEST_METRICS_RETENTION_DAYS:-14}
       # Keeps Node's own GC well under this container's 1g mem_limit instead
       # of finding out the hard way via an OOM-kill under load.
       NODE_OPTIONS: --max-old-space-size=768

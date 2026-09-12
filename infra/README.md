@@ -77,3 +77,9 @@ starting. `db` and `search` need this too, not just `shared`: their `package.jso
 `dist/` output, same as `shared`, because `apps/api`'s prod image runs plain `node dist/index.js` — it can't resolve
 an `exports` map pointing at raw `.ts` source the way `tsx` (dev only) can. See `packages/shared/README.md` for the
 original reasoning on why this is a separate container instead of each app compiling it themselves.
+
+`api`'s and `web`'s `node_modules` (and `web`'s `.next`) are anonymous volumes, not bind mounts — they live in
+Docker's storage, decoupled from the host. After `pnpm add`ing a dependency, a plain `docker compose up -d --build`
+can still serve the *old* volume's contents (works fine right after `docker compose down`, since that actually
+removes them) and error with "Module not found" despite the image having rebuilt correctly. Add `-V`
+(`--renew-anon-volumes`) to force it: `docker compose up -d --build -V <service>`.

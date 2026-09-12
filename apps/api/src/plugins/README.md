@@ -103,14 +103,17 @@ low hit rate anyway), not reuse the default instance's assumptions.
 
 ## Monitoring
 
---- Monitoring is still WIP ---
+`plugins/requestMetrics.ts` hooks the same `onResponse` point as `requestLog.ts` and feeds
+`apps/api/src/modules/monitoring`, an in-memory per-route ring buffer of 1-minute
+count/avg/min/max durations. `GET /v1/monitoring/request-time?window=1h[&route=GET+/v1/health]`
+and `GET /v1/monitoring/routes` serve it; `apps/web`'s `/health/requestTime` page charts it.
 
-No prom-client/`/metrics` endpoint. Its counters/histograms live in-process and reset on
-every restart — including every `tsx watch` reload in dev. The request-log line above is
-the raw source of truth instead; percentiles get computed from it later, with whatever
-bucketing makes sense at the time. A live `/metrics` endpoint is still a reasonable
-*addition* later if there's ever a need for live ops dashboards and something to scrape it
-— not a replacement for this.
+Caveats, by design, not oversight:
+
+- Resets on every api restart/redeploy
+- Assumes a single `api` replica
+- Retention is `REQUEST_METRICS_RETENTION_DAYS` (default 14),
+  to exactly that many 1-minute slots per route, ~800KB per tracked route at the default.
 
 **`reqId` is not a user id.** It's per-request — a new one gets generated (or trusted from
 `X-Request-Id`) on every single call, purely to trace one request through the logs. It

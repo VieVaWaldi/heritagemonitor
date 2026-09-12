@@ -1,5 +1,6 @@
 import type {Metadata} from 'next'
 import React from 'react'
+import {HealthNav} from '@/modules/health/HealthNav'
 
 export const metadata: Metadata = {
     title: 'Health – HeritageMonitor',
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function HealthLayout({children}: Readonly<{ children: React.ReactNode }>) {
-    return <>{children}</>
+    return (
+        <>
+            <HealthNav/>
+            {children}
+        </>
+    )
 }

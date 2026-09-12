@@ -18,6 +18,12 @@ export function registerErrorHandling(fastify: FastifyInstance) {
             return reply.status(error.statusCode).send({error: error.message})
         }
 
+        // only genuinely unexpected errors should fall through to a generic 500.
+        if (error.statusCode && error.statusCode < 500) {
+            request.log.warn({err: error}, error.message)
+            return reply.status(error.statusCode).send({error: error.message})
+        }
+
         request.log.error({err: error}, error.message)
         return reply.status(500).send({error: 'Internal server error'})
     })
