@@ -27,7 +27,12 @@ export function IconTextButton({
 
     const button = (
         <Button
-            variant={selected ? 'outlined' : 'text'}
+            // Always "text" — MUI's "outlined" variant reserves border space
+            // that "text" doesn't, so toggling between them on `selected`
+            // shifted the content by the border width. A permanent 1px
+            // border (transparent when unselected) reserves that space
+            // unconditionally instead.
+            variant="text"
             startIcon={isIconOnly ? undefined : icon}
             sx={[
                 {
@@ -40,6 +45,7 @@ export function IconTextButton({
                     textTransform: 'none',
                     fontWeight: 500,
                     color: selected ? 'primary.main' : 'text.secondary',
+                    border: '1px solid',
                     borderColor: selected ? 'primary.main' : 'transparent',
                     backgroundColor: 'transparent',
                     '&:hover': {

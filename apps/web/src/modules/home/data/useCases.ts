@@ -1,0 +1,172 @@
+import type {
+    IconComponent,
+    SelectorOption,
+    CorpusOption as CorpusSelectorOption,
+} from '@/common/components'
+import SearchIcon from '@mui/icons-material/Search'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
+import HubIcon from '@mui/icons-material/Hub'
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import ScienceIcon from '@mui/icons-material/Science'
+import DescriptionIcon from '@mui/icons-material/Description'
+import ApartmentIcon from '@mui/icons-material/Apartment'
+import PaidIcon from '@mui/icons-material/Paid'
+import TopicIcon from '@mui/icons-material/Topic'
+import MuseumIcon from '@mui/icons-material/Museum'
+import BiotechIcon from '@mui/icons-material/Biotech'
+
+// Might want to move this to common later, because /search will probably also depend on it
+
+export type EntityKey =
+    | 'projects'
+    | 'works'
+    | 'organisations'
+    | 'minorities'
+    | 'experts'
+    | 'grants'
+    | 'topics'
+    | 'organisationNetwork'
+    | 'queryNetwork'
+
+export type EntityOption = SelectorOption<EntityKey>
+
+export const ENTITIES: EntityOption[] = [
+    {key: 'projects', label: 'Projects', icon: ScienceIcon, color: 'primary.light'},
+    {key: 'works', label: 'Works', icon: DescriptionIcon, color: 'primary.main'},
+    {key: 'organisations', label: 'Organisations', icon: ApartmentIcon, color: 'primary.dark'},
+    {key: 'experts', label: 'Experts', icon: WorkspacePremiumIcon, color: 'secondary.light'},
+    {key: 'minorities', label: 'Minorities', icon: PeopleAltIcon, color: 'secondary.main'},
+    {key: 'grants', label: 'Grants', icon: PaidIcon, color: 'secondary.dark'},
+    {key: 'topics', label: 'Topics', icon: TopicIcon, color: 'warning.light'},
+    // {key: 'organisationNetwork', label: 'Organisation network', icon: ShareIcon, color: 'warning.main'},
+    // {key: 'queryNetwork', label: 'Query network', icon: TravelExploreIcon, color: 'warning.dark'},
+]
+
+export type CorpusKey = 'dch' | 'science'
+
+export type CorpusOption = CorpusSelectorOption<CorpusKey>
+
+export const CORPUSES: CorpusOption[] = [
+    {key: 'dch', label: 'DCH', icon: MuseumIcon, color: 'secondary.main'},
+    {key: 'science', label: 'Science', icon: BiotechIcon, color: 'primary.main'},
+]
+
+export interface UseCaseAction {
+    entity: EntityKey
+    route?: string
+}
+
+export interface SubUseCase {
+    key: string
+    name: string
+    examples?: string[]
+    action: UseCaseAction
+}
+
+export interface UseCase {
+    key: string
+    icon: IconComponent
+    /** sx-style theme color path, e.g. "secondary.main". */
+    color: string
+    name: string
+    title: string
+    description: string
+    examples?: string[]
+    /** Absent when the UseCase delegates to subUseCases (e.g. Collaboration) */
+    action?: UseCaseAction
+    subUseCases?: SubUseCase[]
+    /** Only set when subUseCases is set — which one is selected by default */
+    defaultSubUseCaseKey?: string
+    tip?: string
+}
+
+export const USE_CASES: UseCase[] = [
+    {
+        key: 'search',
+        icon: SearchIcon,
+        color: 'primary.light',
+        name: 'Search',
+        title: 'Search, download & AI chat',
+        description:
+            'Search across projects, works and organisations all linked together from the biggest data providers. Use AI to summarize the results or fetch PDFs. ... ',
+        examples: ['digicher', 'conservation', 'BIM', 'photogrammetry AND heritage preservation -consumer'],
+        action: {
+            entity: 'projects',
+            route: '/search',
+        },
+        tip: 'You can talk to LucAi about the results on the next page',
+    },
+    {
+        key: 'findExperts',
+        icon: WorkspacePremiumIcon,
+        color: 'secondary.light',
+        name: 'Find Experts',
+        title: 'Find someone to help you',
+        description:
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        examples: ['3D scanning specialist', 'heritage conservation architect', 'digitisation consultant'],
+        action: {
+            entity: 'experts',
+        },
+        tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    },
+    {
+        key: 'minorities',
+        icon: PeopleAltIcon,
+        color: 'secondary.main',
+        name: 'Map Minorities',
+        title: 'Map research by minorities',
+        description:
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        examples: ['Roma heritage', 'indigenous knowledge systems', 'minority language archives'],
+        action: {
+            entity: 'minorities',
+        },
+        tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    },
+    {
+        key: 'funding',
+        icon: AccountBalanceIcon,
+        color: 'secondary.dark',
+        name: 'Track Funding',
+        title: 'Map research by funding',
+        description:
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        examples: ['Horizon Europe heritage grant', 'national conservation fund', 'UNESCO heritage grant'],
+        action: {
+            entity: 'grants',
+        },
+        tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    },
+    {
+        key: 'collaboration',
+        icon: HubIcon,
+        color: 'warning.dark',
+        name: 'Visualise Collabs',
+        title: 'Map who works with whom',
+        description:
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        defaultSubUseCaseKey: 'organisationNetwork',
+        subUseCases: [
+            {
+                key: 'organisationNetwork',
+                name: 'Network of your organisations',
+                examples: ['FSU Jena', 'Vilniaus Tech University'],
+                action: {
+                    entity: 'organisations',
+                    route: '/search/collaboration/organisationNetwork',
+                },
+            },
+            {
+                key: 'queryNetwork',
+                name: 'Network of a query',
+                examples: ['Leiden University'],
+                action: {
+                    entity: 'projects',
+                    route: '/search/collaboration/queryNetwork',
+                },
+            },
+        ],
+    },
+]
