@@ -4,6 +4,48 @@
         "sourcesText": "Use 3.7M projects, 50M publications and 400K organisations from <openaire>OpenAIRE</openaire> enriched with <ror>ROR</ror> and <cordis>Cordis</cordis>.",
         "orYouCould": "Or you could",
         "haveIdea": "Have an idea? <tellUs>Tell us!</tellUs>",
-        "scrollDown": "Scroll down to learn more"
+        "scrollDown": "Scroll down to learn more",
+        "information": {
+            "title": "WANT TO KNOW MORE?",
+            "sections": [
+                {
+                    "title": "What is Heritage Monitor?",
+                    "content": "Heritage Monitor is an interactive data platform that transforms cultural heritage research findings into clear, searchable, and reusable outputs. It supports users in exploring organizations, projects, and publications in Europe and beyond to discover, address, and engage with patterns of cooperation, funding landscapes, and emerging research directions in the field of cultural heritage."
+                },
+                {
+                    "title": "What data do we use and where is it from?",
+                    "content": "The platform aggregates large public datasets from leading European research organizations - including organizational archives, project funding data, and research results - to provide the most comprehensive picture possible of research activity in the field of cultural heritage. This combined data enables a clear presentation and thus also the comparison of trends, funding opportunities, and thematic areas in which cultural heritage research takes place."
+                },
+                {
+                    "title": "Difference between List and Map?",
+                    "content": "The Heritage Monitor allows you to search at various levels. The list view provides structured, searchable data - ideal for sorting and filtering organizations, projects, or research results. The map view visualizes this information geographically, helping you to visually locate research activities and patterns within a spatial area. Together, these two main display options offer insights into detailed data and spatial context."
+                },
+                {
+                    "title": "What can I do with the Map?",
+                    "content": "Using this map, you can visually explore cultural heritage research and stakeholders across Europe: See where organizations are located or identify regional centers of activity. Use the map to compare and visualize geographical patterns of funding and collaboration, thereby revealing spatial patterns, connections, or differences."
+                },
+                {
+                    "title": "What can I do with the List?",
+                    "content": "The list view allows you to explore cultural heritage data in a structured and detailed way. It enables you to search, filter, and sort organizations, projects, and publications according to specific criteria. You can compare entries, identify key players, analyze funding patterns, and quickly access relevant information. The list view is ideal for focused research, targeted queries, and in-depth analyses that go beyond geographical visualization."
+                }
+            ],
+            "fundedLine": "Funded by the European Union, built for Everyone."
+        },
+        "footer": {
+            "department": {
+                "name": "Digital Humanities at Friedrich Schiller University",
+                "description": "The junior professorship focuses on high-level research and teaching in Digital Humanities and Digital Cultural Heritage, specializing in image- and object-based knowledge media. Our work encompasses information behavior, museum mediation, and digital competencies development.",
+                "cta": "Visit Department Website"
+            },
+            "contact": {
+                "title": "Contact",
+                "lead": "Led by J.Prof. Dr. Sander Münster",
+                "developer": "Developed by Walter Ehrenberger",
+                "github": "@github",
+                "developerWebsite": "Developer Website"
+            },
+            "funding": "DigiCHer Project | Horizon Europe Grant #101132481",
+            "copyright": "© {year} Friedrich Schiller University Jena | Heritage Monitor"
+        }
     }
 }
