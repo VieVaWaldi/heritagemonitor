@@ -1,0 +1,9 @@
+{
+    "Health": {
+        "title": "System Health",
+        "checking": "checking...",
+        "checkStatus": "{message} · checked {time}",
+        "lastAttempted": "{message} · last attempted {time}",
+        "pollingNote": "Polling api {endpoint} every {seconds}s"
+    }
+}

@@ -6,9 +6,7 @@ import {getMonitoredRoutes} from '../api/getMonitoredRoutes'
 const POLL_INTERVAL_MS = 30_000
 
 export type MonitoredRoutes =
-    | { state: 'loading' }
-    | { state: 'ok'; routes: string[] }
-    | { state: 'error'; message: string }
+    {state: 'loading'} | {state: 'ok'; routes: string[]} | {state: 'error'; message: string}
 
 // Polls rather than fetching once, so a route hit for the first time after
 // the page loads (e.g. someone just exercised a new endpoint) shows up in

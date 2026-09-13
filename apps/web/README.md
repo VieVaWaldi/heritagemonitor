@@ -1,10 +1,22 @@
 # Frontend
 
+## Code quality
+
+- `pnpm lint` — ESLint
+- `pnpm format` — Prettier (run from repo root)
+- `tsc --noEmit` — type check
+
+## Translations
+
+Source strings live in `/modules/**/messages/en.json` (one per module + common).
+
+WIP: A future script globs that pattern to generate other locale files via LLM.
+
 ## Debugging
 
 Default enabled with script: `dev:debug`
 
-*WebStorm one-time setup:*
+_WebStorm one-time setup:_
 
 1. Run → Edit Configurations → + → Attach to Node.js/Chrome
 2. Host: localhost, Port: 9231
@@ -18,16 +30,16 @@ Default enabled with script: `dev:debug`
    attach
 7. Hit the relevant page/route in the browser — breakpoint should catch
 
-*Gotchas:*
+_Gotchas:_
 
 - **Port is 9231, not 9230.** `next dev` (Turbopack) spawns a separate render-worker process that actually executes
   your pages/components — it is NOT the process `NODE_OPTIONS='--inspect=0.0.0.0:9230'` attaches to. Next.js itself
   bumps the inspector port by one for that worker and prints which one to use:
-  ```
-  Debugger listening on ws://0.0.0.0:9230/...   ← next dev CLI process, not where your code runs
-  Debugger listening on ws://0.0.0.0:9231/...   ← the actual render worker
-  - Debugger port: 9231
-  ```
+    ```
+    Debugger listening on ws://0.0.0.0:9230/...   ← next dev CLI process, not where your code runs
+    Debugger listening on ws://0.0.0.0:9231/...   ← the actual render worker
+    - Debugger port: 9231
+    ```
   Check `docker compose logs web` if breakpoints ever silently stop hitting after a Next.js upgrade — this offset
   isn't guaranteed to stay `+1` forever. Both 9230 and 9231 are published in `infra/docker-compose.yml`.
 - This inspector reaches code that runs **on the server** — Server Components, Route Handlers, middleware, data

@@ -7,9 +7,9 @@ import {getRequestCountByRoute} from '../api/getRequestCountByRoute'
 const POLL_INTERVAL_MS = 15_000
 
 export type RequestCountByRoute =
-    | { state: 'loading' }
-    | { state: 'ok'; counts: RouteRequestCount[] }
-    | { state: 'error'; message: string }
+    | {state: 'loading'}
+    | {state: 'ok'; counts: RouteRequestCount[]}
+    | {state: 'error'; message: string}
 
 export function useRequestCountByRoute(window: RequestTimeWindow): RequestCountByRoute {
     const [state, setState] = useState<RequestCountByRoute>({state: 'loading'})
@@ -17,6 +17,7 @@ export function useRequestCountByRoute(window: RequestTimeWindow): RequestCountB
     useEffect(() => {
         let cancelled = false
         const controller = new AbortController()
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- resets to loading when `window` changes
         setState({state: 'loading'})
 
         async function poll() {

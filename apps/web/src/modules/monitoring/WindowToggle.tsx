@@ -4,7 +4,7 @@ import type {RequestTimeWindow} from '@heritagemonitor/shared'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 
-const WINDOW_OPTIONS: { value: RequestTimeWindow; label: string }[] = [
+const WINDOW_OPTIONS: {value: RequestTimeWindow; label: string}[] = [
     {value: '1m', label: '1 min'},
     {value: '1h', label: '1 hour'},
     {value: '6h', label: '6 hours'},

@@ -1,5 +1,9 @@
 import {apiGet} from '@/common/api/apiClient'
-import {type RequestCountResponse, requestCountResponseSchema, type RequestTimeWindow} from '@heritagemonitor/shared'
+import {
+    type RequestCountResponse,
+    requestCountResponseSchema,
+    type RequestTimeWindow,
+} from '@heritagemonitor/shared'
 
 export function getRequestCountByRoute(
     window: RequestTimeWindow,

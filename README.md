@@ -57,4 +57,6 @@ root/
    migrations only.
 4. Labor division: web/ returns pages (HTML/React), api/ returns JSON only. web/ never talks to Postgres/OpenSearch
    directly — it always goes through api/.
-5. Always format code (Webstorm OPTION+SIHFT+F) and always optimize imports (Webstorm OPTION+SIHFT+O)
+5. Always format code
+   1. in /apps/web with ...
+   2. in /apps/api with ...

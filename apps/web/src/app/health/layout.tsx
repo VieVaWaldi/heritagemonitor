@@ -7,10 +7,10 @@ export const metadata: Metadata = {
     description: 'Live status of the HeritageMonitor api.',
 }
 
-export default function HealthLayout({children}: Readonly<{ children: React.ReactNode }>) {
+export default function HealthLayout({children}: Readonly<{children: React.ReactNode}>) {
     return (
         <>
-            <HealthNav/>
+            <HealthNav />
             {children}
         </>
     )

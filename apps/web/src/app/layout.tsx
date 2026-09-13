@@ -1,20 +1,25 @@
 import {AppRouterCacheProvider} from '@mui/material-nextjs/v15-appRouter'
+import {NextIntlClientProvider} from 'next-intl'
 import type {Metadata} from 'next'
-import React from "react";
+import type React from 'react'
+import {ThemeModeProvider} from '@/common/theme/ThemeModeProvider'
+import {ebGaramond, inter} from '@/common/theme/fonts'
 
 export const metadata: Metadata = {
     title: 'HeritageMonitor',
     description: 'Scientometric platform for cultural heritage research',
 }
 
-export default function RootLayout({
-                                       children,
-                                   }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
     return (
-        <html lang="en">
-        <body>
-        <AppRouterCacheProvider>{children}</AppRouterCacheProvider>
-        </body>
+        <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`}>
+            <body>
+                <AppRouterCacheProvider>
+                    <ThemeModeProvider>
+                        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+                    </ThemeModeProvider>
+                </AppRouterCacheProvider>
+            </body>
         </html>
     )
 }

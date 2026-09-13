@@ -7,16 +7,20 @@ import {getRequestTimeSeries} from '../api/getRequestTimeSeries'
 const POLL_INTERVAL_MS = 15_000
 
 export type RequestTimeSeries =
-    | { state: 'loading' }
-    | { state: 'ok'; buckets: RequestTimeBucket[] }
-    | { state: 'error'; message: string }
+    | {state: 'loading'}
+    | {state: 'ok'; buckets: RequestTimeBucket[]}
+    | {state: 'error'; message: string}
 
-export function useRequestTimeSeries(route: string | null, window: RequestTimeWindow): RequestTimeSeries {
+export function useRequestTimeSeries(
+    route: string | null,
+    window: RequestTimeWindow,
+): RequestTimeSeries {
     const [state, setState] = useState<RequestTimeSeries>({state: 'loading'})
 
     useEffect(() => {
         let cancelled = false
         const controller = new AbortController()
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- resets to loading when `route`/`window` change
         setState({state: 'loading'})
 
         async function poll() {

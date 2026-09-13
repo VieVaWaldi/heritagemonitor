@@ -34,7 +34,11 @@ export function RequestTimePage() {
                 Request Time
             </Typography>
 
-            <Stack direction={{xs: 'column', sm: 'row'}} spacing={2} sx={{mb: 3, alignItems: 'center'}}>
+            <Stack
+                direction={{xs: 'column', sm: 'row'}}
+                spacing={2}
+                sx={{mb: 3, alignItems: 'center'}}
+            >
                 <Select
                     size="small"
                     value={routeSelectValue}
@@ -51,7 +55,7 @@ export function RequestTimePage() {
                         ))}
                 </Select>
 
-                <WindowToggle value={window} onChange={setWindow}/>
+                <WindowToggle value={window} onChange={setWindow} />
             </Stack>
 
             {monitoredRoutes.state === 'error' && (

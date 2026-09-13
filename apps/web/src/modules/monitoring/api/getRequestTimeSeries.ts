@@ -15,5 +15,7 @@ export function getRequestTimeSeries(
     const params = new URLSearchParams({window})
     if (route) params.set('route', route)
 
-    return apiGet(`/v1/monitoring/request-time?${params}`, requestTimeSeriesResponseSchema, {signal})
+    return apiGet(`/v1/monitoring/request-time?${params}`, requestTimeSeriesResponseSchema, {
+        signal,
+    })
 }

@@ -5,7 +5,10 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 export class ApiError extends Error {
-    constructor(message: string, public readonly status: number) {
+    constructor(
+        message: string,
+        public readonly status: number,
+    ) {
         super(message)
         this.name = 'ApiError'
     }

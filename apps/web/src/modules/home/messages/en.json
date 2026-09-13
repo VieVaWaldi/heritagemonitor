@@ -1,0 +1,8 @@
+{
+    "Home": {
+        "title": "HeritageMonitor",
+        "tagline": "A scientometric platform for cultural heritage research",
+        "description": "HeritageMonitor tracks and visualizes how cultural heritage research evolves across Europe — who is funding it, who is publishing it, and how the field is changing over time.",
+        "statusLabel": "Frontend is up."
+    }
+}

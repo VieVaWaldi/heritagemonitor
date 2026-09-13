@@ -3,11 +3,14 @@
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import {useTranslations} from 'next-intl'
 import type {HealthCheckResult} from '@heritagemonitor/shared'
+import {Text} from '@/common/text'
 import {useHealthStatus} from './hooks/useHealthStatus'
 
 function CheckRow({check}: {check: HealthCheckResult}) {
+    const t = useTranslations('Health')
+
     return (
         <Box sx={{display: 'flex', alignItems: 'center', gap: 2}}>
             <Chip
@@ -15,39 +18,46 @@ function CheckRow({check}: {check: HealthCheckResult}) {
                 color={check.status === 'ok' ? 'success' : 'error'}
                 sx={{width: 110}}
             />
-            <Typography variant="body2" color="text.secondary">
-                {check.message} · checked {check.checkedAt.toLocaleTimeString()}
-            </Typography>
+            <Text variant="body2" color="text.secondary">
+                {t('checkStatus', {
+                    message: check.message,
+                    time: check.checkedAt.toLocaleTimeString(),
+                })}
+            </Text>
         </Box>
     )
 }
 
 export function HealthPage() {
+    const t = useTranslations('Health')
     const status = useHealthStatus()
 
     return (
         <Box sx={{p: 4}}>
-            <Typography variant="h4" component="h1" gutterBottom>
-                System Health
-            </Typography>
+            <Text variant="h4" component="h1" gutterBottom>
+                {t('title')}
+            </Text>
 
-            {status.state === 'loading' && <Chip label="checking..."/>}
+            {status.state === 'loading' && <Chip label={t('checking')} />}
             {status.state === 'error' && (
-                <Typography variant="body2" color="error">
-                    {status.message} · last attempted {status.checkedAt.toLocaleTimeString()}
-                </Typography>
+                <Text variant="body2" color="error">
+                    {t('lastAttempted', {
+                        message: status.message,
+                        time: status.checkedAt.toLocaleTimeString(),
+                    })}
+                </Text>
             )}
             {status.state === 'ok' && (
                 <Stack spacing={1.5}>
                     {status.data.checks.map((check) => (
-                        <CheckRow key={check.name} check={check}/>
+                        <CheckRow key={check.name} check={check} />
                     ))}
                 </Stack>
             )}
 
-            <Typography variant="caption" color="text.secondary" sx={{display: 'block', mt: 2}}>
-                Polling api /v1/health every 5s
-            </Typography>
+            <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 2}}>
+                {t('pollingNote', {endpoint: '/v1/health', seconds: 5})}
+            </Text>
         </Box>
     )
 }

@@ -7,9 +7,9 @@ import {getHealthStatus} from '../api/getHealthStatus'
 const POLL_INTERVAL_MS = 5000
 
 export type HealthStatus =
-    | { state: 'loading' }
-    | { state: 'ok'; data: HealthCheckResponse; checkedAt: Date }
-    | { state: 'error'; message: string; checkedAt: Date }
+    | {state: 'loading'}
+    | {state: 'ok'; data: HealthCheckResponse; checkedAt: Date}
+    | {state: 'error'; message: string; checkedAt: Date}
 
 // Business logic (polling, error handling) lives here, not in HealthPage —
 // per apps/web/RULES.md #7, UI components stay clean of domain logic.

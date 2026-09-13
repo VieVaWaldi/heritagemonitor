@@ -24,7 +24,7 @@ export function RequestCountPage() {
             </Typography>
 
             <Stack direction="row" sx={{mb: 3}}>
-                <WindowToggle value={window} onChange={setWindow}/>
+                <WindowToggle value={window} onChange={setWindow} />
             </Stack>
 
             {counts.state === 'loading' && <Typography variant="body2">Loading…</Typography>}
@@ -45,17 +45,24 @@ export function RequestCountPage() {
                 <BarChart
                     layout="horizontal"
                     // Already sorted busiest-first by the api — no re-sort here.
-                    dataset={counts.counts.map((entry) => ({route: entry.route, count: entry.count}))}
+                    dataset={counts.counts.map((entry) => ({
+                        route: entry.route,
+                        count: entry.count,
+                    }))}
                     yAxis={[{dataKey: 'route', scaleType: 'band'}]}
                     xAxis={[{label: 'requests'}]}
                     series={[{dataKey: 'count', label: 'requests'}]}
-                    height={Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, counts.counts.length * HEIGHT_PER_ROUTE))}
+                    height={Math.min(
+                        MAX_HEIGHT,
+                        Math.max(MIN_HEIGHT, counts.counts.length * HEIGHT_PER_ROUTE),
+                    )}
                     margin={{left: 220}}
                 />
             )}
 
             <Typography variant="caption" color="text.secondary" sx={{display: 'block', mt: 2}}>
-                Polling api /v1/monitoring/request-count every 15s · in-memory, resets on api restart
+                Polling api /v1/monitoring/request-count every 15s · in-memory, resets on api
+                restart
             </Typography>
         </Box>
     )

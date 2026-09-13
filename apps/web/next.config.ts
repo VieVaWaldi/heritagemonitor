@@ -1,4 +1,5 @@
 import type {NextConfig} from 'next'
+import createNextIntlPlugin from 'next-intl/plugin'
 
 const nextConfig: NextConfig = {
     // Prod Docker image only needs .next/standalone + .next/static + public —
@@ -9,4 +10,6 @@ const nextConfig: NextConfig = {
     output: 'standalone',
 }
 
-export default nextConfig
+const withNextIntl = createNextIntlPlugin('./src/common/i18n/request.ts')
+
+export default withNextIntl(nextConfig)
