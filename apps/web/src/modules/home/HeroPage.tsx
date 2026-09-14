@@ -14,13 +14,14 @@ import {useTypedTitle} from './hooks/useTypedTitle'
 import {UseCaseBar} from './components/UseCaseBar'
 import {UseCaseContentBar} from './components/UseCaseContentBar'
 import {ScrollHint} from './components/ScrollHint'
+import {LogoBanner} from './components/LogoBanner'
 import {HeroDesktopLayout} from './layout/HeroDesktopLayout'
 import {HeroMobileLayout} from './layout/HeroMobileLayout'
 import type {HeroLayoutSlots} from './layout/types'
 
 // Container: owns state/wiring and picks the layout for the current
-// breakpoint. No breakpoint-specific markup lives here — that's
-// HeroDesktopLayout/HeroMobileLayout's job
+// breakpoint. No breakpoint-specific markup lives here
+// That's HeroDesktopLayout/HeroMobileLayout's job
 export function HeroPage() {
     const t = useTranslations('Home')
     const theme = useTheme()
@@ -123,6 +124,7 @@ export function HeroPage() {
             </Text>
         ),
         scrollHint: <ScrollHint label={t('scrollDown')} />,
+        logoBanner: <LogoBanner />,
     }
 
     return isDesktop ? <HeroDesktopLayout {...slots} /> : <HeroMobileLayout {...slots} />

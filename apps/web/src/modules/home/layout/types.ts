@@ -16,4 +16,5 @@ export interface HeroLayoutSlots {
     useCaseContent: ReactNode
     footerCta: ReactNode
     scrollHint: ReactNode
+    logoBanner: ReactNode
 }

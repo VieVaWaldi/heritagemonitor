@@ -44,7 +44,15 @@ export function UseCaseContentBar({
                 </Text>
 
                 {useCase.subUseCases && useCase.subUseCases.length > 0 && (
-                    <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: fluidUnit(0.5)}}>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            width: '100%',
+                            gap: fluidUnit(0.5),
+                        }}
+                    >
                         {useCase.subUseCases.map((subUseCase) => {
                             const entity = ENTITIES.find((e) => e.key === subUseCase.action.entity)
                             return (

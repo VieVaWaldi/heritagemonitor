@@ -7,7 +7,6 @@ import type {HeroLayoutSlots} from './types'
 // #12). HeroPage builds the content, this only places it. Top/bottom halves
 // are pinned to exactly 50% height each (flex: '0 0 50%' + minHeight: 0) so
 // switching UseCase never reflows the split — overflowing content scrolls
-// inside UseCaseContentBar instead of growing this layout.
 export function HeroDesktopLayout({
     menu,
     languageSelector,
@@ -20,6 +19,7 @@ export function HeroDesktopLayout({
     useCaseContent,
     footerCta,
     scrollHint,
+    logoBanner,
 }: HeroLayoutSlots) {
     return (
         <Box
@@ -34,9 +34,6 @@ export function HeroDesktopLayout({
             <Box sx={{position: 'absolute', top: fluidUnit(1.5), left: fluidUnit(1.5), zIndex: 1}}>{menu}</Box>
             <Box sx={{position: 'absolute', top: fluidUnit(1.5), right: fluidUnit(1.5), zIndex: 1}}>
                 {languageSelector}
-            </Box>
-            <Box sx={{position: 'absolute', bottom: fluidUnit(1.5), left: fluidUnit(1.5), zIndex: 1}}>
-                {scrollHint}
             </Box>
 
             <Box
@@ -67,7 +64,6 @@ export function HeroDesktopLayout({
                     alignItems: 'center',
                     overflow: 'hidden',
                     px: fluidUnit(2),
-                    pb: fluidUnit(1.5),
                 }}
             >
                 <Box
@@ -84,7 +80,27 @@ export function HeroDesktopLayout({
                     <Box sx={{flex: 'none', mt: fluidUnit(1)}}>{useCaseBar}</Box>
                     {useCaseContent}
                 </Box>
-                <Box sx={{flex: 'none'}}>{footerCta}</Box>
+
+                {/* scrollHint anchors to this row (not the viewport) so it always
+                    sits directly above logoBanner, whatever the banner's height. */}
+                <Box sx={{flex: 'none', width: '100%', position: 'relative', display: 'flex', justifyContent: 'center'}}>
+                    <Box sx={{position: 'absolute', left: fluidUnit(-0.5), bottom: 0}}>{scrollHint}</Box>
+                    {footerCta}
+                </Box>
+
+                {/* Full-bleed: cancels the px: fluidUnit(2) above so the banner's
+                    background/border reach the viewport edges like everywhere else
+                    the banner is used, instead of stopping at the hero's content inset. */}
+                <Box
+                    sx={{
+                        flex: 'none',
+                        width: `calc(100% + ${fluidUnit(4)})`,
+                        mx: fluidUnit(-2),
+                        mt: fluidUnit(1),
+                    }}
+                >
+                    {logoBanner}
+                </Box>
             </Box>
         </Box>
     )

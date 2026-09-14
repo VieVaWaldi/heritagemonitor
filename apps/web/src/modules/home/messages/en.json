@@ -5,41 +5,53 @@
         "orYouCould": "Or you could",
         "haveIdea": "Have an idea? <tellUs>Tell us!</tellUs>",
         "scrollDown": "Scroll down to learn more",
+        "digicher": {
+            "title": "Built within DIGICHer",
+            "body": "Heritage Monitor is built within DIGICHer, a Horizon Europe project working toward more equitable digitisation of minority cultural heritage. Starting with Sámi, Jewish, and Ladin communities. That mission is baked into the platform itself: we keep an open, Wikidata-grounded index of minorities, so communities can see how they're represented and you tell us when we got it wrong.",
+            "cta": "Learn more about DIGICHer"
+        },
         "information": {
-            "title": "WANT TO KNOW MORE?",
-            "sections": [
+            "title": "Want to know more?",
+            "tldr": [
+                "We turn large open datasets into insights for specific scientific fields. Starting with Digital Cultural Heritage (DCH). Intangible Cultural Heritage (ICH) is next, and the platform is built to handle any field.",
+                "We prototype fast: new features for researchers, policy makers, and communities, on solid technical ground. Have an idea you'd use? Tell us.",
+                "A lot of good research is hidden in plain sight, buried in databases nobody opens. Heritage Monitor exists to close that gap between academic work and the people who could use it."
+            ],
+            "featuresTitle": "What makes it special?",
+            "features": [
                 {
-                    "title": "What is Heritage Monitor?",
-                    "content": "Heritage Monitor is an interactive data platform that transforms cultural heritage research findings into clear, searchable, and reusable outputs. It supports users in exploring organizations, projects, and publications in Europe and beyond to discover, address, and engage with patterns of cooperation, funding landscapes, and emerging research directions in the field of cultural heritage."
+                    "title": "Translation across 200 languages (NLLB)",
+                    "description": "Most research on cultural heritage isn't written in English, especially in a niche field like DCH. We use NLLB to translate [X] texts, so they become searchable, classifiable, and part of the topic model instead of invisible to anyone who doesn't read the original language."
                 },
                 {
-                    "title": "What data do we use and where is it from?",
-                    "content": "The platform aggregates large public datasets from leading European research organizations - including organizational archives, project funding data, and research results - to provide the most comprehensive picture possible of research activity in the field of cultural heritage. This combined data enables a clear presentation and thus also the comparison of trends, funding opportunities, and thematic areas in which cultural heritage research takes place."
+                    "title": "Classification of Science, with experts in the loop",
+                    "description": "Not everything in a 50M work dataset is actually about cultural heritage. We use a SciBERT-based model, checked and tuned by domain experts, to carve out the subset that is, starting with DCH. That focused subset is what keeps everything downstream: search, topics, comparisons relevant instead of buried in noise."
                 },
                 {
-                    "title": "Difference between List and Map?",
-                    "content": "The Heritage Monitor allows you to search at various levels. The list view provides structured, searchable data - ideal for sorting and filtering organizations, projects, or research results. The map view visualizes this information geographically, helping you to visually locate research activities and patterns within a spatial area. Together, these two main display options offer insights into detailed data and spatial context."
-                },
-                {
-                    "title": "What can I do with the Map?",
-                    "content": "Using this map, you can visually explore cultural heritage research and stakeholders across Europe: See where organizations are located or identify regional centers of activity. Use the map to compare and visualize geographical patterns of funding and collaboration, thereby revealing spatial patterns, connections, or differences."
-                },
-                {
-                    "title": "What can I do with the List?",
-                    "content": "The list view allows you to explore cultural heritage data in a structured and detailed way. It enables you to search, filter, and sort organizations, projects, and publications according to specific criteria. You can compare entries, identify key players, analyze funding patterns, and quickly access relevant information. The list view is ideal for focused research, targeted queries, and in-depth analyses that go beyond geographical visualization."
+                    "title": "Topics, scoped to the field",
+                    "description": "Because the data's already narrowed to one field and translated into English, topic modelling has less noise to work with: more texts qualify thanks to translation, and the topics themselves describe DCH specifically, Or science in general."
                 }
             ],
-            "fundedLine": "Funded by the European Union, built for Everyone."
+            "prototypesTitle": "What we're prototyping right now",
+            "prototypesIntro": "Rapid prototyping is also about how you see the data, not just what you can search. Two early looks: a deck.gl globe tracing where FSU Jena's collaborations actually reach, and a d3-force network clustering an archaeology query by topic. What ships next depends on what you tell us you'd use.",
+            "prototypes": [
+                {
+                    "caption": "Where FSU Jena's collaborations reach, mapped geospatially with deck.gl."
+                },
+                {
+                    "caption": "A query network for archaeology, clustered by topic with d3-force."
+                }
+            ]
         },
         "footer": {
             "department": {
                 "name": "Digital Humanities at Friedrich Schiller University",
-                "description": "The junior professorship focuses on high-level research and teaching in Digital Humanities and Digital Cultural Heritage, specializing in image- and object-based knowledge media. Our work encompasses information behavior, museum mediation, and digital competencies development.",
+                "description": "The professorship focuses on high-level research and teaching in Digital Humanities and Digital Cultural Heritage, specializing in image- and object-based knowledge media. Our work encompasses information behavior, museum mediation, and digital competencies development.",
                 "cta": "Visit Department Website"
             },
             "contact": {
                 "title": "Contact",
-                "lead": "Led by J.Prof. Dr. Sander Münster",
+                "lead": "Led by Prof. Dr. Sander Münster",
                 "developer": "Developed by Walter Ehrenberger",
                 "github": "@github",
                 "developerWebsite": "Developer Website"
