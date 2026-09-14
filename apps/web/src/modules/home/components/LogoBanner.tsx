@@ -2,6 +2,7 @@ import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import type {SxProps, Theme} from '@mui/material/styles'
 import Image from 'next/image'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import {PARTNER_LOGOS} from '../data/logos'
 
 // Plain CSS transition, not theme.transitions.create(...) — this component
@@ -28,13 +29,13 @@ export function LogoBanner() {
                     flexWrap: 'wrap',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: fluidUnit(4),
                     backgroundColor: 'background.paper',
                     borderTop: 1,
                     borderBottom: 1,
                     borderColor: 'divider',
-                    py: 3,
-                    px: 4,
+                    py: fluidUnit(1.5),
+                    px: fluidUnit(2),
                 }}
             >
                 {PARTNER_LOGOS.map((logo) => (
@@ -45,7 +46,7 @@ export function LogoBanner() {
                             width={logo.width}
                             height={logo.height}
                             sizes="200px"
-                            style={{height: 50, width: 'auto'}}
+                            style={{height: fluidUnit(3.125), width: 'auto'}}
                         />
                     </Link>
                 ))}
@@ -59,7 +60,7 @@ export function LogoBanner() {
                     borderTop: 1,
                     borderBottom: 1,
                     borderColor: 'divider',
-                    py: 3,
+                    py: fluidUnit(1.5),
                 }}
             >
                 <Box
@@ -79,7 +80,7 @@ export function LogoBanner() {
                             href={logo.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            sx={{...linkSx, mx: 4, flexShrink: 0}}
+                            sx={{...linkSx, mx: fluidUnit(2), flexShrink: 0}}
                         >
                             <Image
                                 src={logo.src}
@@ -87,7 +88,7 @@ export function LogoBanner() {
                                 width={logo.width}
                                 height={logo.height}
                                 sizes="160px"
-                                style={{height: 40, width: 'auto'}}
+                                style={{height: fluidUnit(2.5), width: 'auto'}}
                             />
                         </Link>
                     ))}
