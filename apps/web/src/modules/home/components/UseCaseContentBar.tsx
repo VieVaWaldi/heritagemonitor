@@ -3,6 +3,7 @@
 import Box from '@mui/material/Box'
 import {IconTextButton} from '@/common/components'
 import {Text} from '@/common/text'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ENTITIES, type UseCase} from '../data/useCases'
 
 export interface UseCaseContentBarProps {
@@ -24,8 +25,8 @@ export function UseCaseContentBar({
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
-                    gap: 2.5,
-                    py: 2,
+                    gap: fluidUnit(1.25),
+                    py: fluidUnit(1),
                 }}
             >
                 <Text
@@ -36,14 +37,14 @@ export function UseCaseContentBar({
                         fontStyle: 'italic',
                         borderLeft: 3,
                         borderColor: useCase.color,
-                        pl: 2,
+                        pl: fluidUnit(1),
                     }}
                 >
                     {useCase.description}
                 </Text>
 
                 {useCase.subUseCases && useCase.subUseCases.length > 0 && (
-                    <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1}}>
+                    <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: fluidUnit(0.5)}}>
                         {useCase.subUseCases.map((subUseCase) => {
                             const entity = ENTITIES.find((e) => e.key === subUseCase.action.entity)
                             return (
@@ -57,7 +58,11 @@ export function UseCaseContentBar({
                                     label={subUseCase.name}
                                     selected={subUseCase.key === selectedSubUseCaseKey}
                                     onClick={() => onSelectSubUseCase(subUseCase.key)}
-                                    sx={{px: 2.5, py: 1.25, fontSize: '1.05rem'}}
+                                    sx={{
+                                        px: fluidUnit(1.25),
+                                        py: fluidUnit(0.625),
+                                        fontSize: fluidUnit(1.05),
+                                    }}
                                 />
                             )
                         })}

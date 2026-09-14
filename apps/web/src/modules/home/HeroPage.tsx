@@ -5,6 +5,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import {useTheme} from '@mui/material/styles'
 import Link from '@mui/material/Link'
 import {Text} from '@/common/text'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ActionBar, HMMenu, LanguageSelection} from '@/common/components'
 import {ENTITIES, CORPUSES} from './data/useCases'
 import {useHeroSelection} from './hooks/useHeroSelection'
@@ -47,7 +48,7 @@ export function HeroPage() {
         menu: <HMMenu variant="plain" size={40} />,
         languageSelector: <LanguageSelection />,
         title: (
-            <Text variant="h3" component="h1">
+            <Text variant="h3" component="h1" sx={{fontSize: fluidUnit(3)}}>
                 {typedTitle || ' '}
             </Text>
         ),
@@ -65,12 +66,12 @@ export function HeroPage() {
             />
         ),
         subtitle: (
-            <Text variant="h5" sx={{fontWeight: 300}}>
+            <Text variant="h5" sx={{fontWeight: 300, fontSize: fluidUnit(1.5)}}>
                 {t('forResearchers')}
             </Text>
         ),
         sourcesLine: (
-            <Text variant="h5" sx={{fontWeight: 300}}>
+            <Text variant="h5" sx={{fontWeight: 300, fontSize: fluidUnit(1.5)}}>
                 {t.rich('sourcesText', {
                     openaire: (chunks) => (
                         <Link
@@ -95,7 +96,7 @@ export function HeroPage() {
             </Text>
         ),
         useCasesIntro: (
-            <Text variant="h4" sx={{textAlign: 'left'}}>
+            <Text variant="h4" sx={{textAlign: 'left', fontSize: fluidUnit(2.125)}}>
                 {t('orYouCould')}
             </Text>
         ),
@@ -110,7 +111,7 @@ export function HeroPage() {
             />
         ),
         footerCta: (
-            <Text variant="h5">
+            <Text variant="h5" sx={{fontSize: fluidUnit(1.5)}}>
                 {t.rich('haveIdea', {
                     // onClick intentionally left undefined — destination not defined yet.
                     tellUs: (chunks) => (

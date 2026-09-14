@@ -7,6 +7,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import {alpha} from '@mui/material/styles'
 import type SvgIcon from '@mui/material/SvgIcon'
 import {useValueChangeFlash} from '@/common/hooks/useValueChangeFlash'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ACTION_BAR_BORDER_WIDTH, ACTION_BAR_BORDER_COLOR, ACTION_BAR_BORDER_HOVER_COLOR} from './actionBarStyle'
 
 /** Type of a `@mui/icons-material` icon component, e.g. `SearchIcon`. */
@@ -55,9 +56,9 @@ export function EntitySelector<Key extends string = string>({
                 </Box>
             )}
             sx={(theme) => ({
-                minWidth: 180,
+                minWidth: fluidUnit(11.25),
                 backgroundColor: 'transparent',
-                fontSize: '1.05rem',
+                fontSize: fluidUnit(1.05),
                 '@keyframes entitySelectorGlow': {
                     '0%': {
                         boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.9)}`,
@@ -87,11 +88,11 @@ export function EntitySelector<Key extends string = string>({
                     borderWidth: ACTION_BAR_BORDER_WIDTH,
                 },
                 '& .MuiSelect-select': {
-                    py: 2,
-                    px: 2.5,
+                    py: fluidUnit(1),
+                    px: fluidUnit(1.25),
                     display: 'flex',
                     alignItems: 'center',
-                    fontSize: '1.05rem',
+                    fontSize: fluidUnit(1.05),
                 },
                 '& .MuiSelect-icon': {color: 'primary.main'},
             })}

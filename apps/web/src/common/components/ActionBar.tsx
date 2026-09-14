@@ -1,6 +1,7 @@
 'use client'
 
 import Box from '@mui/material/Box'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import {SearchBar} from './SearchBar'
 import {EntitySelector, type SelectorOption} from './EntitySelector'
 import {CorpusSelector, type CorpusOption} from './CorpusSelector'
@@ -35,7 +36,7 @@ export function ActionBar<EntityKey extends string = string, CorpusKey extends s
     onCorpusChange,
 }: ActionBarProps<EntityKey, CorpusKey>) {
     return (
-        <Box sx={{display: 'flex', alignItems: 'stretch', gap: 2, width: '100%'}}>
+        <Box sx={{display: 'flex', alignItems: 'stretch', gap: fluidUnit(1), width: '100%'}}>
             <Box sx={{flex: 1, minWidth: 0}}>
                 <SearchBar
                     value={searchValue}

@@ -1,4 +1,6 @@
 import Box from '@mui/material/Box'
+import {fluidUnit} from '@/common/theme/fluidUnit'
+import {HERO_FLUID_UNIT_DECLARATION} from './heroFluidUnit'
 import type {HeroLayoutSlots} from './types'
 
 // Pure skeleton — desktop split, no hooks/business logic (apps/web/RULES.md
@@ -20,10 +22,22 @@ export function HeroDesktopLayout({
     scrollHint,
 }: HeroLayoutSlots) {
     return (
-        <Box sx={{position: 'relative', height: '100dvh', display: 'flex', flexDirection: 'column'}}>
-            <Box sx={{position: 'absolute', top: 24, left: 24, zIndex: 1}}>{menu}</Box>
-            <Box sx={{position: 'absolute', top: 24, right: 24, zIndex: 1}}>{languageSelector}</Box>
-            <Box sx={{position: 'absolute', bottom: 24, left: 24, zIndex: 1}}>{scrollHint}</Box>
+        <Box
+            sx={{
+                position: 'relative',
+                height: '100dvh',
+                display: 'flex',
+                flexDirection: 'column',
+                '--fluid-unit': HERO_FLUID_UNIT_DECLARATION,
+            }}
+        >
+            <Box sx={{position: 'absolute', top: fluidUnit(1.5), left: fluidUnit(1.5), zIndex: 1}}>{menu}</Box>
+            <Box sx={{position: 'absolute', top: fluidUnit(1.5), right: fluidUnit(1.5), zIndex: 1}}>
+                {languageSelector}
+            </Box>
+            <Box sx={{position: 'absolute', bottom: fluidUnit(1.5), left: fluidUnit(1.5), zIndex: 1}}>
+                {scrollHint}
+            </Box>
 
             <Box
                 sx={{
@@ -33,14 +47,14 @@ export function HeroDesktopLayout({
                     alignItems: 'center',
                     justifyContent: 'center',
                     overflow: 'hidden',
-                    px: 4,
+                    px: fluidUnit(2),
                 }}
             >
                 <Box sx={{width: '60%'}}>
-                    <Box sx={{pl: 1}}>{title}</Box>
-                    <Box sx={{mt: 3}}>{actionBar}</Box>
-                    <Box sx={{mt: 3, pl: 1}}>{subtitle}</Box>
-                    <Box sx={{mt: 1, pl: 1}}>{sourcesLine}</Box>
+                    <Box sx={{pl: fluidUnit(0.5)}}>{title}</Box>
+                    <Box sx={{mt: fluidUnit(1.5)}}>{actionBar}</Box>
+                    <Box sx={{mt: fluidUnit(1.5), pl: fluidUnit(0.5)}}>{subtitle}</Box>
+                    <Box sx={{mt: fluidUnit(0.5), pl: fluidUnit(0.5)}}>{sourcesLine}</Box>
                 </Box>
             </Box>
 
@@ -52,8 +66,8 @@ export function HeroDesktopLayout({
                     flexDirection: 'column',
                     alignItems: 'center',
                     overflow: 'hidden',
-                    px: 4,
-                    pb: 3,
+                    px: fluidUnit(2),
+                    pb: fluidUnit(1.5),
                 }}
             >
                 <Box
@@ -63,11 +77,11 @@ export function HeroDesktopLayout({
                         minHeight: 0,
                         display: 'flex',
                         flexDirection: 'column',
-                        mt: 2,
+                        mt: fluidUnit(1),
                     }}
                 >
                     <Box sx={{flex: 'none'}}>{useCasesIntro}</Box>
-                    <Box sx={{flex: 'none', mt: 2}}>{useCaseBar}</Box>
+                    <Box sx={{flex: 'none', mt: fluidUnit(1)}}>{useCaseBar}</Box>
                     {useCaseContent}
                 </Box>
                 <Box sx={{flex: 'none'}}>{footerCta}</Box>

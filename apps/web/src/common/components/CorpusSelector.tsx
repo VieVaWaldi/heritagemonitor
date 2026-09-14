@@ -6,6 +6,7 @@ import Select, {type SelectChangeEvent} from '@mui/material/Select'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import {alpha} from '@mui/material/styles'
 import {useValueChangeFlash} from '@/common/hooks/useValueChangeFlash'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import type {SelectorOption} from './EntitySelector'
 import {ACTION_BAR_BORDER_WIDTH, ACTION_BAR_BORDER_COLOR, ACTION_BAR_BORDER_HOVER_COLOR} from './actionBarStyle'
 
@@ -45,9 +46,9 @@ export function CorpusSelector<Key extends string = string>({
                 </Box>
             )}
             sx={(theme) => ({
-                minWidth: 140,
+                minWidth: fluidUnit(8.75),
                 backgroundColor: 'transparent',
-                fontSize: '1.05rem',
+                fontSize: fluidUnit(1.05),
                 '@keyframes corpusSelectorGlow': {
                     '0%': {
                         boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.9)}`,
@@ -80,12 +81,12 @@ export function CorpusSelector<Key extends string = string>({
                     borderWidth: ACTION_BAR_BORDER_WIDTH,
                 },
                 '& .MuiSelect-select': {
-                    py: 2,
-                    pl: 2.5,
-                    pr: 4.5,
+                    py: fluidUnit(1),
+                    pl: fluidUnit(1.25),
+                    pr: fluidUnit(2.25),
                     display: 'flex',
                     alignItems: 'center',
-                    fontSize: '1.05rem',
+                    fontSize: fluidUnit(1.05),
                 },
                 '& .MuiSelect-icon': {color: 'primary.main'},
             })}

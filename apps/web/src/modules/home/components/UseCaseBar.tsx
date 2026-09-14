@@ -6,6 +6,7 @@ import IconButton from '@mui/material/IconButton'
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft'
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 import {IconTextButton} from '@/common/components'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import type {UseCase} from '../data/useCases'
 
 export interface UseCaseBarProps {
@@ -17,7 +18,7 @@ export interface UseCaseBarProps {
 // Matches the height IconTextButton renders at with the sx below (py: 1.25 +
 // medium icon + 1.05rem text) so the arrows read as "one of the row", not a
 // mismatched control bolted on.
-const ARROW_SIZE = 48
+const ARROW_SIZE = fluidUnit(3)
 
 export function UseCaseBar({useCases, selectedKey, onSelect}: UseCaseBarProps) {
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -79,9 +80,9 @@ export function UseCaseBar({useCases, selectedKey, onSelect}: UseCaseBarProps) {
                     justifyContent: 'flex-start',
                     overflowX: 'auto',
                     width: '100%',
-                    gap: 3,
-                    pl: 1,
-                    pr: canScrollRight ? `${ARROW_SIZE + 16}px` : 1,
+                    gap: fluidUnit(1.5),
+                    pl: fluidUnit(0.5),
+                    pr: canScrollRight ? `calc(${ARROW_SIZE} + ${fluidUnit(1)})` : fluidUnit(0.5),
                     scrollbarWidth: 'none',
                     '&::-webkit-scrollbar': {display: 'none'},
                 }}
@@ -93,7 +94,13 @@ export function UseCaseBar({useCases, selectedKey, onSelect}: UseCaseBarProps) {
                         label={useCase.name}
                         selected={useCase.key === selectedKey}
                         onClick={() => onSelect(useCase.key)}
-                        sx={{px: 2.5, py: 1.25, fontSize: '1.05rem', flexShrink: 0, whiteSpace: 'nowrap'}}
+                        sx={{
+                            px: fluidUnit(1.25),
+                            py: fluidUnit(0.625),
+                            fontSize: fluidUnit(1.05),
+                            flexShrink: 0,
+                            whiteSpace: 'nowrap',
+                        }}
                     />
                 ))}
             </Box>

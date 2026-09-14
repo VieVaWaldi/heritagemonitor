@@ -5,6 +5,7 @@ import InputAdornment from '@mui/material/InputAdornment'
 import TextField, {type TextFieldProps} from '@mui/material/TextField'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
+import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ACTION_BAR_BORDER_WIDTH, ACTION_BAR_BORDER_COLOR, ACTION_BAR_BORDER_HOVER_COLOR} from './actionBarStyle'
 
 const PILL_RADIUS = '50px'
@@ -49,7 +50,7 @@ export function SearchBar({
                     '& .MuiOutlinedInput-root': {
                         ...borderRadius,
                         backgroundColor: 'transparent',
-                        fontSize: '1.05rem',
+                        fontSize: fluidUnit(1.05),
                         '& fieldset': {
                             borderColor: ACTION_BAR_BORDER_COLOR,
                             borderWidth: ACTION_BAR_BORDER_WIDTH,
@@ -60,7 +61,7 @@ export function SearchBar({
                             borderWidth: ACTION_BAR_BORDER_WIDTH,
                         },
                     },
-                    '& .MuiOutlinedInput-input': {py: 2, px: 1},
+                    '& .MuiOutlinedInput-input': {py: fluidUnit(1), px: fluidUnit(0.5)},
                 },
                 ...(Array.isArray(sx) ? sx : [sx]),
             ]}
