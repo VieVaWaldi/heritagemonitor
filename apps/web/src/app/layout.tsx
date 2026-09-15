@@ -4,6 +4,7 @@ import type {Metadata} from 'next'
 import type React from 'react'
 import {ThemeModeProvider} from '@/common/theme/ThemeModeProvider'
 import {ebGaramond, inter} from '@/common/theme/fonts'
+import {CorpusProvider} from '@/common/catalog'
 
 export const metadata: Metadata = {
     title: 'HeritageMonitor',
@@ -16,7 +17,9 @@ export default function RootLayout({children}: Readonly<{children: React.ReactNo
             <body>
                 <AppRouterCacheProvider>
                     <ThemeModeProvider>
-                        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+                        <NextIntlClientProvider>
+                            <CorpusProvider>{children}</CorpusProvider>
+                        </NextIntlClientProvider>
                     </ThemeModeProvider>
                 </AppRouterCacheProvider>
             </body>

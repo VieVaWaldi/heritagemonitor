@@ -9,9 +9,6 @@ export {
 
 export {CorpusPanel} from './CorpusPanel'
 
-export {CORPUSES} from './corpusOptions'
-export type {CorpusKey, CorpusOption} from './corpusOptions'
-
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
 

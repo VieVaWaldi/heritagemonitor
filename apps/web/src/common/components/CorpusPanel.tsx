@@ -7,7 +7,7 @@ import Divider from '@mui/material/Divider'
 import {alpha} from '@mui/material/styles'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
-import {CORPUSES, type CorpusKey, type CorpusOption} from './corpusOptions'
+import {CORPUSES, useCorpus, type CorpusKey, type CorpusOption} from '@/common/catalog'
 
 const ROW_HEIGHT = 44
 const CORNER_RADIUS = 12
@@ -23,8 +23,6 @@ const PANEL_WIDTH = 260
 // — same trick EntitySelector uses for its own floating panel.
 const PANEL_GAP = 1.25
 const FADE_TRANSITION = 'opacity 150ms ease'
-
-const DEFAULT_CORPUS: CorpusKey = 'science'
 
 // A small "power light" marking which corpus is currently active on the
 // collapsed trigger. The expanded panel doesn't repeat it — the rows are
@@ -82,13 +80,13 @@ function CorpusRow({option, onSelect}: CorpusRowProps) {
 // read as a card floating over arbitrary page content, right-aligned here
 // instead of centered since the trigger sits flush against the edge.
 export function CorpusPanel() {
-    const [selectedKey, setSelectedKey] = useState<CorpusKey>(DEFAULT_CORPUS)
+    const {selectedCorpus, setSelectedCorpus} = useCorpus()
     const [expanded, setExpanded] = useState(false)
 
-    const selected = CORPUSES.find((option) => option.key === selectedKey) ?? CORPUSES[0]
+    const selected = CORPUSES.find((option) => option.key === selectedCorpus) ?? CORPUSES[0]
 
     function handleSelect(key: CorpusKey) {
-        setSelectedKey(key)
+        setSelectedCorpus(key)
         setExpanded(false)
     }
 

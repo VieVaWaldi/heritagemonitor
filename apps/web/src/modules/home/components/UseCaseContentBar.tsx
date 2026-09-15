@@ -4,7 +4,8 @@ import Box from '@mui/material/Box'
 import {IconTextButton} from '@/common/components'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
-import {ENTITIES, type UseCase} from '../data/useCases'
+import {ENTITIES} from '@/common/catalog'
+import type {UseCase} from '../data/useCases'
 
 export interface UseCaseContentBarProps {
     useCase: UseCase

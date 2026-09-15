@@ -1,8 +1,11 @@
 import CastleIcon from '@mui/icons-material/Castle'
 import BiotechIcon from '@mui/icons-material/Biotech'
-import type {IconComponent} from './EntitySelector'
+import type {IconComponent} from '@/common/components/EntitySelector'
 
-export type CorpusKey = 'science' | 'dch'
+// Shared with home (CorpusPanel, via CorpusContext) and /search (results
+// filter + query param).
+
+export type CorpusKey = 'dch' | 'science'
 
 export interface CorpusOption {
     key: CorpusKey
@@ -16,17 +19,19 @@ export interface CorpusOption {
 
 export const CORPUSES: CorpusOption[] = [
     {
-        key: 'science',
-        label: 'SCI',
-        fullName: 'Science',
-        icon: BiotechIcon,
-        color: 'primary.main',
-    },
-    {
         key: 'dch',
         label: 'DCH',
         fullName: 'Digital Cultural Heritage',
         icon: CastleIcon,
         color: 'secondary.main',
     },
+    {
+        key: 'science',
+        label: 'SCI',
+        fullName: 'Science',
+        icon: BiotechIcon,
+        color: 'primary.main',
+    },
 ]
+
+export const DEFAULT_CORPUS: CorpusKey = 'science'

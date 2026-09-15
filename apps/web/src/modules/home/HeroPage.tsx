@@ -5,6 +5,8 @@ import Link from '@mui/material/Link'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ActionBar} from '@/common/components'
+import {useCorpus} from '@/common/catalog'
+import {buildSearchUrl} from '@/common/url'
 import {useHeroSelection} from './hooks/useHeroSelection'
 import {useCyclingPlaceholder} from './hooks/useCyclingPlaceholder'
 import {useHeroTitle} from './hooks/useHeroTitle'
@@ -23,6 +25,7 @@ export function HeroPage() {
         selectedUseCase,
         selectedSubUseCase,
         activeExamples,
+        activeRoute,
         selectedEntity,
         entityOptions,
         entitySelectorInteractive,
@@ -32,9 +35,22 @@ export function HeroPage() {
         setSearchValue,
         setSelectedEntity,
     } = useHeroSelection()
+    const {selectedCorpus} = useCorpus()
 
     const placeholder = useCyclingPlaceholder(activeExamples)
     const {title: heroTitle, isIntro, notifyUseCaseSelected} = useHeroTitle(selectedUseCase.title)
+
+    function handleSearchSubmit() {
+        if (!activeRoute) return
+        const url = buildSearchUrl({
+            route: activeRoute,
+            query: searchValue,
+            entity: selectedEntity,
+            corpus: selectedCorpus,
+        })
+        console.log(url)
+        // router.push(url) — enable once /search exists to receive these params
+    }
 
     const slots: HeroLayoutSlots = {
         title: (
@@ -50,6 +66,7 @@ export function HeroPage() {
             <ActionBar
                 searchValue={searchValue}
                 onSearchChange={setSearchValue}
+                onSearchSubmit={handleSearchSubmit}
                 placeholder={placeholder}
                 entityOptions={entityOptions}
                 entitySelectorInteractive={entitySelectorInteractive}

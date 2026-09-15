@@ -1,37 +1,10 @@
-import type {IconComponent, SelectorOption} from '@/common/components'
+import type {IconComponent} from '@/common/components'
+import type {EntityKey} from '@/common/catalog'
 import SearchIcon from '@mui/icons-material/Search'
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import HubIcon from '@mui/icons-material/Hub'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
-import ScienceIcon from '@mui/icons-material/Science'
-import DescriptionIcon from '@mui/icons-material/Description'
-import ApartmentIcon from '@mui/icons-material/Apartment'
-import PaidIcon from '@mui/icons-material/Paid'
-
-// Might want to move this to common later, because /search will probably also depend on it
-
-export type EntityKey =
-    | 'projects'
-    | 'works'
-    | 'organisations'
-    | 'minorities'
-    | 'experts'
-    | 'grants'
-    | 'topics'
-    | 'organisationNetwork'
-    | 'queryNetwork'
-
-export type EntityOption = SelectorOption<EntityKey>
-
-// The only entities /search actually supports. Other UseCases don't have a
-// real, user-picked entity — see UseCase#hasEntitySelector.
-export const ENTITIES: EntityOption[] = [
-    {key: 'projects', label: 'Projects', icon: ScienceIcon, color: 'primary.light'},
-    {key: 'works', label: 'Works', icon: DescriptionIcon, color: 'primary.main'},
-    {key: 'organisations', label: 'Organisations', icon: ApartmentIcon, color: 'primary.dark'},
-    {key: 'grants', label: 'Grants', icon: PaidIcon, color: 'secondary.dark'},
-]
 
 export interface UseCaseAction {
     entity: EntityKey
