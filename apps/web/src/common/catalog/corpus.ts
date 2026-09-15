@@ -19,18 +19,18 @@ export interface CorpusOption {
 
 export const CORPUSES: CorpusOption[] = [
     {
-        key: 'dch',
-        label: 'DCH',
-        fullName: 'Digital Cultural Heritage',
-        icon: CastleIcon,
-        color: 'secondary.main',
-    },
-    {
         key: 'science',
         label: 'SCI',
         fullName: 'Science',
         icon: BiotechIcon,
         color: 'primary.main',
+    },
+    {
+        key: 'dch',
+        label: 'DCH',
+        fullName: 'Digital Cultural Heritage',
+        icon: CastleIcon,
+        color: 'secondary.main',
     },
 ]
 
