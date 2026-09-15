@@ -5,5 +5,5 @@
 // tall viewport (MacBook), shrinking linearly to 12px at a ~585px tall
 // viewport (measured on a Full HD Windows laptop with display scaling) so
 // text, spacing, and controls shrink together instead of just clipping.
-// Set on HeroDesktopLayout's root Box; consumed everywhere via fluidUnit().
+// Set on HeroLayout's root Box; consumed everywhere via fluidUnit().
 export const HERO_FLUID_UNIT_DECLARATION = 'clamp(0.75rem, 0.391rem + 0.983dvh, 1rem)'

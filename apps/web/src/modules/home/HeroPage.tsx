@@ -1,31 +1,22 @@
 'use client'
 
 import {useTranslations} from 'next-intl'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import {useTheme} from '@mui/material/styles'
 import Link from '@mui/material/Link'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
-import {ActionBar, HMMenu, LanguageSelection} from '@/common/components'
-import {ENTITIES, CORPUSES} from './data/useCases'
+import {ActionBar} from '@/common/components'
 import {useHeroSelection} from './hooks/useHeroSelection'
 import {useCyclingPlaceholder} from './hooks/useCyclingPlaceholder'
-import {useTypedTitle} from './hooks/useTypedTitle'
-import {UseCaseBar} from './components/UseCaseBar'
-import {UseCaseContentBar} from './components/UseCaseContentBar'
-import {ScrollHint} from './components/ScrollHint'
+import {useHeroTitle} from './hooks/useHeroTitle'
+import {UseCaseSection} from './components/UseCaseSection'
 import {LogoBanner} from './components/LogoBanner'
-import {HeroDesktopLayout} from './layout/HeroDesktopLayout'
-import {HeroMobileLayout} from './layout/HeroMobileLayout'
+import {HeroLayout} from './layout/HeroLayout'
 import type {HeroLayoutSlots} from './layout/types'
 
-// Container: owns state/wiring and picks the layout for the current
-// breakpoint. No breakpoint-specific markup lives here
-// That's HeroDesktopLayout/HeroMobileLayout's job
+// Container: owns state/wiring and builds the slots. No breakpoint-specific
+// markup lives here — that's HeroLayout's job
 export function HeroPage() {
     const t = useTranslations('Home')
-    const theme = useTheme()
-    const isDesktop = true; // useMediaQuery(theme.breakpoints.up('md')) // overwritten until HeroMobileLayout.tsx exists
 
     const {
         useCases,
@@ -33,24 +24,26 @@ export function HeroPage() {
         selectedSubUseCase,
         activeExamples,
         selectedEntity,
-        selectedCorpus,
+        entityOptions,
+        entitySelectorInteractive,
         searchValue,
         selectUseCase,
         selectSubUseCase,
         setSearchValue,
         setSelectedEntity,
-        setSelectedCorpus,
     } = useHeroSelection()
 
     const placeholder = useCyclingPlaceholder(activeExamples)
-    const typedTitle = useTypedTitle(selectedUseCase.title)
+    const {title: heroTitle, isIntro, notifyUseCaseSelected} = useHeroTitle(selectedUseCase.title)
 
     const slots: HeroLayoutSlots = {
-        menu: <HMMenu variant="plain" size={40} />,
-        languageSelector: <LanguageSelection />,
         title: (
-            <Text variant="h3" component="h1" sx={{fontSize: fluidUnit(3)}}>
-                {typedTitle || ' '}
+            <Text
+                variant={isIntro ? 'h3' : 'h4'}
+                component="h1"
+                sx={{fontSize: isIntro ? fluidUnit(2.75) : fluidUnit(2)}}
+            >
+                {heroTitle || ' '}
             </Text>
         ),
         actionBar: (
@@ -58,12 +51,10 @@ export function HeroPage() {
                 searchValue={searchValue}
                 onSearchChange={setSearchValue}
                 placeholder={placeholder}
-                entityOptions={ENTITIES}
+                entityOptions={entityOptions}
+                entitySelectorInteractive={entitySelectorInteractive}
                 selectedEntity={selectedEntity}
                 onEntityChange={setSelectedEntity}
-                corpusOptions={CORPUSES}
-                selectedCorpus={selectedCorpus}
-                onCorpusChange={setSelectedCorpus}
             />
         ),
         subtitle: (
@@ -101,13 +92,15 @@ export function HeroPage() {
                 {t('orYouCould')}
             </Text>
         ),
-        useCaseBar: (
-            <UseCaseBar useCases={useCases} selectedKey={selectedUseCase.key} onSelect={selectUseCase} />
-        ),
-        useCaseContent: (
-            <UseCaseContentBar
-                useCase={selectedUseCase}
+        useCaseSection: (
+            <UseCaseSection
+                useCases={useCases}
+                selectedUseCase={selectedUseCase}
                 selectedSubUseCaseKey={selectedSubUseCase?.key}
+                onSelectUseCase={(key) => {
+                    notifyUseCaseSelected()
+                    selectUseCase(key)
+                }}
                 onSelectSubUseCase={selectSubUseCase}
             />
         ),
@@ -116,16 +109,15 @@ export function HeroPage() {
                 {t.rich('haveIdea', {
                     // onClick intentionally left undefined — destination not defined yet.
                     tellUs: (chunks) => (
-                        <Link component="button" type="button">
+                        <Link component="button" type="button" sx={{verticalAlign: 'baseline'}}>
                             {chunks}
                         </Link>
                     ),
                 })}
             </Text>
         ),
-        scrollHint: <ScrollHint label={t('scrollDown')} />,
         logoBanner: <LogoBanner />,
     }
 
-    return isDesktop ? <HeroDesktopLayout {...slots} /> : <HeroMobileLayout {...slots} />
+    return <HeroLayout {...slots} />
 }

@@ -4,7 +4,6 @@
         "sourcesText": "Use 3.7M projects, 50M publications and 400K organisations from <openaire>OpenAIRE</openaire> enriched with <ror>ROR</ror> and <cordis>Cordis</cordis>.",
         "orYouCould": "Or you could",
         "haveIdea": "Have an idea? <tellUs>Tell us!</tellUs>",
-        "scrollDown": "Scroll down to learn more",
         "digicher": {
             "title": "Built within DIGICHer",
             "body": "Heritage Monitor is built within DIGICHer, a Horizon Europe project working toward more equitable digitisation of minority cultural heritage. Starting with Sámi, Jewish, and Ladin communities. That mission is baked into the platform itself: we keep an open, Wikidata-grounded index of minorities, so communities can see how they're represented and you tell us when we got it wrong.",
@@ -17,23 +16,23 @@
                 "We prototype fast: new features for researchers, policy makers, and communities, on solid technical ground. Have an idea you'd use? Tell us.",
                 "A lot of good research is hidden in plain sight, buried in databases nobody opens. Heritage Monitor exists to close that gap between academic work and the people who could use it."
             ],
-            "featuresTitle": "What makes it special?",
+            "featuresTitle": "Secret Sauce",
             "features": [
                 {
                     "title": "Translation across 200 languages (NLLB)",
                     "description": "Most research on cultural heritage isn't written in English, especially in a niche field like DCH. We use NLLB to translate [X] texts, so they become searchable, classifiable, and part of the topic model instead of invisible to anyone who doesn't read the original language."
                 },
                 {
-                    "title": "Classification of Science, with experts in the loop",
+                    "title": "Classification of Science, with experts in the loop (SciBert)",
                     "description": "Not everything in a 50M work dataset is actually about cultural heritage. We use a SciBERT-based model, checked and tuned by domain experts, to carve out the subset that is, starting with DCH. That focused subset is what keeps everything downstream: search, topics, comparisons relevant instead of buried in noise."
                 },
                 {
-                    "title": "Topics, scoped to the field",
+                    "title": "Topics, scoped to the field (OA)",
                     "description": "Because the data's already narrowed to one field and translated into English, topic modelling has less noise to work with: more texts qualify thanks to translation, and the topics themselves describe DCH specifically, Or science in general."
                 }
             ],
             "prototypesTitle": "What we're prototyping right now",
-            "prototypesIntro": "Rapid prototyping is also about how you see the data, not just what you can search. Two early looks: a deck.gl globe tracing where FSU Jena's collaborations actually reach, and a d3-force network clustering an archaeology query by topic. What ships next depends on what you tell us you'd use.",
+            "prototypesIntro": "Rapid prototyping is also about how you see the data, not just what you can search. Two early looks: a deck.gl globe tracing where FSU Jena's collaborations actually reach, and a d3-force network clustering an archaeology query by topic. What ships next depends on what you tell us you'd use. We are open to anything :)",
             "prototypes": [
                 {
                     "caption": "Where FSU Jena's collaborations reach, mapped geospatially with deck.gl."

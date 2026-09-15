@@ -5,6 +5,7 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
+import {Navbar} from '@/common/components'
 import {ThemeToggle} from '@/common/theme/ThemeToggle'
 
 const TABS = [
@@ -19,19 +20,21 @@ export function HealthNav() {
     const activeTab = TABS.some((tab) => tab.href === pathname) ? pathname : false
 
     return (
-        <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 4}}>
-            <Tabs value={activeTab} sx={{borderBottom: 1, borderColor: 'divider'}}>
-                {TABS.map((tab) => (
-                    <Tab
-                        key={tab.href}
-                        label={tab.label}
-                        value={tab.href}
-                        component={Link}
-                        href={tab.href}
-                    />
-                ))}
-            </Tabs>
-            <ThemeToggle />
-        </Box>
+        <Navbar bordered>
+            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
+                <Tabs value={activeTab}>
+                    {TABS.map((tab) => (
+                        <Tab
+                            key={tab.href}
+                            label={tab.label}
+                            value={tab.href}
+                            component={Link}
+                            href={tab.href}
+                        />
+                    ))}
+                </Tabs>
+                <ThemeToggle />
+            </Box>
+        </Navbar>
     )
 }

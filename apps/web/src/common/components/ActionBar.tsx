@@ -4,9 +4,8 @@ import Box from '@mui/material/Box'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {SearchBar} from './SearchBar'
 import {EntitySelector, type SelectorOption} from './EntitySelector'
-import {CorpusSelector, type CorpusOption} from './CorpusSelector'
 
-export interface ActionBarProps<EntityKey extends string = string, CorpusKey extends string = string> {
+export interface ActionBarProps<EntityKey extends string = string> {
     searchValue: string
     onSearchChange: (value: string) => void
     /** Left undefined until there's a destination page to submit to. */
@@ -15,15 +14,16 @@ export interface ActionBarProps<EntityKey extends string = string, CorpusKey ext
     entityOptions: SelectorOption<EntityKey>[]
     selectedEntity: EntityKey
     onEntityChange: (key: EntityKey) => void
-    corpusOptions: CorpusOption<CorpusKey>[]
-    selectedCorpus: CorpusKey
-    onCorpusChange: (key: CorpusKey) => void
+    /** False renders the circle as a static icon with no hover panel — e.g.
+     * when entityOptions is a single non-pickable stand-in. Defaults true. */
+    entitySelectorInteractive?: boolean
 }
 
-// The 3-part configurable search bar: SearchBar (pill on the left) + EntitySelector
-// (square) + CorpusSelector (pill on the right), with a gap between each so the
-// whole bar reads as one pill-shaped control split into separate segments.
-export function ActionBar<EntityKey extends string = string, CorpusKey extends string = string>({
+// SearchBar (a full pill) plus a circular icon-only EntitySelector floating
+// just to its right, the same height as the bar. Corpus selection used to be
+// a third segment here — it now lives in the shared Navbar's CorpusPanel
+// instead.
+export function ActionBar<EntityKey extends string = string>({
     searchValue,
     onSearchChange,
     onSearchSubmit,
@@ -31,10 +31,8 @@ export function ActionBar<EntityKey extends string = string, CorpusKey extends s
     entityOptions,
     selectedEntity,
     onEntityChange,
-    corpusOptions,
-    selectedCorpus,
-    onCorpusChange,
-}: ActionBarProps<EntityKey, CorpusKey>) {
+    entitySelectorInteractive = true,
+}: ActionBarProps<EntityKey>) {
     return (
         <Box sx={{display: 'flex', alignItems: 'stretch', gap: fluidUnit(1), width: '100%'}}>
             <Box sx={{flex: 1, minWidth: 0}}>
@@ -44,11 +42,15 @@ export function ActionBar<EntityKey extends string = string, CorpusKey extends s
                     onClear={() => onSearchChange('')}
                     onSearchStart={(key) => key === 'Enter' && onSearchSubmit?.()}
                     placeholder={placeholder}
-                    roundedCorners="start"
+                    roundedCorners="all"
                 />
             </Box>
-            <EntitySelector options={entityOptions} value={selectedEntity} onChange={onEntityChange} />
-            <CorpusSelector options={corpusOptions} value={selectedCorpus} onChange={onCorpusChange} />
+            <EntitySelector
+                options={entityOptions}
+                value={selectedEntity}
+                onChange={onEntityChange}
+                interactive={entitySelectorInteractive}
+            />
         </Box>
     )
 }

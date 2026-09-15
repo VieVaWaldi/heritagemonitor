@@ -1,8 +1,4 @@
-import type {
-    IconComponent,
-    SelectorOption,
-    CorpusOption as CorpusSelectorOption,
-} from '@/common/components'
+import type {IconComponent, SelectorOption} from '@/common/components'
 import SearchIcon from '@mui/icons-material/Search'
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import HubIcon from '@mui/icons-material/Hub'
@@ -12,9 +8,6 @@ import ScienceIcon from '@mui/icons-material/Science'
 import DescriptionIcon from '@mui/icons-material/Description'
 import ApartmentIcon from '@mui/icons-material/Apartment'
 import PaidIcon from '@mui/icons-material/Paid'
-import TopicIcon from '@mui/icons-material/Topic'
-import MuseumIcon from '@mui/icons-material/Museum'
-import BiotechIcon from '@mui/icons-material/Biotech'
 
 // Might want to move this to common later, because /search will probably also depend on it
 
@@ -31,25 +24,13 @@ export type EntityKey =
 
 export type EntityOption = SelectorOption<EntityKey>
 
+// The only entities /search actually supports. Other UseCases don't have a
+// real, user-picked entity — see UseCase#hasEntitySelector.
 export const ENTITIES: EntityOption[] = [
     {key: 'projects', label: 'Projects', icon: ScienceIcon, color: 'primary.light'},
     {key: 'works', label: 'Works', icon: DescriptionIcon, color: 'primary.main'},
     {key: 'organisations', label: 'Organisations', icon: ApartmentIcon, color: 'primary.dark'},
-    {key: 'experts', label: 'Experts', icon: WorkspacePremiumIcon, color: 'secondary.light'},
-    {key: 'minorities', label: 'Minorities', icon: PeopleAltIcon, color: 'secondary.main'},
     {key: 'grants', label: 'Grants', icon: PaidIcon, color: 'secondary.dark'},
-    {key: 'topics', label: 'Topics', icon: TopicIcon, color: 'warning.light'},
-    // {key: 'organisationNetwork', label: 'Organisation network', icon: ShareIcon, color: 'warning.main'},
-    // {key: 'queryNetwork', label: 'Query network', icon: TravelExploreIcon, color: 'warning.dark'},
-]
-
-export type CorpusKey = 'dch' | 'science'
-
-export type CorpusOption = CorpusSelectorOption<CorpusKey>
-
-export const CORPUSES: CorpusOption[] = [
-    {key: 'dch', label: 'DCH', icon: MuseumIcon, color: 'secondary.main'},
-    {key: 'science', label: 'Science', icon: BiotechIcon, color: 'primary.main'},
 ]
 
 export interface UseCaseAction {
@@ -79,6 +60,15 @@ export interface UseCase {
     /** Only set when subUseCases is set — which one is selected by default */
     defaultSubUseCaseKey?: string
     tip?: string
+    /**
+     * Whether the ActionBar's circle is a real, hoverable entity picker
+     * (options: ENTITIES) rather than a static icon showing this UseCase's
+     * own `icon`/`color`. Only Search lets the user pick which entity to
+     * search — the other UseCases (and Collaboration's subUseCases, which
+     * point at different entities under the hood) always show one fixed
+     * icon for the whole UseCase.
+     */
+    hasEntitySelector?: boolean
 }
 
 export const USE_CASES: UseCase[] = [
@@ -95,6 +85,7 @@ export const USE_CASES: UseCase[] = [
             entity: 'projects',
             route: '/search',
         },
+        hasEntitySelector: true,
         tip: 'You can talk to LucAi about the results on the next page',
     },
     {
@@ -108,6 +99,7 @@ export const USE_CASES: UseCase[] = [
         examples: ['3D scanning specialist', 'heritage conservation architect', 'digitisation consultant'],
         action: {
             entity: 'experts',
+            route: '/search/experts',
         },
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
@@ -122,6 +114,7 @@ export const USE_CASES: UseCase[] = [
         examples: ['Roma heritage', 'indigenous knowledge systems', 'minority language archives'],
         action: {
             entity: 'minorities',
+            route: '/search/minorities',
         },
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
@@ -136,6 +129,7 @@ export const USE_CASES: UseCase[] = [
         examples: ['Horizon Europe heritage grant', 'national conservation fund', 'UNESCO heritage grant'],
         action: {
             entity: 'grants',
+            route: '/search/funding',
         },
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
@@ -143,7 +137,7 @@ export const USE_CASES: UseCase[] = [
         key: 'collaboration',
         icon: HubIcon,
         color: 'warning.dark',
-        name: 'Visualise Collabs',
+        name: 'Visualise Collaborations',
         title: 'Map who works with whom',
         description:
             'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',

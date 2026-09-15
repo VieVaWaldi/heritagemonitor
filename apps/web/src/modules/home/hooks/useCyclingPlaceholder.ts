@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from 'react'
 
-const HOLD_MS = 1800
+const HOLD_MS = 2800
 const TYPE_MS = 45
 const DELETE_MS = 25
 const SWITCH_PAUSE_MS = 300

@@ -11,7 +11,6 @@ import {
     DualSlider,
     FilterChip,
     FilterSection,
-    HMMenu,
     IconTextButton,
     IconTextPill,
     MultiSelectDropdown,
@@ -60,41 +59,6 @@ export function ComponentsDemoPage() {
             <Text variant="body2" color="text.secondary" sx={{mb: 4}}>
                 Every ported common/mui component, with representative sample props.
             </Text>
-
-            <Section title="HMMenu">
-                <Stack direction="row" spacing={4} sx={{alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                    <Stack spacing={1} sx={{alignItems: 'center'}}>
-                        <HMMenu variant="plain" size={40} />
-                        <Text variant="caption" color="text.secondary">
-                            plain / 40
-                        </Text>
-                    </Stack>
-                    <Stack spacing={1} sx={{alignItems: 'center'}}>
-                        <HMMenu variant="circle" size={48} />
-                        <Text variant="caption" color="text.secondary">
-                            circle / 48
-                        </Text>
-                    </Stack>
-                    <Stack spacing={1} sx={{alignItems: 'center'}}>
-                        <HMMenu variant="circle" size={64} />
-                        <Text variant="caption" color="text.secondary">
-                            circle / 64
-                        </Text>
-                    </Stack>
-                    <Stack spacing={1} sx={{alignItems: 'center'}}>
-                        <HMMenu variant="square" size={48} />
-                        <Text variant="caption" color="text.secondary">
-                            square / 48
-                        </Text>
-                    </Stack>
-                    <Stack spacing={1} sx={{alignItems: 'center'}}>
-                        <HMMenu variant="pill" size={40} />
-                        <Text variant="caption" color="text.secondary">
-                            pill / 40
-                        </Text>
-                    </Stack>
-                </Stack>
-            </Section>
 
             <Section title="FilterChip">
                 <Stack direction="row" spacing={1}>

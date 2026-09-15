@@ -7,8 +7,10 @@ export {
     ACTION_BAR_BORDER_HOVER_COLOR,
 } from './actionBarStyle'
 
-export {CorpusSelector} from './CorpusSelector'
-export type {CorpusSelectorProps, CorpusOption} from './CorpusSelector'
+export {CorpusPanel} from './CorpusPanel'
+
+export {CORPUSES} from './corpusOptions'
+export type {CorpusKey, CorpusOption} from './corpusOptions'
 
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
@@ -20,7 +22,6 @@ export {FilterSection} from './FilterSection'
 export type {FilterSectionProps} from './FilterSection'
 
 export {HMMenu} from './HMMenu'
-export type {HMMenuProps} from './HMMenu'
 
 export {IconTextButton} from './IconTextButton'
 export type {IconTextButtonProps} from './IconTextButton'
@@ -33,6 +34,9 @@ export type {LanguageSelectionProps} from './LanguageSelection'
 
 export {MultiSelectDropdown} from './MultiSelectDropdown'
 export type {MultiSelectDropdownProps, MultiSelectOption} from './MultiSelectDropdown'
+
+export {Navbar, NAVBAR_HEIGHT} from './Navbar'
+export type {NavbarProps} from './Navbar'
 
 export {SearchBar} from './SearchBar'
 export type {SearchBarProps} from './SearchBar'

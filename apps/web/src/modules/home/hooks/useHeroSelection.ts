@@ -1,10 +1,9 @@
 'use client'
 
 import {useState} from 'react'
-import {USE_CASES, type EntityKey, type CorpusKey} from '../data/useCases'
+import {ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '../data/useCases'
 
 const DEFAULT_ENTITY: EntityKey = 'projects'
-const DEFAULT_CORPUS: CorpusKey = 'dch'
 
 // Business logic behind the Hero page's UseCase picker + ActionBar, kept out
 // of the JSX per apps/web/RULES.md #7.
@@ -17,7 +16,6 @@ export function useHeroSelection() {
     // selected UseCase/SubUseCase implies, until a new UseCase is picked.
     const [entityOverride, setEntityOverride] = useState<EntityKey | null>(null)
     const [searchValue, setSearchValue] = useState('')
-    const [selectedCorpus, setSelectedCorpus] = useState<CorpusKey>(DEFAULT_CORPUS)
 
     const selectedUseCase = USE_CASES.find((useCase) => useCase.key === selectedUseCaseKey) ?? USE_CASES[0]
     const selectedSubUseCase = selectedUseCase.subUseCases?.find(
@@ -26,6 +24,21 @@ export function useHeroSelection() {
     const activeAction = selectedSubUseCase?.action ?? selectedUseCase.action
     const activeExamples = selectedSubUseCase?.examples ?? selectedUseCase.examples
     const selectedEntity = entityOverride ?? activeAction?.entity ?? DEFAULT_ENTITY
+
+    // Only Search lets the user actually pick an entity (ENTITIES). Every
+    // other UseCase shows one fixed, non-interactive icon — its own — no
+    // matter which entity its (sub)UseCase action targets under the hood.
+    const entitySelectorInteractive = selectedUseCase.hasEntitySelector ?? false
+    const entityOptions: EntityOption[] = entitySelectorInteractive
+        ? ENTITIES
+        : [
+              {
+                  key: selectedEntity,
+                  label: selectedUseCase.name,
+                  icon: selectedUseCase.icon,
+                  color: selectedUseCase.color,
+              },
+          ]
 
     function selectUseCase(key: string) {
         setSelectedUseCaseKey(key)
@@ -49,12 +62,12 @@ export function useHeroSelection() {
         selectedSubUseCase,
         activeExamples,
         selectedEntity,
-        selectedCorpus,
+        entityOptions,
+        entitySelectorInteractive,
         searchValue,
         selectUseCase,
         selectSubUseCase,
         setSearchValue,
         setSelectedEntity,
-        setSelectedCorpus,
     }
 }
