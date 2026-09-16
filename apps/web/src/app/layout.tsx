@@ -1,4 +1,4 @@
-import {AppRouterCacheProvider} from '@mui/material-nextjs/v15-appRouter'
+import {AppRouterCacheProvider} from '@mui/material-nextjs/v16-appRouter'
 import {NextIntlClientProvider} from 'next-intl'
 import type {Metadata} from 'next'
 import type React from 'react'
