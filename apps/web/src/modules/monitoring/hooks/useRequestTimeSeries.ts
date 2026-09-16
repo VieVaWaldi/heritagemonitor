@@ -1,7 +1,7 @@
 'use client'
 
 import type {RequestTimeBucket, RequestTimeWindow} from '@heritagemonitor/shared'
-import {useEffect, useState} from 'react'
+import {usePolledResource} from '@/common/hooks/usePolledResource'
 import {getRequestTimeSeries} from '../api/getRequestTimeSeries'
 
 const POLL_INTERVAL_MS = 15_000
@@ -15,34 +15,11 @@ export function useRequestTimeSeries(
     route: string | null,
     window: RequestTimeWindow,
 ): RequestTimeSeries {
-    const [state, setState] = useState<RequestTimeSeries>({state: 'loading'})
-
-    useEffect(() => {
-        let cancelled = false
-        const controller = new AbortController()
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- resets to loading when `route`/`window` change
-        setState({state: 'loading'})
-
-        async function poll() {
-            try {
-                const {buckets} = await getRequestTimeSeries(route, window, controller.signal)
-                if (!cancelled) setState({state: 'ok', buckets})
-            } catch (err) {
-                if (cancelled || (err instanceof DOMException && err.name === 'AbortError')) return
-                const message = err instanceof Error ? err.message : 'Unknown error'
-                setState({state: 'error', message})
-            }
-        }
-
-        poll()
-        const intervalId = setInterval(poll, POLL_INTERVAL_MS)
-
-        return () => {
-            cancelled = true
-            controller.abort()
-            clearInterval(intervalId)
-        }
-    }, [route, window])
-
-    return state
+    const result = usePolledResource(
+        (signal) => getRequestTimeSeries(route, window, signal),
+        POLL_INTERVAL_MS,
+        [route, window],
+    )
+    if (result.state === 'ok') return {state: 'ok', buckets: result.data.buckets}
+    return result
 }

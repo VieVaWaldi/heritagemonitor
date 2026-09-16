@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {usePolledResource} from '@/common/hooks/usePolledResource'
 import {getMonitoredRoutes} from '../api/getMonitoredRoutes'
 
 const POLL_INTERVAL_MS = 30_000
@@ -12,32 +12,7 @@ export type MonitoredRoutes =
 // the page loads (e.g. someone just exercised a new endpoint) shows up in
 // the picker without a manual refresh.
 export function useMonitoredRoutes(): MonitoredRoutes {
-    const [state, setState] = useState<MonitoredRoutes>({state: 'loading'})
-
-    useEffect(() => {
-        let cancelled = false
-        const controller = new AbortController()
-
-        async function poll() {
-            try {
-                const {routes} = await getMonitoredRoutes(controller.signal)
-                if (!cancelled) setState({state: 'ok', routes})
-            } catch (err) {
-                if (cancelled || (err instanceof DOMException && err.name === 'AbortError')) return
-                const message = err instanceof Error ? err.message : 'Unknown error'
-                setState({state: 'error', message})
-            }
-        }
-
-        poll()
-        const intervalId = setInterval(poll, POLL_INTERVAL_MS)
-
-        return () => {
-            cancelled = true
-            controller.abort()
-            clearInterval(intervalId)
-        }
-    }, [])
-
-    return state
+    const result = usePolledResource(getMonitoredRoutes, POLL_INTERVAL_MS, [])
+    if (result.state === 'ok') return {state: 'ok', routes: result.data.routes}
+    return result
 }
