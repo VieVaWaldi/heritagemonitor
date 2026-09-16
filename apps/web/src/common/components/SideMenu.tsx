@@ -13,8 +13,9 @@ export const SIDE_MENU_WIDTH = 400
 export interface SideMenuProps {
     /** Which side the menu appears on */
     side: 'left' | 'right'
-    /** Title displayed in the header */
-    title: string
+    /** Title displayed in the header. A plain string for a static title, or
+     * e.g. a Link for one that should also navigate (see HMMenu). */
+    title: ReactNode
     /** Optional action buttons (e.g., "Reset All") placed between title and close */
     headerActions?: ReactNode
     /** Menu content */
