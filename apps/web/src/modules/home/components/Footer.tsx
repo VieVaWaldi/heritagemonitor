@@ -1,11 +1,11 @@
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Image from 'next/image'
 import GitHubIcon from '@mui/icons-material/GitHub'
 import LanguageIcon from '@mui/icons-material/Language'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import {useTranslations} from 'next-intl'
 import {Text} from '@/common/text'
+import {ThemedLogoImage} from './ThemedLogoImage'
 
 const DEPARTMENT_URL = 'https://www.gw.uni-jena.de/en/8465/juniorprofessur-fuer-digital-humanities'
 const GITHUB_URL = 'https://github.com/vievawaldi'
@@ -104,8 +104,9 @@ export function Footer() {
                     }}
                 >
                     <Box sx={{position: 'relative', height: 64, width: 160}}>
-                        <Image
+                        <ThemedLogoImage
                             src="/images/logos/eu-logo.jpg"
+                            darkSrc="/images/logos/eu-logo-dark.png"
                             alt="EU Funded - DigiCHer Logo"
                             fill
                             sizes="160px"

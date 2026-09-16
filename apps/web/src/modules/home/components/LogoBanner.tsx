@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import type {SxProps, Theme} from '@mui/material/styles'
-import Image from 'next/image'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {PARTNER_LOGOS} from '../data/logos'
+import {ThemedLogoImage} from './ThemedLogoImage'
 
 // Plain CSS transition, not theme.transitions.create(...) — this component
 // has no 'use client' (it's static, no hooks), and an sx function value
@@ -40,8 +40,9 @@ export function LogoBanner() {
             >
                 {PARTNER_LOGOS.map((logo) => (
                     <Link key={logo.alt} href={logo.href} target="_blank" rel="noopener noreferrer" sx={linkSx}>
-                        <Image
+                        <ThemedLogoImage
                             src={logo.src}
+                            darkSrc={logo.darkSrc}
                             alt={logo.alt}
                             width={logo.width}
                             height={logo.height}
@@ -82,8 +83,9 @@ export function LogoBanner() {
                             rel="noopener noreferrer"
                             sx={{...linkSx, mx: fluidUnit(2), flexShrink: 0}}
                         >
-                            <Image
+                            <ThemedLogoImage
                                 src={logo.src}
+                                darkSrc={logo.darkSrc}
                                 alt={logo.alt}
                                 width={logo.width}
                                 height={logo.height}
