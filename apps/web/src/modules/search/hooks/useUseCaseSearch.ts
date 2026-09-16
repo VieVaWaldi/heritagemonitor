@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {
     CORPUSES,
@@ -20,7 +20,7 @@ const DEFAULT_ENTITY: EntityKey = 'projects'
  * counterpart to home's useHeroSelection. Unlike the hero, the UseCase (and
  * SubUseCase) here is fixed by the route rather than picked in the UI, and
  * submitting re-runs the search on the same page instead of navigating away
- * to it. Kept out of the JSX per apps/web/RULES.md #7.
+ * to it.
  *
  * The URL is the source of truth for `q`/`e`/`c`: the ActionBar hydrates from
  * them on load (so a shared link or a reload reproduces the exact search
@@ -92,35 +92,21 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         pushSearchUrl({})
     }
 
-    // Switching entity starts a new search — the previous query doesn't
-    // necessarily mean anything for the newly selected entity, so it's
-    // cleared along with it instead of carried over.
     function handleEntityChange(key: EntityKey) {
         setEntityOverride(key)
         setSearchValue('')
         pushSearchUrl({entity: key, query: ''})
     }
 
-    // Corpus lives in CorpusContext (shared with every other route), not
-    // local state, so syncing it can't be "adjusted during render" the way
-    // searchValue/entityOverride are above — setSelectedCorpus targets a
-    // different component's (CorpusProvider's) state, and mutating that
-    // during this component's render is unsafe. Both directions genuinely
-    // belong in an effect:
-    //   - URL has a valid, different corpus (permalink, mount, back/forward)
-    //     → it wins: adopt it into the context.
-    //   - otherwise, the context differs from the URL for some other reason
-    //     (CorpusPanel, in the shared Navbar, was used) → reflect it in the
-    //     URL. router.replace, not push: a background sync, not a new search
-    //     the user should be able to back-button away from.
-    // The `return` after the first branch is what keeps these from fighting
-    // on the same render — only one direction ever acts per mismatch.
+    const lastSyncedUrlCorpus = useRef<CorpusKey | null>(null)
     useEffect(() => {
-        if (urlCorpusIsUsable && urlCorpus !== selectedCorpus) {
+        if (urlCorpusIsUsable && urlCorpus !== lastSyncedUrlCorpus.current && urlCorpus !== selectedCorpus) {
+            lastSyncedUrlCorpus.current = urlCorpus
             setSelectedCorpus(urlCorpus)
             return
         }
         if (action?.route && selectedCorpus !== urlCorpus) {
+            lastSyncedUrlCorpus.current = selectedCorpus
             router.replace(
                 buildSearchUrl({route: action.route, query: urlQuery, entity: selectedEntity, corpus: selectedCorpus}),
             )
