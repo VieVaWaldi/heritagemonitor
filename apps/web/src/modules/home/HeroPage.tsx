@@ -1,14 +1,15 @@
 'use client'
 
 import {useTranslations} from 'next-intl'
+import {useRouter} from 'next/navigation'
 import Link from '@mui/material/Link'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ActionBar} from '@/common/components'
 import {useCorpus} from '@/common/catalog'
 import {buildSearchUrl} from '@/common/url'
+import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
 import {useHeroSelection} from './hooks/useHeroSelection'
-import {useCyclingPlaceholder} from './hooks/useCyclingPlaceholder'
 import {useHeroTitle} from './hooks/useHeroTitle'
 import {UseCaseSection} from './components/UseCaseSection'
 import {LogoBanner} from './components/LogoBanner'
@@ -19,6 +20,7 @@ import type {HeroLayoutSlots} from './layout/types'
 // markup lives here — that's HeroLayout's job
 export function HeroPage() {
     const t = useTranslations('Home')
+    const router = useRouter()
 
     const {
         useCases,
@@ -42,14 +44,9 @@ export function HeroPage() {
 
     function handleSearchSubmit() {
         if (!activeRoute) return
-        const url = buildSearchUrl({
-            route: activeRoute,
-            query: searchValue,
-            entity: selectedEntity,
-            corpus: selectedCorpus,
-        })
-        console.log(url)
-        // router.push(url) — enable once /search exists to receive these params
+        router.push(
+            buildSearchUrl({route: activeRoute, query: searchValue, entity: selectedEntity, corpus: selectedCorpus}),
+        )
     }
 
     const slots: HeroLayoutSlots = {

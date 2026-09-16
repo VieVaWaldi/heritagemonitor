@@ -1,8 +1,7 @@
 'use client'
 
 import {useState} from 'react'
-import {ENTITIES, type EntityKey, type EntityOption} from '@/common/catalog'
-import {USE_CASES} from '../data/useCases'
+import {ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
 
 const DEFAULT_ENTITY: EntityKey = 'projects'
 
@@ -26,7 +25,7 @@ export function useHeroSelection() {
     const activeExamples = selectedSubUseCase?.examples ?? selectedUseCase.examples
     const selectedEntity = entityOverride ?? activeAction?.entity ?? DEFAULT_ENTITY
     // Destination path for the search submit — every UseCase/SubUseCase
-    // action currently defines one (see home/data/useCases.ts).
+    // action currently defines one (see common/catalog/useCases.ts).
     const activeRoute = activeAction?.route
 
     // Only Search lets the user actually pick an entity (ENTITIES). Every

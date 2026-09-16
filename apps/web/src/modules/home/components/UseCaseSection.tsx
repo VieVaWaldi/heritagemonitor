@@ -3,7 +3,7 @@
 import Box from '@mui/material/Box'
 import {useElementWidth} from '@/common/hooks/useElementWidth'
 import {fluidUnit} from '@/common/theme/fluidUnit'
-import type {UseCase} from '../data/useCases'
+import type {UseCase} from '@/common/catalog'
 import {UseCaseBar} from './UseCaseBar'
 import {UseCaseContentBar} from './UseCaseContentBar'
 

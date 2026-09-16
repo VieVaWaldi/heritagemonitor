@@ -12,6 +12,11 @@ import {CorpusPanel} from './CorpusPanel'
 // pushed past it by the navbar sitting above.
 export const NAVBAR_HEIGHT = 44
 
+// "tall" is double height — used by /search and friends, whose Navbar
+// carries an ActionBar in the middle slot that needs more room than a plain
+// tab strip does.
+export const NAVBAR_HEIGHT_TALL = NAVBAR_HEIGHT * 2
+
 export interface NavbarProps {
     /** Adds a divider under the bar — deliberately faint (a fraction of the
      * theme's own divider color) since it's just a soft hint of a break, not
@@ -22,13 +27,18 @@ export interface NavbarProps {
     /** Pins the bar to the top of its scroll container instead of scrolling
      * away with the page. */
     sticky?: boolean
+    /** 'tall' doubles the bar's height (see NAVBAR_HEIGHT_TALL) — for
+     * content heavier than a tab strip, e.g. /search's ActionBar. Defaults
+     * to 'default'. */
+    size?: 'default' | 'tall'
     /** Page-specific content, placed between HMMenu and the corpus selector — e.g. a route's own tab strip. */
     children?: ReactNode
 }
 
 // App-wide top bar: HMMenu hugs the left edge, the corpus selector hugs the
-// right, and any page-specific content (tabs, etc.) fills the middle.
-export function Navbar({bordered = false, sticky = false, children}: NavbarProps) {
+// right, and any page-specific content (tabs, an ActionBar, etc.) fills the
+// middle.
+export function Navbar({bordered = false, sticky = false, size = 'default', children}: NavbarProps) {
     return (
         <Box
             component="nav"
@@ -38,7 +48,7 @@ export function Navbar({bordered = false, sticky = false, children}: NavbarProps
                 zIndex: (t) => t.zIndex.appBar,
                 display: 'flex',
                 alignItems: 'center',
-                height: NAVBAR_HEIGHT,
+                height: size === 'tall' ? NAVBAR_HEIGHT_TALL : NAVBAR_HEIGHT,
                 backgroundColor: 'background.paper',
                 borderBottom: bordered ? 1 : 0,
                 borderColor: (t) => alpha(t.palette.divider, 0.5),

@@ -1,5 +1,5 @@
 import type {IconComponent} from '@/common/components'
-import type {EntityKey} from '@/common/catalog'
+import type {EntityKey} from './entities'
 import SearchIcon from '@mui/icons-material/Search'
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import HubIcon from '@mui/icons-material/Hub'

@@ -4,7 +4,7 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import ApartmentIcon from '@mui/icons-material/Apartment'
 import PaidIcon from '@mui/icons-material/Paid'
 
-// Shared with home (UseCase actions) and /search (result entity + query param).
+// Shared with UseCase actions (./useCases) and /search (result entity + query param).
 
 export type EntityKey =
     | 'projects'
@@ -20,7 +20,7 @@ export type EntityKey =
 export type EntityOption = SelectorOption<EntityKey>
 
 // The only entities /search actually supports. Other UseCases don't have a
-// real, user-picked entity — see UseCase#hasEntitySelector in home/data/useCases.
+// real, user-picked entity — see UseCase#hasEntitySelector in ./useCases.
 export const ENTITIES: EntityOption[] = [
     {key: 'projects', label: 'Projects', icon: ScienceIcon, color: 'primary.light'},
     {key: 'works', label: 'Works', icon: DescriptionIcon, color: 'primary.main'},

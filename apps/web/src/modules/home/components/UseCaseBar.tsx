@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box'
 import {IconTextButton} from '@/common/components'
 import {fluidUnit} from '@/common/theme/fluidUnit'
-import type {UseCase} from '../data/useCases'
+import type {UseCase} from '@/common/catalog'
 
 export interface UseCaseBarProps {
     useCases: UseCase[]
