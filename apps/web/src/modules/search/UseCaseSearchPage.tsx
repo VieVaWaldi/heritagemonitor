@@ -10,6 +10,7 @@ import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
 import {LlmChatSidePanel} from '@/common/llmchat/LlmChatSidePanel'
 import {SearchNav} from './components/SearchNav'
 import {SearchResultsPanel} from './components/SearchResultsPanel'
+import {RESULTS_PANEL_BY_USE_CASE} from './resultsPanelRegistry'
 
 export interface UseCaseSearchPageProps {
     useCaseKey: string
@@ -30,6 +31,7 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
     const useCase = USE_CASES.find((candidate) => candidate.key === useCaseKey) ?? USE_CASES[0]
     const subUseCase = useCase.subUseCases?.find((candidate) => candidate.key === subUseCaseKey)
     const hasResultsPanel = subUseCase?.hasResultsPanel ?? useCase.hasResultsPanel ?? false
+    const ResultsPanel = RESULTS_PANEL_BY_USE_CASE[useCaseKey] ?? SearchResultsPanel
 
     return (
         <>
@@ -61,7 +63,11 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
                 <Box sx={{flex: 1, minWidth: 0}}>
                     {hasResultsPanel ? (
                         <Box sx={{height: `calc(100dvh - ${NAVBAR_HEIGHT_TALL}px)`, py: 3}}>
-                            <SearchResultsPanel />
+                            {/* Falls back to the shared empty-data placeholder for
+                                any UseCase not yet registered in
+                                resultsPanelRegistry.ts — i.e. one without a real
+                                backend behind it yet. */}
+                            <ResultsPanel />
                         </Box>
                     ) : (
                         <Box sx={{display: 'flex', justifyContent: 'center', py: fluidUnit(8), px: 3}}>

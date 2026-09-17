@@ -14,6 +14,7 @@ import {useActiveUseCase} from '@/common/hooks/useActiveUseCase'
 import {Text} from '@/common/text'
 import {createLlmChatAdapter} from './adapter'
 import {LlmChatHeaderRight} from './LlmChatHeader'
+import {usePageChatContextReader} from './PageChatContext'
 
 export interface LlmChatBoxProps {
     sx?: SxProps<Theme>
@@ -43,8 +44,11 @@ const COMPOSER_MAX_ROWS = 6
 export function LlmChatBox({sx}: LlmChatBoxProps) {
     // useMemo, not a fresh adapter per render: createAiSdkAdapter closes over
     // a per-call synthetic-message-id counter that should live for the
-    // component's lifetime, not reset on every re-render.
-    const adapter = useMemo(() => createLlmChatAdapter(), [])
+    // component's lifetime, not reset on every re-render. getPageContext's
+    // identity is stable (see usePageChatContextReader), so this still only
+    // constructs the adapter once despite depending on it.
+    const getPageContext = usePageChatContextReader()
+    const adapter = useMemo(() => createLlmChatAdapter(getPageContext), [getPageContext])
 
     // Reuses the same route -> UseCase/SubUseCase matching HMMenu's selection
     // state is built on (see useActiveUseCase) instead of re-deriving it —

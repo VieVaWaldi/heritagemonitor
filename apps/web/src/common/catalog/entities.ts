@@ -19,8 +19,7 @@ export type EntityKey =
 
 export type EntityOption = SelectorOption<EntityKey>
 
-// The only entities /search actually supports. Other UseCases don't have a
-// real, user-picked entity — see UseCase#hasEntitySelector in ./useCases.
+// The only entities /search actually supports
 export const ENTITIES: EntityOption[] = [
     {key: 'projects', label: 'Projects', icon: ScienceIcon, color: 'primary.light'},
     {key: 'works', label: 'Works', icon: DescriptionIcon, color: 'primary.main'},

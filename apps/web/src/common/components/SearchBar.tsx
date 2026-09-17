@@ -61,11 +61,17 @@ export function SearchBar({
     sx,
     ...props
 }: SearchBarProps) {
-    const [open, setOpen] = useState(false)
+    // Derived from `isFocused`, not a one-shot flag set on focus — suggestions
+    // for a controlled `value` typically arrive asynchronously (e.g. a
+    // debounced API call) well after the focus event fires, so the panel
+    // needs to open as soon as they land while still focused, not only at
+    // the moment focus was gained.
+    const [isFocused, setIsFocused] = useState(false)
     const hasSuggestions = Boolean(suggestions && suggestions.length > 0)
+    const open = isFocused && hasSuggestions
 
     function handleSuggestionSelect(suggestion: string) {
-        setOpen(false)
+        setIsFocused(false)
         if (onSuggestionSelect) onSuggestionSelect(suggestion)
         else onSearch?.(suggestion)
     }
@@ -106,8 +112,8 @@ export function SearchBar({
                     },
                     ...(Array.isArray(sx) ? sx : [sx]),
                 ]}
-                onFocus={() => hasSuggestions && setOpen(true)}
-                onBlur={() => setOpen(false)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 slotProps={{
                     input: {
                         startAdornment: (

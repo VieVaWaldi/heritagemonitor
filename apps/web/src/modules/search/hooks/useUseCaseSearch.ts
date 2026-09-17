@@ -11,6 +11,7 @@ import {
     type EntityKey,
     type EntityOption,
 } from '@/common/catalog'
+import {useMinoritySuggestions} from '@/common/hooks/useMinoritySuggestions'
 import {buildSearchUrl, SEARCH_PARAM} from '@/common/url'
 
 const DEFAULT_ENTITY: EntityKey = 'projects'
@@ -92,6 +93,13 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         pushSearchUrl({})
     }
 
+    const suggestions = useMinoritySuggestions(Boolean(useCase.hasAutoSuggestions), searchValue)
+
+    function handleSuggestionSelect(value: string) {
+        setSearchValue(value)
+        pushSearchUrl({query: value})
+    }
+
     function handleEntityChange(key: EntityKey) {
         setEntityOverride(key)
         setSearchValue('')
@@ -124,5 +132,7 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         entityOptions,
         entitySelectorInteractive,
         handleSearchSubmit,
+        suggestions,
+        handleSuggestionSelect,
     }
 }

@@ -9,6 +9,7 @@ import {ActionBar} from '@/common/components'
 import {useCorpus} from '@/common/catalog'
 import {buildSearchUrl} from '@/common/url'
 import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
+import {useMinoritySuggestions} from '@/common/hooks/useMinoritySuggestions'
 import {useHeroSelection} from './hooks/useHeroSelection'
 import {useHeroTitle} from './hooks/useHeroTitle'
 import {UseCaseSection} from './components/UseCaseSection'
@@ -41,12 +42,27 @@ export function HeroPage() {
 
     const placeholder = useCyclingPlaceholder(activeExamples)
     const {title: heroTitle, isIntro, notifyUseCaseSelected} = useHeroTitle(selectedUseCase.title)
+    const suggestions = useMinoritySuggestions(Boolean(selectedUseCase.hasAutoSuggestions), searchValue)
 
-    function handleSearchSubmit() {
+    // Accepts an explicit query so a suggestion click can submit the value
+    // it just picked without waiting on setSearchValue's state update to
+    // land first (React state isn't synchronous — reading `searchValue`
+    // from the closure here would still see the pre-click value).
+    function handleSearchSubmit(query?: string) {
         if (!activeRoute) return
         router.push(
-            buildSearchUrl({route: activeRoute, query: searchValue, entity: selectedEntity, corpus: selectedCorpus}),
+            buildSearchUrl({
+                route: activeRoute,
+                query: query ?? searchValue,
+                entity: selectedEntity,
+                corpus: selectedCorpus,
+            }),
         )
+    }
+
+    function handleSuggestionSelect(value: string) {
+        setSearchValue(value)
+        handleSearchSubmit(value)
     }
 
     const slots: HeroLayoutSlots = {
@@ -69,6 +85,8 @@ export function HeroPage() {
                 entitySelectorInteractive={entitySelectorInteractive}
                 selectedEntity={selectedEntity}
                 onEntityChange={setSelectedEntity}
+                suggestions={suggestions}
+                onSuggestionSelect={handleSuggestionSelect}
             />
         ),
         subtitle: (

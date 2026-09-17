@@ -2,9 +2,6 @@ import CastleIcon from '@mui/icons-material/Castle'
 import BiotechIcon from '@mui/icons-material/Biotech'
 import type {IconComponent} from '@/common/components/EntitySelector'
 
-// Shared with home (CorpusPanel, via CorpusContext) and /search (results
-// filter + query param).
-
 export type CorpusKey = 'dch' | 'science'
 
 export interface CorpusOption {

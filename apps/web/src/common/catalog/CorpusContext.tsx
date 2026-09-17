@@ -10,10 +10,7 @@ interface CorpusContextValue {
 
 const CorpusContext = createContext<CorpusContextValue | null>(null)
 
-// App-wide: the CorpusPanel (in the shared Navbar, on every route) writes
-// here, HeroPage's search submit — and later /search's own filtering —
-// reads from here. Kept as its own context (not folded into a bigger one)
-// per apps/web/RULES.md #9.
+// App-wide: the CorpusPanel (in the shared Navbar, on every route) writes here search submit
 export function CorpusProvider({children}: {children: ReactNode}) {
     const [selectedCorpus, setSelectedCorpus] = useState<CorpusKey>(DEFAULT_CORPUS)
     const value = useMemo(() => ({selectedCorpus, setSelectedCorpus}), [selectedCorpus])

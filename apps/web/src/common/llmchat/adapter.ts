@@ -41,7 +41,12 @@ function getMessageText(message: ChatMessageLike): string {
     return message.parts.map((part) => (part.type === 'text' ? (part.text ?? '') : '')).join('')
 }
 
-export function createLlmChatAdapter() {
+// `getPageContext` reads whatever the current page's results panel (if any)
+// has published via usePageChatContextPublisher (see PageChatContext.tsx) — a
+// stable accessor, not the value itself, since this factory only runs once
+// per chat session (see LlmChatBox's useMemo) but needs a fresh read on
+// every message sent.
+export function createLlmChatAdapter(getPageContext: () => string[]) {
     return createAiSdkAdapter({
         stream: async ({messages, signal}) => {
             const headers = new Headers({'Content-Type': 'application/json'})
@@ -61,7 +66,14 @@ export function createLlmChatAdapter() {
                     // Read fresh on every send (not memoized like
                     // USE_CASES_CONTEXT above), so this is always the page
                     // the user is actually on right now, params included.
-                    context: [...USE_CASES_CONTEXT, `Current page URL: ${window.location.href}`],
+                    context: [
+                        ...USE_CASES_CONTEXT,
+                        `Current page URL: ${window.location.href}`,
+                        // Only populated when the current page's results
+                        // panel has published something — empty everywhere
+                        // else. See PageChatContext.tsx.
+                        ...getPageContext(),
+                    ],
                 }),
                 signal,
             })

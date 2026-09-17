@@ -2,6 +2,7 @@ import cors from '@fastify/cors'
 import Fastify, {LogController} from 'fastify'
 import {healthRoutes} from "./modules/health/health.routes.js";
 import {llmchatRoutes} from "./modules/llmchat/llmchat.routes.js";
+import {minoritiesRoutes} from "./modules/minorities/minorities.routes.js";
 import {monitoringRoutes} from "./modules/monitoring/monitoring.routes.js";
 import foundation from './plugins/foundation.js'
 import {buildLoggerOptions} from './plugins/logging.js'
@@ -31,6 +32,7 @@ fastify.register(async (v1) => {
     v1.register(healthRoutes)
     v1.register(monitoringRoutes)
     v1.register(llmchatRoutes)
+    v1.register(minoritiesRoutes)
 }, {prefix: '/v1'})
 
 const start = async () => {

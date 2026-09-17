@@ -29,6 +29,8 @@ export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: S
         entityOptions,
         entitySelectorInteractive,
         handleSearchSubmit,
+        suggestions,
+        handleSuggestionSelect,
     } = useUseCaseSearch(useCaseKey, subUseCaseKey)
     const placeholder = useCyclingPlaceholder(examples)
     const useCaseName = subUseCase?.name ?? useCase.name
@@ -77,6 +79,8 @@ export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: S
                     selectedEntity={selectedEntity}
                     onEntityChange={setSelectedEntity}
                     entitySelectorInteractive={entitySelectorInteractive}
+                    suggestions={suggestions}
+                    onSuggestionSelect={handleSuggestionSelect}
                 />
                 <Box />
             </Box>

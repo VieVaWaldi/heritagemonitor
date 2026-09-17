@@ -5,6 +5,7 @@ import type React from 'react'
 import {ThemeModeProvider} from '@/common/theme/ThemeModeProvider'
 import {ebGaramond, inter} from '@/common/theme/fonts'
 import {CorpusProvider} from '@/common/catalog'
+import {PageChatContextProvider} from '@/common/llmchat/PageChatContext'
 
 export const metadata: Metadata = {
     title: 'HeritageMonitor',
@@ -18,7 +19,9 @@ export default function RootLayout({children}: Readonly<{children: React.ReactNo
                 <AppRouterCacheProvider>
                     <ThemeModeProvider>
                         <NextIntlClientProvider>
-                            <CorpusProvider>{children}</CorpusProvider>
+                            <CorpusProvider>
+                                <PageChatContextProvider>{children}</PageChatContextProvider>
+                            </CorpusProvider>
                         </NextIntlClientProvider>
                     </ThemeModeProvider>
                 </AppRouterCacheProvider>

@@ -17,6 +17,10 @@ export interface ActionBarProps<EntityKey extends string = string> {
     /** False renders the circle as a static icon with no hover panel — e.g.
      * when entityOptions is a single non-pickable stand-in. Defaults true. */
     entitySelectorInteractive?: boolean
+    /** Forwarded straight to the inner SearchBar — see its own docs. Omit
+     * for a plain bar with no autocomplete dropdown. */
+    suggestions?: string[]
+    onSuggestionSelect?: (value: string) => void
 }
 
 // SearchBar (a full pill) plus a circular icon-only EntitySelector floating
@@ -32,6 +36,8 @@ export function ActionBar<EntityKey extends string = string>({
     selectedEntity,
     onEntityChange,
     entitySelectorInteractive = true,
+    suggestions,
+    onSuggestionSelect,
 }: ActionBarProps<EntityKey>) {
     return (
         <Box sx={{display: 'flex', alignItems: 'stretch', gap: fluidUnit(1), width: '100%'}}>
@@ -43,6 +49,8 @@ export function ActionBar<EntityKey extends string = string>({
                     onSearchStart={(key) => key === 'Enter' && onSearchSubmit?.()}
                     placeholder={placeholder}
                     roundedCorners="all"
+                    suggestions={suggestions}
+                    onSuggestionSelect={onSuggestionSelect}
                 />
             </Box>
             <EntitySelector
