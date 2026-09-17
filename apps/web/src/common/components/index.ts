@@ -35,6 +35,9 @@ export type {MultiSelectDropdownProps, MultiSelectOption} from './MultiSelectDro
 export {Navbar, NAVBAR_HEIGHT, NAVBAR_HEIGHT_TALL, NAVBAR_BORDER_COLOR} from './Navbar'
 export type {NavbarProps} from './Navbar'
 
+export {PaginatedList} from './PaginatedList'
+export type {PaginatedListProps} from './PaginatedList'
+
 export {SearchBar} from './SearchBar'
 export type {SearchBarProps} from './SearchBar'
 
@@ -49,6 +52,9 @@ export type {SliderProps} from './Slider'
 
 export {DualSlider} from './DualSlider'
 export type {DualSliderProps} from './DualSlider'
+
+export {TabbedPanel} from './TabbedPanel'
+export type {TabbedPanelProps, TabbedPanelTab} from './TabbedPanel'
 
 export {ViewModeToggle} from './ViewModeToggle'
 export type {ViewModeToggleProps, ViewMode} from './ViewModeToggle'

@@ -12,6 +12,7 @@ const TABS = [
     {href: '/demo/typography', label: 'Typography'},
     {href: '/demo/components', label: 'Components'},
     {href: '/demo/llmchat', label: 'LLM Chat'},
+    {href: '/demo/search', label: 'Search Layout'},
 ]
 
 // Scoped to the /demo route tree — dev-only UI reference, not user-facing.
