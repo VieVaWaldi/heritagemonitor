@@ -8,15 +8,17 @@ export interface MinoritiesSearchParams {
     filter?: string[]
     facets?: string[]
     attributesToSearchOn?: string[]
+    sort?: string[]
     limit: number
     offset: number
 }
 
-export async function search({q, filter, facets, attributesToSearchOn, limit, offset}: MinoritiesSearchParams) {
+export async function search({q, filter, facets, attributesToSearchOn, sort, limit, offset}: MinoritiesSearchParams) {
     return client.index(indices.minoritiesIndexName).search(q, {
         filter,
         facets,
         attributesToSearchOn,
+        sort,
         limit,
         offset,
     })

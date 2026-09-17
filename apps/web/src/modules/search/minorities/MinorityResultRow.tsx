@@ -6,7 +6,7 @@ import Button from '@mui/material/Button'
 import ListItemButton from '@mui/material/ListItemButton'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {Text} from '@/common/text'
-import {formatCountries, formatPopulation, labelSourceClass, wikidataUrl} from './minorityFormat'
+import {formatCountries, formatPopulation, labelSourceClass, wikipediaUrl} from './minorityFormat'
 
 export interface MinorityResultRowProps {
     minority: MinorityDto
@@ -17,7 +17,7 @@ export interface MinorityResultRowProps {
 // Same two-line row shape as ../components/SearchResultRow (title/meta/
 // action-button) — kept as its own copy rather than shared, same reasoning
 // as that component's own comment: the two are expected to keep diverging
-// (this one is clickable and links out to Wikidata instead of a PDF).
+// (this one is clickable and links out to Wikipedia instead of a PDF).
 const ROW_HEIGHT = 64
 
 export function MinorityResultRow({minority, selected, onSelect}: MinorityResultRowProps) {
@@ -47,7 +47,7 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
 
             <Button
                 component="a"
-                href={wikidataUrl(minority.qid)}
+                href={wikipediaUrl(minority.qid)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -56,7 +56,7 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
                 endIcon={<OpenInNewIcon fontSize="small" />}
                 sx={{minWidth: 96, flexShrink: 0}}
             >
-                Wikidata
+                Wikipedia
             </Button>
         </ListItemButton>
     )

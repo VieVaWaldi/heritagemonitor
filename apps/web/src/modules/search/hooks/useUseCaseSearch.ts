@@ -89,8 +89,8 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         )
     }
 
-    function handleSearchSubmit() {
-        pushSearchUrl({})
+    function handleSearchSubmit(query?: string) {
+        pushSearchUrl(query !== undefined ? {query} : {})
     }
 
     const suggestions = useMinoritySuggestions(Boolean(useCase.hasAutoSuggestions), searchValue)

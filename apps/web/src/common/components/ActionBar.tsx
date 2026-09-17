@@ -8,8 +8,10 @@ import {EntitySelector, type SelectorOption} from './EntitySelector'
 export interface ActionBarProps<EntityKey extends string = string> {
     searchValue: string
     onSearchChange: (value: string) => void
-    /** Left undefined until there's a destination page to submit to. */
-    onSearchSubmit?: () => void
+    /** Left undefined until there's a destination page to submit to. Accepts
+     * an explicit query so the clear button can submit '' without waiting
+     * on onSearchChange's state update to land first. */
+    onSearchSubmit?: (query?: string) => void
     placeholder?: string
     entityOptions: SelectorOption<EntityKey>[]
     selectedEntity: EntityKey
@@ -45,7 +47,10 @@ export function ActionBar<EntityKey extends string = string>({
                 <SearchBar
                     value={searchValue}
                     onSearch={onSearchChange}
-                    onClear={() => onSearchChange('')}
+                    onClear={() => {
+                        onSearchChange('')
+                        onSearchSubmit?.('')
+                    }}
                     onSearchStart={(key) => key === 'Enter' && onSearchSubmit?.()}
                     placeholder={placeholder}
                     roundedCorners="all"

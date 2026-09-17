@@ -15,13 +15,23 @@ export interface SelectedMinorityState {
 // which is guaranteed to reference a real indexed document (a subgroup row
 // no longer calls this — see MinoritySubgroupsTab), so there's no
 // found/not-found ambiguity to handle here.
-export function useSelectedMinority(): SelectedMinorityState {
+export function useSelectedMinority(hits: MinorityDto[]): SelectedMinorityState {
     const [qid, setQid] = useState<string | null>(null)
     const [minority, setMinority] = useState<MinorityDto | null>(null)
     // useTransition, not a manually-managed loading flag, so nothing here
     // calls setState synchronously inside the effect body — see
     // useMinoritySearch's own comment on the same pattern.
     const [loading, startTransition] = useTransition()
+
+    // Defaults the first row to selected on load, and re-defaults whenever a
+    // filter/page change drops the current selection out of view — without
+    // overriding a still-valid manual pick. Adjusted during render (not an
+    // effect) per useUseCaseSearch's own prevUrlQuery pattern.
+    const [prevHits, setPrevHits] = useState(hits)
+    if (hits !== prevHits) {
+        setPrevHits(hits)
+        if (!qid || !hits.some((hit) => hit.qid === qid)) setQid(hits[0]?.qid ?? null)
+    }
 
     useEffect(() => {
         if (!qid) return

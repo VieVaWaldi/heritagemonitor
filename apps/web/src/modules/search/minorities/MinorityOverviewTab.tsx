@@ -7,7 +7,8 @@ import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {Text} from '@/common/text'
-import {formatPopulation, wikidataUrl} from './minorityFormat'
+import {formatPopulation, wikipediaUrl} from './minorityFormat'
+import {useMinorityImage} from './useMinorityImage'
 
 export interface MinorityOverviewTabProps {
     minority: MinorityDto
@@ -35,19 +36,31 @@ function ChipRow({label, values}: {label: string; values: string[]}) {
 // core_v3/core_v4 can actually link minorities to research.
 export function MinorityOverviewTab({minority}: MinorityOverviewTabProps) {
     const aliases = minority.search_keywords.filter((keyword) => keyword !== minority.group_name_en)
+    const {imageUrl} = useMinorityImage(minority.qid)
 
     return (
         <Box sx={{p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5}}>
-            <Box sx={{display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap'}}>
-                <Text variant="h6">{minority.group_name_en}</Text>
-                <Link
-                    href={wikidataUrl(minority.qid)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem'}}
-                >
-                    Wikidata <OpenInNewIcon fontSize="inherit" />
-                </Link>
+            <Box sx={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2}}>
+                <Box sx={{display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap'}}>
+                    <Text variant="h6">{minority.group_name_en}</Text>
+                    <Link
+                        href={wikipediaUrl(minority.qid)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem'}}
+                    >
+                        Wikipedia <OpenInNewIcon fontSize="inherit" />
+                    </Link>
+                </Box>
+
+                {imageUrl && (
+                    <Box
+                        component="img"
+                        src={imageUrl}
+                        alt={minority.group_name_en}
+                        sx={{width: 72, height: 72, borderRadius: 2, objectFit: 'cover', flexShrink: 0}}
+                    />
+                )}
             </Box>
 
             <Box>

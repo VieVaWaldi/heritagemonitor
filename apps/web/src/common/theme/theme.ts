@@ -84,6 +84,22 @@ function getComponents(mode: ThemeMode): ThemeOptions['components'] {
                 // match instead of staying stuck light in dark mode.
                 html: {colorScheme: mode},
                 body: {lineHeight: 1.4, letterSpacing: '0.3px'},
+                // App-wide default: scrollbar thumb is invisible until the
+                // scrollable element is hovered. CSS has no scroll-idle
+                // state, so hover is the practical stand-in for "hide when
+                // not in use". Per-component sx (e.g. SideMenu, UseCaseBar)
+                // still wins over this — it's just the fallback.
+                '*': {
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'transparent transparent',
+                },
+                '*:hover': {
+                    scrollbarColor: `${alpha(tokens.text, 0.25)} transparent`,
+                },
+                '*::-webkit-scrollbar': {width: 8, height: 8},
+                '*::-webkit-scrollbar-track': {background: 'transparent'},
+                '*::-webkit-scrollbar-thumb': {backgroundColor: 'transparent', borderRadius: 8},
+                '*:hover::-webkit-scrollbar-thumb': {backgroundColor: alpha(tokens.text, 0.25)},
             },
         },
         MuiTypography: {

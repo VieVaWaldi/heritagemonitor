@@ -40,21 +40,19 @@ export async function minoritiesRoutes(fastify: FastifyInstance) {
                         subclass_of: stringArrayProp,
                         admin_territory: stringArrayProp,
                         ancestral_home: stringArrayProp,
-                        population_min: {type: 'integer'},
-                        population_max: {type: 'integer'},
                         has_subgroups: {type: 'boolean'},
+                        sort: {
+                            type: 'string',
+                            enum: ['group_name_en:asc', 'group_name_en:desc', 'population:asc', 'population:desc'],
+                        },
                         page: {type: 'integer', minimum: 1, default: 1},
                     },
                 },
             },
         },
         async (request): Promise<MinoritySearchResponse> => {
-            const {q, page, population_min, population_max, has_subgroups, ...arrayFilters} = request.query
-            return searchMinorities(
-                q ?? '',
-                {...arrayFilters, population_min, population_max, has_subgroups},
-                page ?? 1,
-            )
+            const {q, page, has_subgroups, sort, ...arrayFilters} = request.query
+            return searchMinorities(q ?? '', {...arrayFilters, has_subgroups}, page ?? 1, sort)
         },
     )
 

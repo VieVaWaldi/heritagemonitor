@@ -17,7 +17,10 @@ export interface FacetSectionProps {
     onChange: (value: string[]) => void
 }
 
-const ROW_HEIGHT = 36
+const ROW_HEIGHT = 28
+// Rows beyond this scroll instead of growing the card indefinitely — tweak
+// this to change how many options show before scrolling kicks in.
+const MAX_VISIBLE_OPTIONS = 6
 
 // One facet as its own bordered card — same Paper treatment as
 // PaginatedList/TabbedPanel/FilterBar — rather than one shared box, so
@@ -34,7 +37,21 @@ export function FacetSection({label, options, value, onChange}: FacetSectionProp
             <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 0.5}}>
                 {label}
             </Text>
-            <Box sx={{display: 'flex', flexDirection: 'column'}}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.25,
+                    maxHeight: ROW_HEIGHT * MAX_VISIBLE_OPTIONS,
+                    overflowY: 'auto',
+                    // Extends into Paper's own right padding (mr) then re-adds it
+                    // as this box's own (pr), so the scrollbar — which renders
+                    // flush with this box's edge — lands on the card's actual
+                    // border instead of sitting inset from it.
+                    mr: -2,
+                    pr: 2,
+                }}
+            >
                 {options.map((option) => {
                     const selected = value.includes(option.value)
                     return (
@@ -46,6 +63,7 @@ export function FacetSection({label, options, value, onChange}: FacetSectionProp
                             sx={(theme) => ({
                                 width: '100%',
                                 height: ROW_HEIGHT,
+                                flexShrink: 0,
                                 justifyContent: 'space-between',
                                 gap: 1,
                                 px: 1,

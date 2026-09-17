@@ -9,8 +9,12 @@ export function labelSourceClass(value: string): string {
     return MINORITY_SOURCE_CLASS_LABELS[value] ?? value
 }
 
-export function wikidataUrl(qid: string): string {
-    return `https://www.wikidata.org/wiki/${qid}`
+// Wikidata's own redirect helper — resolves straight to the English
+// Wikipedia article when one is linked, which reads far better than the
+// raw Wikidata item page. Falls back to a small Wikidata "no linked page"
+// page on the rare group with no enwiki sitelink, rather than a dead link.
+export function wikipediaUrl(qid: string): string {
+    return `https://www.wikidata.org/wiki/Special:GoToLinkedPage/enwiki/${qid}`
 }
 
 const COUNTRIES_CAP = 3
@@ -21,9 +25,9 @@ export function formatCountries(countries: string[]): string {
     return `${countries.slice(0, COUNTRIES_CAP).join(', ')} +${countries.length - COUNTRIES_CAP} more`
 }
 
-// The population range spans 7 to 133,000,000 (see index_meilisearch.py's
-// facetStats) — compact notation ("133M") keeps the row/panel readable
-// across that whole spread instead of a long grouped-digit string.
+// The population range spans 7 to 133,000,000 — compact notation ("133M")
+// keeps the row/panel readable across that whole spread instead of a long
+// grouped-digit string.
 const populationFormatter = new Intl.NumberFormat('en', {notation: 'compact', maximumFractionDigits: 1})
 
 export function formatPopulation(population: number | null): string {

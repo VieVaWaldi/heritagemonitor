@@ -47,6 +47,17 @@ export const MINORITY_FACET_FIELDS: MinorityFacetFieldConfig[] = [
 // index_meilisearch.py) and need a real relabel; the rest are already
 // human-readable words, just lowercase in the raw data, so they only need
 // capitalizing.
+// Mirrors sortableAttributes on the `minorities` Meilisearch index
+// (group_name_en, population) — the one place both apps/api's querystring
+// validation and apps/web's RankingButton get this list from.
+export const MINORITY_SORT_OPTIONS = [
+    {value: 'group_name_en:asc', field: 'group_name_en', direction: 'asc', label: 'Name (A–Z)'},
+    {value: 'group_name_en:desc', field: 'group_name_en', direction: 'desc', label: 'Name (Z–A)'},
+    {value: 'population:desc', field: 'population', direction: 'desc', label: 'Population (high–low)'},
+    {value: 'population:asc', field: 'population', direction: 'asc', label: 'Population (low–high)'},
+] as const
+export type MinoritySortOption = (typeof MINORITY_SORT_OPTIONS)[number]['value']
+
 export const MINORITY_SOURCE_CLASS_LABELS: Record<string, string> = {
     manual_seed: 'Seed group',
     indigenous_to_europe: 'Indigenous people',
@@ -83,12 +94,6 @@ export type MinorityDto = z.infer<typeof minorityDtoSchema>
 export const minorityFacetDistributionSchema = z.record(z.string(), z.record(z.string(), z.number()))
 export type MinorityFacetDistribution = z.infer<typeof minorityFacetDistributionSchema>
 
-// Only ever populated for `population` (the one range facet) — see
-// index_meilisearch.py's docstring on why it's a facetStats field, not a
-// facetDistribution one.
-export const minorityFacetStatsSchema = z.record(z.string(), z.object({min: z.number(), max: z.number()}))
-export type MinorityFacetStats = z.infer<typeof minorityFacetStatsSchema>
-
 // Query-param contract for GET /v1/minorities/search, symmetric with
 // minoritySearchResponseSchema below — apps/api's route uses this for the
 // querystring's TS type (Fastify's own Ajv JSON-schema still separately
@@ -104,9 +109,8 @@ export const minoritySearchRequestSchema = z.object({
     subclass_of: z.array(z.string()).optional(),
     admin_territory: z.array(z.string()).optional(),
     ancestral_home: z.array(z.string()).optional(),
-    population_min: z.number().optional(),
-    population_max: z.number().optional(),
     has_subgroups: z.boolean().optional(),
+    sort: z.enum(['group_name_en:asc', 'group_name_en:desc', 'population:asc', 'population:desc']).optional(),
     page: z.number().optional(),
 })
 export type MinoritySearchRequest = z.infer<typeof minoritySearchRequestSchema>
@@ -114,7 +118,6 @@ export type MinoritySearchRequest = z.infer<typeof minoritySearchRequestSchema>
 export const minoritySearchResponseSchema = z.object({
     hits: z.array(minorityDtoSchema),
     facetDistribution: minorityFacetDistributionSchema,
-    facetStats: minorityFacetStatsSchema,
     estimatedTotalHits: z.number(),
     page: z.number(),
     pageCount: z.number(),

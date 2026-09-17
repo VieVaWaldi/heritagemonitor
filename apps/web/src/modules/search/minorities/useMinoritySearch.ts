@@ -8,8 +8,8 @@ import {
     type MinorityDto,
     type MinorityFacetDistribution,
     type MinorityFacetField,
-    type MinorityFacetStats,
     type MinoritySearchRequest,
+    type MinoritySortOption,
 } from '@heritagemonitor/shared'
 import {apiGet} from '@/common/api/apiClient'
 import {SEARCH_PARAM} from '@/common/url'
@@ -21,7 +21,6 @@ import {SEARCH_PARAM} from '@/common/url'
 const ARRAY_FILTER_FIELDS = MINORITY_FACET_FIELDS.map((f) => f.field)
 
 export type MinorityFilters = Record<MinorityFacetField, string[]> & {
-    population: [number, number] | null
     has_subgroups: boolean
 }
 
@@ -30,7 +29,6 @@ export const EMPTY_MINORITY_FILTERS: MinorityFilters = {
         MinorityFacetField,
         string[]
     >),
-    population: null,
     has_subgroups: false,
 }
 
@@ -38,17 +36,19 @@ export const EMPTY_MINORITY_FILTERS: MinorityFilters = {
 // field to MinoritySearchRequest (packages/shared) never needs a matching
 // change here; only fields actually present on the request end up in the
 // query string.
-function toSearchRequest(q: string, filters: MinorityFilters, page: number): MinoritySearchRequest {
+function toSearchRequest(
+    q: string,
+    filters: MinorityFilters,
+    page: number,
+    sort: MinoritySortOption | null,
+): MinoritySearchRequest {
     const request: MinoritySearchRequest = {page}
     if (q) request.q = q
     for (const field of ARRAY_FILTER_FIELDS) {
         if (filters[field].length > 0) request[field] = filters[field]
     }
-    if (filters.population) {
-        request.population_min = filters.population[0]
-        request.population_max = filters.population[1]
-    }
     if (filters.has_subgroups) request.has_subgroups = true
+    if (sort) request.sort = sort
     return request
 }
 
@@ -65,27 +65,24 @@ function buildQueryString(request: MinoritySearchRequest): string {
 export interface MinoritySearchState {
     filters: MinorityFilters
     page: number
+    sort: MinoritySortOption | null
     setArrayFilter: (field: MinorityFacetField, value: string[]) => void
     setHasSubgroups: (value: boolean) => void
-    setPopulation: (value: [number, number]) => void
+    setSort: (value: MinoritySortOption | null) => void
+    resetFilters: () => void
     setPage: (page: number) => void
     hits: MinorityDto[]
     facetDistribution: MinorityFacetDistribution
-    facetStats: MinorityFacetStats
     estimatedTotalHits: number
     pageCount: number
     loading: boolean
 }
 
-type MinoritySearchData = Pick<
-    MinoritySearchState,
-    'hits' | 'facetDistribution' | 'facetStats' | 'estimatedTotalHits' | 'pageCount'
->
+type MinoritySearchData = Pick<MinoritySearchState, 'hits' | 'facetDistribution' | 'estimatedTotalHits' | 'pageCount'>
 
 const INITIAL_DATA: MinoritySearchData = {
     hits: [],
     facetDistribution: {},
-    facetStats: {},
     estimatedTotalHits: 0,
     pageCount: 1,
 }
@@ -103,6 +100,7 @@ export function useMinoritySearch(): MinoritySearchState {
 
     const [filters, setFilters] = useState<MinorityFilters>(EMPTY_MINORITY_FILTERS)
     const [page, setPage] = useState(1)
+    const [sort, setSortValue] = useState<MinoritySortOption | null>(null)
     const [data, setData] = useState<MinoritySearchData>(INITIAL_DATA)
     // useTransition's `loading` is set by React itself around the async
     // callback below, so this hook never calls setState synchronously
@@ -119,8 +117,13 @@ export function useMinoritySearch(): MinoritySearchState {
         setPage(1)
     }
 
-    function setPopulation(value: [number, number]) {
-        setFilters((prev) => ({...prev, population: value}))
+    function setSort(value: MinoritySortOption | null) {
+        setSortValue(value)
+        setPage(1)
+    }
+
+    function resetFilters() {
+        setFilters(EMPTY_MINORITY_FILTERS)
         setPage(1)
     }
 
@@ -130,14 +133,13 @@ export function useMinoritySearch(): MinoritySearchState {
         startTransition(async () => {
             try {
                 const response = await apiGet(
-                    `/v1/minorities/search?${buildQueryString(toSearchRequest(q, filters, page))}`,
+                    `/v1/minorities/search?${buildQueryString(toSearchRequest(q, filters, page, sort))}`,
                     minoritySearchResponseSchema,
                     {signal: controller.signal},
                 )
                 setData({
                     hits: response.hits,
                     facetDistribution: response.facetDistribution,
-                    facetStats: response.facetStats,
                     estimatedTotalHits: response.estimatedTotalHits,
                     pageCount: response.pageCount,
                 })
@@ -149,7 +151,18 @@ export function useMinoritySearch(): MinoritySearchState {
         })
 
         return () => controller.abort()
-    }, [q, page, filters])
+    }, [q, page, filters, sort])
 
-    return {filters, page, setArrayFilter, setHasSubgroups, setPopulation, setPage, ...data, loading}
+    return {
+        filters,
+        page,
+        sort,
+        setArrayFilter,
+        setHasSubgroups,
+        setSort,
+        resetFilters,
+        setPage,
+        ...data,
+        loading,
+    }
 }

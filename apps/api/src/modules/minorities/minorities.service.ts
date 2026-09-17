@@ -3,7 +3,6 @@ import {
     minorityDtoSchema,
     type MinorityDto,
     type MinorityFacetDistribution,
-    type MinorityFacetStats,
     type MinoritySearchResponse,
     type MinoritySuggestResponse,
 } from '@heritagemonitor/shared'
@@ -20,9 +19,9 @@ const SUGGEST_LIMIT = 6
 // Requested on every /search call so the sidebar/filter bar always reflects
 // facet counts for the current query+filter state, not a separate call.
 // The seven checkbox-facet fields come from the shared config (the one
-// place that list lives); has_subgroups/population are the toggle/slider,
-// not part of that tiered list, so they're appended here.
-const FACET_FIELDS = [...MINORITY_FACET_FIELDS.map((f) => f.field), 'has_subgroups', 'population']
+// place that list lives); has_subgroups is the toggle, not part of that
+// tiered list, so it's appended here.
+const FACET_FIELDS = [...MINORITY_FACET_FIELDS.map((f) => f.field), 'has_subgroups']
 
 export interface MinoritySearchFilters {
     countries?: string[]
@@ -32,8 +31,6 @@ export interface MinoritySearchFilters {
     subclass_of?: string[]
     admin_territory?: string[]
     ancestral_home?: string[]
-    population_min?: number
-    population_max?: number
     has_subgroups?: boolean
 }
 
@@ -61,8 +58,6 @@ function buildFilterExpression(filters: MinoritySearchFilters): string[] {
         inFilter('ancestral_home', filters.ancestral_home),
     ].filter((clause): clause is string => clause !== null)
 
-    if (filters.population_min != null) clauses.push(`population >= ${filters.population_min}`)
-    if (filters.population_max != null) clauses.push(`population <= ${filters.population_max}`)
     if (filters.has_subgroups != null) clauses.push(`has_subgroups = ${filters.has_subgroups}`)
 
     return clauses
@@ -85,7 +80,12 @@ function parseMinorityDoc(raw: unknown): MinorityDto | null {
     return null
 }
 
-export async function searchMinorities(q: string, filters: MinoritySearchFilters, page: number): Promise<MinoritySearchResponse> {
+export async function searchMinorities(
+    q: string,
+    filters: MinoritySearchFilters,
+    page: number,
+    sort?: string,
+): Promise<MinoritySearchResponse> {
     const limit = PAGE_SIZE
     const offset = (page - 1) * limit
 
@@ -93,6 +93,7 @@ export async function searchMinorities(q: string, filters: MinoritySearchFilters
         q,
         filter: buildFilterExpression(filters),
         facets: FACET_FIELDS,
+        sort: sort ? [sort] : undefined,
         limit,
         offset,
     })
@@ -102,7 +103,6 @@ export async function searchMinorities(q: string, filters: MinoritySearchFilters
     return {
         hits: result.hits.map(parseMinorityDoc).filter((dto): dto is MinorityDto => dto !== null),
         facetDistribution: (result.facetDistribution ?? {}) as MinorityFacetDistribution,
-        facetStats: (result.facetStats ?? {}) as MinorityFacetStats,
         estimatedTotalHits,
         page,
         pageCount: Math.max(1, Math.ceil(estimatedTotalHits / limit)),

@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {Text} from '@/common/text'
-import {wikidataUrl} from './minorityFormat'
+import {wikipediaUrl} from './minorityFormat'
 
 export interface MinoritySubgroupsTabProps {
     minority: MinorityDto
@@ -18,7 +18,7 @@ const ROW_HEIGHT = 48
 // already structured as {name, qid}[], so this is just a list, not a
 // PaginatedList (13/304 groups have any subgroups at all, so real
 // pagination would be dead weight). Rows are read-only (name + external
-// Wikidata link) rather than clickable: a subgroup qid isn't a standalone
+// Wikipedia link) rather than clickable: a subgroup qid isn't a standalone
 // document in the `minorities` index (hm_pipeline's staging_2.py rolls it
 // into its parent's known_subgroups column instead of keeping it as its own
 // top-level entry), so there's nothing in HeritageMonitor's own data to
@@ -52,12 +52,12 @@ export function MinoritySubgroupsTab({minority}: MinoritySubgroupsTabProps) {
                         {subgroup.name}
                     </Text>
                     <Link
-                        href={wikidataUrl(subgroup.qid)}
+                        href={wikipediaUrl(subgroup.qid)}
                         target="_blank"
                         rel="noopener noreferrer"
                         sx={{display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.8125rem', flexShrink: 0}}
                     >
-                        Wikidata <OpenInNewIcon fontSize="inherit" />
+                        Wikipedia <OpenInNewIcon fontSize="inherit" />
                     </Link>
                 </Box>
             ))}
