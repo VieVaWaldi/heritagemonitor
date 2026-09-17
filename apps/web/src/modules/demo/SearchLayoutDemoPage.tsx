@@ -2,7 +2,15 @@
 
 import {useState} from 'react'
 import Box from '@mui/material/Box'
-import {FilterBar, FilterMenuButton, NAVBAR_HEIGHT, PaginatedList, TabbedPanel} from '@/common/components'
+import {
+    FacetSection,
+    FacetSidebar,
+    FilterBar,
+    FilterMenuButton,
+    NAVBAR_HEIGHT,
+    PaginatedList,
+    TabbedPanel,
+} from '@/common/components'
 import type {FilterOption} from '@/common/components'
 import {Text} from '@/common/text'
 import {SearchResultRow} from './SearchResultRow'
@@ -10,30 +18,32 @@ import {SAMPLE_DELIVERABLES, SAMPLE_PROJECTS} from './sampleSearchResults'
 
 const PAGE_SIZE = 5
 
+// Shared by both the top FilterBar and the FacetSidebar — same facets,
+// two surfaces onto the same selection state.
 const YEAR_OPTIONS: FilterOption[] = [
-    {value: '2024', label: '2024'},
-    {value: '2023', label: '2023'},
-    {value: '2022', label: '2022'},
-    {value: '2021', label: '2021'},
-    {value: '2020', label: '2020'},
-    {value: '2019', label: '2019'},
-    {value: '2018', label: '2018'},
-    {value: '2017', label: '2017'},
-    {value: '2016', label: '2016'},
+    {value: '2024', label: '2024', count: 4},
+    {value: '2023', label: '2023', count: 9},
+    {value: '2022', label: '2022', count: 14},
+    {value: '2021', label: '2021', count: 21},
+    {value: '2020', label: '2020', count: 18},
+    {value: '2019', label: '2019', count: 12},
+    {value: '2018', label: '2018', count: 7},
+    {value: '2017', label: '2017', count: 5},
+    {value: '2016', label: '2016', count: 3},
 ]
 
 const DISCIPLINE_OPTIONS: FilterOption[] = [
-    {value: 'archaeology', label: 'Archaeology'},
-    {value: 'conservation', label: 'Conservation'},
-    {value: 'physics', label: 'Physics'},
-    {value: 'digital-humanities', label: 'Digital Humanities'},
-    {value: 'engineering', label: 'Engineering'},
-    {value: 'genetics', label: 'Genetics'},
+    {value: 'archaeology', label: 'Archaeology', count: 31},
+    {value: 'conservation', label: 'Conservation', count: 27},
+    {value: 'physics', label: 'Physics', count: 15},
+    {value: 'digital-humanities', label: 'Digital Humanities', count: 22},
+    {value: 'engineering', label: 'Engineering', count: 9},
+    {value: 'genetics', label: 'Genetics', count: 4},
 ]
 
 const CORPUS_OPTIONS: FilterOption[] = [
-    {value: 'science', label: 'Science'},
-    {value: 'dch', label: 'Digital Cultural Heritage'},
+    {value: 'science', label: 'Science', count: 82},
+    {value: 'dch', label: 'Digital Cultural Heritage', count: 36},
 ]
 
 function useFilterState() {
@@ -89,62 +99,79 @@ export function SearchLayoutDemoPage() {
                     mx: 'auto',
                     height: `calc(100dvh - ${NAVBAR_HEIGHT}px - 64px)`,
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
+                    gap: 3,
                 }}
             >
-                <FilterBar>
-                    <FilterMenuButton label="Year" options={YEAR_OPTIONS} value={year} onChange={setYear} />
-                    <FilterMenuButton
+                <FacetSidebar>
+                    <FacetSection label="Year" options={YEAR_OPTIONS} value={year} onChange={setYear} />
+                    <FacetSection
                         label="Discipline"
                         options={DISCIPLINE_OPTIONS}
                         value={discipline}
                         onChange={setDiscipline}
                     />
-                    <FilterMenuButton label="Corpus" options={CORPUS_OPTIONS} value={corpus} onChange={setCorpus} />
-                </FilterBar>
+                    <FacetSection label="Corpus" options={CORPUS_OPTIONS} value={corpus} onChange={setCorpus} />
+                </FacetSidebar>
 
-                <Box sx={{flex: '1 1 auto', minHeight: 0, display: 'flex', gap: 3}}>
-                    <Box sx={{flex: '1 1 0'}}>
-                        <PaginatedList
-                            header={<ResultCountHeader count={SAMPLE_PROJECTS.length} noun="projects" />}
-                            items={pageItems}
-                            getItemKey={(item) => item.title}
-                            renderItem={(item) => <SearchResultRow {...item} />}
-                            page={page}
-                            pageCount={pageCount}
-                            onPageChange={setPage}
+                <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
+                    <FilterBar>
+                        <FilterMenuButton label="Year" options={YEAR_OPTIONS} value={year} onChange={setYear} />
+                        <FilterMenuButton
+                            label="Discipline"
+                            options={DISCIPLINE_OPTIONS}
+                            value={discipline}
+                            onChange={setDiscipline}
                         />
-                    </Box>
+                        <FilterMenuButton
+                            label="Corpus"
+                            options={CORPUS_OPTIONS}
+                            value={corpus}
+                            onChange={setCorpus}
+                        />
+                    </FilterBar>
 
-                    <Box sx={{flex: '1 1 0'}}>
-                        <TabbedPanel
-                            tabs={[
-                                {
-                                    value: 'overview',
-                                    label: 'Overview',
-                                    content: (
-                                        <Box
-                                            sx={{
-                                                height: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <Text variant="body2" color="text.secondary">
-                                                No overview available yet.
-                                            </Text>
-                                        </Box>
-                                    ),
-                                },
-                                {
-                                    value: 'deliverables',
-                                    label: 'Deliverables',
-                                    content: <DeliverablesTabContent />,
-                                },
-                            ]}
-                        />
+                    <Box sx={{flex: '1 1 auto', minHeight: 0, display: 'flex', gap: 3}}>
+                        <Box sx={{flex: '1 1 0'}}>
+                            <PaginatedList
+                                header={<ResultCountHeader count={SAMPLE_PROJECTS.length} noun="projects" />}
+                                items={pageItems}
+                                getItemKey={(item) => item.title}
+                                renderItem={(item) => <SearchResultRow {...item} />}
+                                page={page}
+                                pageCount={pageCount}
+                                onPageChange={setPage}
+                            />
+                        </Box>
+
+                        <Box sx={{flex: '1 1 0'}}>
+                            <TabbedPanel
+                                tabs={[
+                                    {
+                                        value: 'overview',
+                                        label: 'Overview',
+                                        content: (
+                                            <Box
+                                                sx={{
+                                                    height: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <Text variant="body2" color="text.secondary">
+                                                    No overview available yet.
+                                                </Text>
+                                            </Box>
+                                        ),
+                                    },
+                                    {
+                                        value: 'deliverables',
+                                        label: 'Deliverables',
+                                        content: <DeliverablesTabContent />,
+                                    },
+                                ]}
+                            />
+                        </Box>
                     </Box>
                 </Box>
             </Box>

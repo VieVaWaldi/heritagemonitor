@@ -12,6 +12,12 @@ export {CorpusPanel} from './CorpusPanel'
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
 
+export {FacetSection} from './FacetSection'
+export type {FacetSectionProps} from './FacetSection'
+
+export {FacetSidebar, FACET_SIDEBAR_WIDTH} from './FacetSidebar'
+export type {FacetSidebarProps} from './FacetSidebar'
+
 export {FilterBar} from './FilterBar'
 export type {FilterBarProps} from './FilterBar'
 

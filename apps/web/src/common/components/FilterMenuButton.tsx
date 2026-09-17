@@ -17,6 +17,8 @@ import {Text} from '@/common/text'
 export interface FilterOption {
     value: string
     label: string
+    /** Result count for this option — shown by FacetSection; unused here. */
+    count?: number
 }
 
 export interface FilterMenuButtonProps {
