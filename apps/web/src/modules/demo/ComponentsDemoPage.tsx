@@ -29,6 +29,17 @@ const MULTI_SELECT_OPTIONS: MultiSelectOption[] = [
     {value: 'c', label: 'Option C'},
 ]
 
+const SEARCH_SUGGESTIONS = [
+    'digicher',
+    'conservation',
+    'BIM',
+    'photogrammetry',
+    '3D scanning specialist',
+    'heritage conservation architect',
+    'Roma heritage',
+    'Horizon Europe heritage grant',
+]
+
 function Section({title, children}: {title: string; children: React.ReactNode}) {
     return (
         <Box sx={{mb: 4}}>
@@ -45,6 +56,7 @@ export function ComponentsDemoPage() {
     const [iconTextPillSelected, setIconTextPillSelected] = useState(true)
     const [multiSelectValue, setMultiSelectValue] = useState<string[]>(['a'])
     const [searchValue, setSearchValue] = useState('')
+    const [autosuggestValue, setAutosuggestValue] = useState('')
     const [sideMenuOpen, setSideMenuOpen] = useState(false)
     const [singleSliderValue, setSingleSliderValue] = useState(2010)
     const [sliderValue, setSliderValue] = useState(50)
@@ -107,13 +119,28 @@ export function ComponentsDemoPage() {
             </Section>
 
             <Section title="SearchBar">
-                <Box sx={{maxWidth: 400}}>
-                    <SearchBar
-                        value={searchValue}
-                        onSearch={setSearchValue}
-                        onClear={() => setSearchValue('')}
-                    />
-                </Box>
+                <Stack spacing={3}>
+                    <Box sx={{maxWidth: 400}}>
+                        <SearchBar
+                            value={searchValue}
+                            onSearch={setSearchValue}
+                            onClear={() => setSearchValue('')}
+                        />
+                    </Box>
+
+                    <Box sx={{maxWidth: 400}}>
+                        <SearchBar
+                            value={autosuggestValue}
+                            onSearch={setAutosuggestValue}
+                            onClear={() => setAutosuggestValue('')}
+                            placeholder="Search with suggestions..."
+                            suggestions={SEARCH_SUGGESTIONS.filter((suggestion) =>
+                                suggestion.toLowerCase().includes(autosuggestValue.toLowerCase()),
+                            )}
+                            onSuggestionSelect={setAutosuggestValue}
+                        />
+                    </Box>
+                </Stack>
             </Section>
 
             <Section title="SideMenu">
