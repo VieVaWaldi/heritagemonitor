@@ -95,6 +95,10 @@ services:
       OPENSEARCH_PORT: 9200
       OPENSEARCH_USERNAME: admin
       OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      # No MEILISEARCH_HOST here deliberately — Meilisearch is dev-only (see
+      # infra/README.md), no service defined below. health.service.ts skips
+      # the Meilisearch check when this is unset, rather than reporting a
+      # false error for a container that was never meant to exist in prod.
       # Defensive, not load-bearing — real browser traffic reaches api through
       # Caddy same-origin, so CORS never actually gets exercised in prod. Kept
       # for any direct/non-proxied access (a local script, debugging).

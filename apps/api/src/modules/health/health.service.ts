@@ -1,4 +1,5 @@
 import type {HealthCheckResponse, HealthCheckResult} from '@heritagemonitor/shared'
+import * as meilisearchRepository from './meilisearch.repository.js'
 import * as opensearchRepository from './opensearch.repository.js'
 import * as postgresRepository from './postgres.repository.js'
 
@@ -31,8 +32,28 @@ async function checkOpenSearch(): Promise<HealthCheckResult> {
     }
 }
 
+async function checkMeilisearch(): Promise<HealthCheckResult> {
+    try {
+        const latest = await meilisearchRepository.getLatestHealthCheck()
+        const doc = latest ?? (await meilisearchRepository.insertHealthCheck('meilisearch is running'))
+        return {name: 'meilisearch', status: 'ok', message: doc.message, checkedAt: new Date()}
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'unknown error'
+        return {name: 'meilisearch', status: 'error', message, checkedAt: new Date()}
+    }
+}
+
 export async function checkHealth(): Promise<HealthCheckResponse> {
-    const checks = await Promise.all([checkApi(), checkPostgres(), checkOpenSearch()])
+    const checks = await Promise.all([
+        checkApi(),
+        checkPostgres(),
+        checkOpenSearch(),
+        // Dev only — infra/docker-compose.prod.yml has no meilisearch
+        // service and never sets MEILISEARCH_HOST, so prod skips this check
+        // entirely instead of reporting a false error for a container that
+        // was never meant to exist there. See infra/README.md.
+        ...(process.env.MEILISEARCH_HOST ? [checkMeilisearch()] : []),
+    ])
     const status = checks.every((check) => check.status === 'ok') ? 'ok' : 'error'
 
     return {status, checks}
