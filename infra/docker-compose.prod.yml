@@ -27,12 +27,27 @@ services:
       # *running* container by default too, not just build-time — blank them
       # explicitly so prod containers never silently carry a proxy meant only
       # for pulling/building. See infra/PRODUCTION.md.
-      HTTP_PROXY: ""
-      HTTPS_PROXY: ""
-      NO_PROXY: ""
-      http_proxy: ""
-      https_proxy: ""
-      no_proxy: ""
+      # Unlike every other service here, api makes a real outbound call to the
+      # public internet (openrouter.ai for /llmchat) — the other services only
+      # ever talk over the internal Docker network, which is why they blank
+      # this instead. This VM's only route out is the institutional proxy
+      # (same one ~/.docker/config.json supplies at build time, see
+      # apps/api/Dockerfile.prod) — without it, fetch() to openrouter.ai fails
+      # outright. NO_PROXY still excludes the internal hosts defensively, even
+      # though today's only fetch() call (openrouter.client.ts) never targets
+      # them and Postgres/OpenSearch's own clients don't consult these vars.
+      HTTP_PROXY: "http://internet4nzm.rz.uni-jena.de:3128"
+      HTTPS_PROXY: "http://internet4nzm.rz.uni-jena.de:3128"
+      NO_PROXY: "localhost,127.0.0.1,postgres,opensearch"
+      http_proxy: "http://internet4nzm.rz.uni-jena.de:3128"
+      https_proxy: "http://internet4nzm.rz.uni-jena.de:3128"
+      no_proxy: "localhost,127.0.0.1,postgres,opensearch"
+      # Node's native fetch (undici) ignores HTTP_PROXY/HTTPS_PROXY entirely
+      # unless this is set — same reasoning as the Dockerfile's build-time ARG,
+      # but that ARG never persists into the running container, so it has to
+      # be repeated here as an actual runtime env var.
+      NODE_USE_ENV_PROXY: "1"
+
     depends_on:
       web:
         condition: service_started
