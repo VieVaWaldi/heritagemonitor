@@ -1,4 +1,7 @@
 import {randomUUID} from 'node:crypto'
+import {readFileSync} from 'node:fs'
+import {dirname, join} from 'node:path'
+import {fileURLToPath} from 'node:url'
 import type {LlmChatRequest} from '@heritagemonitor/shared'
 import {DEFAULT_MODEL_ID} from './models.js'
 import {streamChatCompletion, type OpenRouterMessage} from './openrouter.client.js'
@@ -17,8 +20,12 @@ export type LlmChatEvent =
     | {type: 'finish'; finishReason?: string}
     | {type: 'error'; errorText: string}
 
-const SYSTEM_PROMPT =
-    'You are the HeritageMonitor research assistant. Answer clearly and concisely, and say when you are not sure.'
+// Read once at startup, not per-request — the prompt is static for the
+// process's lifetime. Resolved relative to this file (not cwd) so it works
+// both under `tsx` (running straight from src/) and the built prod image
+// (running from dist/, where the build script copies the .md alongside the
+// compiled .js — see package.json's postbuild).
+const SYSTEM_PROMPT = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'SystemPrompt.md'), 'utf-8')
 
 function buildMessages(request: LlmChatRequest): OpenRouterMessage[] {
     const systemParts = [SYSTEM_PROMPT]

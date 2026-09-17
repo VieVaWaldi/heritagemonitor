@@ -1,5 +1,6 @@
 import {createAiSdkAdapter} from '@mui/x-chat'
 import {ApiError} from '@/common/api/apiClient'
+import {USE_CASES, type UseCase} from '@/common/catalog'
 
 // The one file in this module that knows @mui/x-chat's adapter shape (see
 // apps/web/RULES.md rule 4, wrap external components). createAiSdkAdapter
@@ -9,6 +10,22 @@ import {ApiError} from '@/common/api/apiClient'
 // SSE-parsing code needed on either end.
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+
+// Text summary of what the platform's UseCases actually offer, so Lucy can
+// point users at the right one. Built once from the same USE_CASES data the
+// landing page renders (not duplicated content), stripped of the
+// presentation-only fields (icon, color) an LLM has no use for.
+function describeUseCase(useCase: UseCase): string {
+    const lines = [`${useCase.name} — ${useCase.title}`, useCase.description]
+    if (useCase.examples?.length) lines.push(`Example queries: ${useCase.examples.join(', ')}`)
+    if (useCase.subUseCases?.length) {
+        lines.push(`Sub-options: ${useCase.subUseCases.map((sub) => sub.name).join(', ')}`)
+    }
+    if (useCase.tip) lines.push(`Tip: ${useCase.tip}`)
+    return lines.join('\n')
+}
+
+const USE_CASES_CONTEXT = USE_CASES.map(describeUseCase)
 
 interface ChatMessagePart {
     type: string
@@ -41,6 +58,10 @@ export function createLlmChatAdapter() {
                     messages: messages
                         .filter((message) => message.role === 'user' || message.role === 'assistant')
                         .map((message) => ({role: message.role, content: getMessageText(message)})),
+                    // Read fresh on every send (not memoized like
+                    // USE_CASES_CONTEXT above), so this is always the page
+                    // the user is actually on right now, params included.
+                    context: [...USE_CASES_CONTEXT, `Current page URL: ${window.location.href}`],
                 }),
                 signal,
             })
