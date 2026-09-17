@@ -1,0 +1,47 @@
+{
+    "MinoritiesAbout": {
+        "trigger": "About this",
+        "title": "How this list was built",
+        "intro": "This isn't an official or legal list of minorities. There's no single authoritative definition of “minority,” and we haven't tried to impose one — instead, the list is built transparently from Wikidata, a public, collaboratively maintained knowledge base, using a small set of documented, mechanical rules rather than case-by-case editorial judgement. Every rule is listed below, so it can be checked, questioned, or challenged.",
+        "knowBefore": [
+            {
+                "title": "The rules decide, not us.",
+                "description": "No group was added or removed because someone judged it “counts” as a minority — only how Wikidata itself classifies it, e.g. whether it's the majority population of its own country."
+            },
+            {
+                "title": "Incomplete, on purpose and by accident.",
+                "description": "On purpose, because broad coverage beats a small hand-picked shortlist. By accident, because Wikidata's own coverage is uneven — some well-known groups may still be missing."
+            },
+            {
+                "title": "A living list, not a finished one.",
+                "description": "If a group is missing, misclassified, or its terms are wrong or incomplete, we want to hear about it."
+            }
+        ],
+        "stepsTitle": "How it was made, step by step",
+        "steps": [
+            {
+                "label": "Harvest",
+                "count": "490 candidate groups",
+                "description": "Queried Wikidata for every ethnic group, tribe, indigenous people, or ethnoreligious group linked to a European country."
+            },
+            {
+                "label": "Filter",
+                "count": "362 groups",
+                "description": "Removed groups with no usable name, groups Wikidata itself classifies as a recent diaspora rather than a rooted community, and a handful of non-European artifacts of the search."
+            },
+            {
+                "label": "Refine",
+                "count": "304 groups",
+                "description": "Removed groups that are the majority population of their own country (e.g. Germans in Germany) — they only read as “minorities” because they're small somewhere else. Related subgroups, like individual Sámi communities, were nested under their parent group instead of listed separately."
+            },
+            {
+                "label": "Enrich",
+                "count": "145 of 304 gained alt. names",
+                "description": "Pulled each group's native name, common demonym, and known English alternate names from Wikidata, so a search for “Lapps” or “Gypsies” still finds the right group even when that's not its formal name."
+            }
+        ],
+        "result": "The result: a searchable, filterable directory of <strong>304 minority groups</strong> across Europe — by name or known alternate name, by country, religion, language, and group type, with documented subgroups browsable under their parent group.",
+        "feedback": "Something missing or wrong? <tellUs>Tell us</tellUs>",
+        "close": "Close"
+    }
+}

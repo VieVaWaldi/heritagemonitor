@@ -6,6 +6,7 @@ import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
 import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
+import {ABOUT_TRIGGER_BY_USE_CASE} from '../aboutTriggerRegistry'
 import {useUseCaseSearch} from '../hooks/useUseCaseSearch'
 
 export interface SearchNavProps {
@@ -34,6 +35,7 @@ export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: S
     } = useUseCaseSearch(useCaseKey, subUseCaseKey)
     const placeholder = useCyclingPlaceholder(examples)
     const useCaseName = subUseCase?.name ?? useCase.name
+    const AboutTrigger = ABOUT_TRIGGER_BY_USE_CASE[useCaseKey]
 
     return (
         <Navbar
@@ -82,7 +84,12 @@ export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: S
                     suggestions={suggestions}
                     onSuggestionSelect={handleSuggestionSelect}
                 />
-                <Box />
+                {/* Centered in this track, not hugging the ActionBar — the track
+                    itself already spans from the ActionBar's edge to the
+                    Navbar's own right-hand content (CorpusPanel/endAction, both
+                    outside this grid), so centering here reads as "evenly
+                    between" the two. */}
+                <Box sx={{display: 'flex', justifyContent: 'center'}}>{AboutTrigger && <AboutTrigger />}</Box>
             </Box>
         </Navbar>
     )
