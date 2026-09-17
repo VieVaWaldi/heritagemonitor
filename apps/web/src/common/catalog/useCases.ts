@@ -16,6 +16,8 @@ export interface SubUseCase {
     name: string
     examples?: string[]
     action: UseCaseAction
+    /** See UseCase#hasResultsPanel. */
+    hasResultsPanel?: boolean
 }
 
 export interface UseCase {
@@ -42,6 +44,14 @@ export interface UseCase {
      * icon for the whole UseCase.
      */
     hasEntitySelector?: boolean
+    /**
+     * Whether UseCaseSearchPage renders the results list + tabbed detail
+     * panel (SearchResultsPanel) for this UseCase, instead of the "coming
+     * soon" placeholder. Left unset for Collaboration's subUseCases since
+     * their right-hand side will likely be a graph/map widget instead of
+     * tabs, not this same panel — undecided until that's built.
+     */
+    hasResultsPanel?: boolean
 }
 
 export const USE_CASES: UseCase[] = [
@@ -59,6 +69,7 @@ export const USE_CASES: UseCase[] = [
             route: '/search',
         },
         hasEntitySelector: true,
+        hasResultsPanel: true,
         tip: 'You can talk to LucAi about the results on the next page',
     },
     {
@@ -74,6 +85,7 @@ export const USE_CASES: UseCase[] = [
             entity: 'experts',
             route: '/search/experts',
         },
+        hasResultsPanel: true,
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
     {
@@ -89,6 +101,7 @@ export const USE_CASES: UseCase[] = [
             entity: 'minorities',
             route: '/search/minorities',
         },
+        hasResultsPanel: true,
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
     {
@@ -104,6 +117,7 @@ export const USE_CASES: UseCase[] = [
             entity: 'grants',
             route: '/search/funding',
         },
+        hasResultsPanel: true,
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
     {
