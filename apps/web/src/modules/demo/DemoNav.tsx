@@ -11,6 +11,7 @@ import {ThemeToggle} from '@/common/theme/ThemeToggle'
 const TABS = [
     {href: '/demo/typography', label: 'Typography'},
     {href: '/demo/components', label: 'Components'},
+    {href: '/demo/llmchat', label: 'LLM Chat'},
 ]
 
 // Scoped to the /demo route tree — dev-only UI reference, not user-facing.

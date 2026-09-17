@@ -21,6 +21,7 @@
         "@mui/icons-material": "^9.4.0",
         "@mui/material": "^9.4.0",
         "@mui/material-nextjs": "^9.4.0",
+        "@mui/x-chat": "^9.0.0-alpha.18",
         "@mui/x-charts": "^9.13.0",
         "next": "^16.3.3",
         "next-intl": "^4.14.4",

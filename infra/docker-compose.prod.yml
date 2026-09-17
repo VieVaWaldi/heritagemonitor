@@ -99,6 +99,7 @@ services:
       # Caddy same-origin, so CORS never actually gets exercised in prod. Kept
       # for any direct/non-proxied access (a local script, debugging).
       CORS_ORIGIN: ${CORS_ORIGIN:-https://heritagemonitor.org}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       HTTP_PROXY: ""
       HTTPS_PROXY: ""
       NO_PROXY: ""
