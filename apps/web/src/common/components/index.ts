@@ -12,6 +12,12 @@ export {CorpusPanel} from './CorpusPanel'
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
 
+export {FilterBar} from './FilterBar'
+export type {FilterBarProps} from './FilterBar'
+
+export {FilterMenuButton} from './FilterMenuButton'
+export type {FilterMenuButtonProps, FilterOption} from './FilterMenuButton'
+
 export {FilterChip} from './FilterChip'
 export type {FilterChipProps} from './FilterChip'
 
