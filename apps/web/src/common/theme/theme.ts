@@ -77,6 +77,12 @@ function getComponents(mode: ThemeMode): ThemeOptions['components'] {
     return {
         MuiCssBaseline: {
             styleOverrides: {
+                // Tells the browser to render *native* UI — scrollbars, form
+                // controls (checkboxes, selects, etc.) — using this mode's
+                // colors. MUI's own components already follow the theme;
+                // color-scheme is what makes the browser-drawn scrollbar
+                // match instead of staying stuck light in dark mode.
+                html: {colorScheme: mode},
                 body: {lineHeight: 1.4, letterSpacing: '0.3px'},
             },
         },
