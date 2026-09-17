@@ -13,7 +13,7 @@ import {USE_CASES} from '@/common/catalog'
 import {useActiveUseCase} from '@/common/hooks/useActiveUseCase'
 import {Text} from '@/common/text'
 import {createLlmChatAdapter} from './adapter'
-import {LlmChatHeaderLeft, LlmChatHeaderRight} from './LlmChatHeader'
+import {LlmChatHeaderRight} from './LlmChatHeader'
 
 export interface LlmChatBoxProps {
     sx?: SxProps<Theme>
@@ -27,15 +27,17 @@ const CONVERSATION_ID = 'llmchat'
 const COMPOSER_MAX_ROWS = 6
 
 // Wraps @mui/x-chat's <ChatBox> (see apps/web/RULES.md rule 4, wrap external
-// components) in the bordered card the whole chat feature reads as — the
-// disclaimer footer lives here, outside ChatBox's own composer, rather than
-// inside it (ChatBox's composerHelperText slot renders directly under the
-// input, which read as part of where you type). ChatBox itself picks up the
-// app's MUI theme (palette, typography, radii, dark mode) automatically
-// since it's a native MUI component rendered inside the app's existing
-// ThemeModeProvider. The slots/slotProps passed to it only restyle its own
-// composer/message chrome to match the rest of the app (ActionBar's border
-// treatment, no bubble timestamps) — none of this drops down to
+// components). No border/card chrome of its own — LlmChatSidePanel owns that
+// when this is shown docked — the disclaimer footer lives here, outside
+// ChatBox's own composer, rather than inside it (ChatBox's composerHelperText
+// slot renders directly under the input, which read as part of where you
+// type). ChatBox itself picks up the app's MUI theme (palette, typography,
+// radii, dark mode) automatically since it's a native MUI component rendered
+// inside the app's existing ThemeModeProvider. The slots/slotProps passed to
+// it restyle its composer/message chrome to match the rest of the app
+// (ActionBar's border treatment, no bubble timestamps, background.paper
+// instead of ChatBox's own default background.default so it reads as part of
+// the page rather than a distinct surface) — none of this drops down to
 // @mui/x-chat-headless, which its own README marks as an internal, unstable
 // implementation detail not meant for direct use.
 export function LlmChatBox({sx}: LlmChatBoxProps) {
@@ -62,10 +64,9 @@ export function LlmChatBox({sx}: LlmChatBoxProps) {
                 {
                     display: 'flex',
                     flexDirection: 'column',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    overflow: 'hidden',
+                    // Matches HeroLayout's root background — same page-background
+                    // feel as the rest of the hero rather than a separate card.
+                    backgroundColor: 'background.paper',
                 },
                 ...(Array.isArray(sx) ? sx : [sx]),
             ]}
@@ -97,9 +98,8 @@ export function LlmChatBox({sx}: LlmChatBoxProps) {
                     // (its "noAvatar" layout), so bubbles hug their own side
                     // instead of leaving a gap where the icon used to be.
                     messageAvatar: null,
-                    // Repurposes the (now-empty-titled) header's left/right slots
-                    // instead of the default title/subtitle + actions.
-                    conversationHeaderInfo: LlmChatHeaderLeft,
+                    // Repurposes the (now-empty-titled) header's actions slot for
+                    // the "Lucy" title/icon instead of the default title/subtitle.
                     conversationHeaderActions: LlmChatHeaderRight,
                 }}
                 slotProps={{
@@ -124,8 +124,13 @@ export function LlmChatBox({sx}: LlmChatBoxProps) {
                     composerSendButton: {
                         sx: {width: 30, height: 30, fontSize: '1.05rem'},
                     },
+                    // ChatMessageList defaults to background.default — override
+                    // so the message area reads as flat page background too.
+                    messageList: {
+                        sx: {backgroundColor: 'background.paper'},
+                    },
                 }}
-                sx={{flex: 1, minHeight: 0}}
+                sx={{flex: 1, minHeight: 0, backgroundColor: 'background.paper'}}
             />
             <Text variant="caption" sx={{color: 'text.disabled', px: 1.5, py: 1}}>
                 Lucy is AI and can make mistakes. Please double-check responses.

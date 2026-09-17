@@ -1,7 +1,9 @@
 'use client'
 
 import Box from '@mui/material/Box'
+import Divider from '@mui/material/Divider'
 import {alpha} from '@mui/material/styles'
+import type {Theme} from '@mui/material/styles'
 import type {ReactNode} from 'react'
 import {HMMenu} from './HMMenu'
 import {CorpusPanel} from './CorpusPanel'
@@ -16,6 +18,12 @@ export const NAVBAR_HEIGHT = 44
 // carries an ActionBar in the middle slot that needs more room than a plain
 // tab strip does.
 export const NAVBAR_HEIGHT_TALL = NAVBAR_HEIGHT * 2
+
+// A fraction of the theme's divider color — deliberately faint, just a soft
+// hint of a break rather than a hard rule. Shared with anything that should
+// visually read as part of the same top-chrome as the navbar, e.g.
+// LlmChatSidePanel's border.
+export const NAVBAR_BORDER_COLOR = (theme: Theme) => alpha(theme.palette.divider, 0.5)
 
 export interface NavbarProps {
     /** Adds a divider under the bar — deliberately faint (a fraction of the
@@ -33,12 +41,17 @@ export interface NavbarProps {
     size?: 'default' | 'tall'
     /** Page-specific content, placed between HMMenu and the corpus selector — e.g. a route's own tab strip. */
     children?: ReactNode
+    /** Extra action(s) hugging the right edge past the corpus selector, e.g.
+     * the Lucy chat toggle — set off from CorpusPanel by a vertical divider
+     * so it doesn't read as part of the corpus control. Omitted entirely
+     * (no divider either) on pages with nothing to put there. */
+    endAction?: ReactNode
 }
 
 // App-wide top bar: HMMenu hugs the left edge, the corpus selector hugs the
 // right, and any page-specific content (tabs, an ActionBar, etc.) fills the
 // middle.
-export function Navbar({bordered = false, sticky = false, size = 'default', children}: NavbarProps) {
+export function Navbar({bordered = false, sticky = false, size = 'default', children, endAction}: NavbarProps) {
     return (
         <Box
             component="nav"
@@ -51,7 +64,7 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
                 height: size === 'tall' ? NAVBAR_HEIGHT_TALL : NAVBAR_HEIGHT,
                 backgroundColor: 'background.paper',
                 borderBottom: bordered ? 1 : 0,
-                borderColor: (t) => alpha(t.palette.divider, 0.5),
+                borderColor: NAVBAR_BORDER_COLOR,
             }}
         >
             <HMMenu />
@@ -59,6 +72,12 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
                 {children}
             </Box>
             <CorpusPanel />
+            {endAction && (
+                <>
+                    <Divider orientation="vertical" flexItem sx={{my: 1}} />
+                    <Box sx={{display: 'flex', alignItems: 'center', px: 1}}>{endAction}</Box>
+                </>
+            )}
         </Box>
     )
 }

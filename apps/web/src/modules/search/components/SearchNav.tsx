@@ -2,19 +2,25 @@
 
 import Box from '@mui/material/Box'
 import {Navbar, ActionBar} from '@/common/components'
+import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
 import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
+import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {useUseCaseSearch} from '../hooks/useUseCaseSearch'
 
 export interface SearchNavProps {
     useCaseKey: string
     subUseCaseKey?: string
+    chatOpen: boolean
+    onChatToggle: () => void
 }
 
 // The 'tall' Navbar variant carrying this route's ActionBar, configured the
 // same way the same UseCase/SubUseCase shows it on the HeroPage.
-export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
+export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: SearchNavProps) {
     const {
+        useCase,
+        subUseCase,
         examples,
         searchValue,
         setSearchValue,
@@ -25,15 +31,43 @@ export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
         handleSearchSubmit,
     } = useUseCaseSearch(useCaseKey, subUseCaseKey)
     const placeholder = useCyclingPlaceholder(examples)
+    const useCaseName = subUseCase?.name ?? useCase.name
 
     return (
-        <Navbar size="tall" bordered sticky>
-            {/* Capped, and right-anchored with a guaranteed gap (rather than
-                mx: 'auto', which centers but gives back none of that margin
-                once the flex space gets tight) — the middle slot spans
-                HMMenu-to-CorpusPanel, far wider than a search pill should
-                stretch, and butts up right against CorpusPanel without it. */}
-            <Box sx={{width: '100%', maxWidth: 720, ml: 'auto', mr: fluidUnit(2)}}>
+        <Navbar
+            size="tall"
+            bordered
+            sticky
+            endAction={<LlmChatNavToggle open={chatOpen} onToggle={onChatToggle} />}
+        >
+            {/* Grid, not flex + margin: two equal 1fr tracks either side of the
+                capped ActionBar track center it within the middle slot
+                regardless of the label's width — margin/auto tricks only center
+                within whatever's left after a fixed offset, which drifts once
+                CorpusPanel/endAction's own width changes. */}
+            <Box
+                sx={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 720px) minmax(0, 1fr)',
+                    alignItems: 'center',
+                    columnGap: fluidUnit(1),
+                }}
+            >
+                <Text
+                    variant="button"
+                    sx={{
+                        color: 'text.disabled',
+                        fontSize: '1.15rem',
+                        textAlign: 'right',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {useCaseName}
+                </Text>
                 <ActionBar
                     searchValue={searchValue}
                     onSearchChange={setSearchValue}
@@ -44,6 +78,7 @@ export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
                     onEntityChange={setSelectedEntity}
                     entitySelectorInteractive={entitySelectorInteractive}
                 />
+                <Box />
             </Box>
         </Navbar>
     )

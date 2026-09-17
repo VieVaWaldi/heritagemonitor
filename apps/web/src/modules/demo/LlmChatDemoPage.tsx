@@ -31,7 +31,19 @@ export function LlmChatDemoPage() {
                 /v1/llmchat/stream endpoint.
             </Text>
 
-            <LlmChatBox sx={{flex: 1, minHeight: 0}} />
+            {/* LlmChatBox itself carries no border/radius/overflow chrome —
+                LlmChatSidePanel supplies that for the docked /home & /search
+                case, so this standalone page supplies its own instead. */}
+            <LlmChatBox
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                }}
+            />
         </Box>
     )
 }

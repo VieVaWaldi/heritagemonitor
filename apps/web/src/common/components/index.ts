@@ -32,7 +32,7 @@ export type {LanguageSelectionProps} from './LanguageSelection'
 export {MultiSelectDropdown} from './MultiSelectDropdown'
 export type {MultiSelectDropdownProps, MultiSelectOption} from './MultiSelectDropdown'
 
-export {Navbar, NAVBAR_HEIGHT, NAVBAR_HEIGHT_TALL} from './Navbar'
+export {Navbar, NAVBAR_HEIGHT, NAVBAR_HEIGHT_TALL, NAVBAR_BORDER_COLOR} from './Navbar'
 export type {NavbarProps} from './Navbar'
 
 export {SearchBar} from './SearchBar'

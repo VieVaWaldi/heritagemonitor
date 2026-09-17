@@ -1,4 +1,8 @@
-import {createTheme, type Theme, type ThemeOptions} from '@mui/material/styles'
+import {alpha, createTheme, type Theme, type ThemeOptions} from '@mui/material/styles'
+// Augments @mui/material/styles' Components/ComponentsProps/ComponentsOverrides
+// interfaces with @mui/x-chat's own components (MuiChatConversation etc.) so
+// getComponents below can theme them like any built-in MUI component.
+import type {} from '@mui/x-chat/themeAugmentation'
 import {palette, type ThemeMode} from './palette'
 
 // Typography scale, ported from digicher_webinterface's src/lib/theme.ts.
@@ -120,6 +124,19 @@ function getComponents(mode: ThemeMode): ThemeOptions['components'] {
         MuiLink: {
             defaultProps: {underline: 'hover'},
             styleOverrides: {root: {color: tokens.link}},
+        },
+        // @mui/x-chat's ChatConversationHeader doesn't expose an sx prop
+        // (see LlmChatBox), so its border can only be retargeted via theme
+        // component overrides. Same fraction of divider as Navbar's own
+        // border (NAVBAR_BORDER_COLOR in Navbar.tsx) — kept as a literal
+        // here rather than imported to avoid a component -> theme -> component
+        // import cycle; keep the 0.5 factor in sync with Navbar.tsx by hand.
+        MuiChatConversation: {
+            styleOverrides: {
+                header: ({theme}: {theme: Theme}) => ({
+                    borderBottomColor: alpha(theme.palette.divider, 0.5),
+                }),
+            },
         },
     }
 }
