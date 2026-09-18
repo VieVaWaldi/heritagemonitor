@@ -52,19 +52,9 @@ Notes:
   live inside `os-data` alongside the app's real OpenSearch data)
 * Local dev only, these images are not part of the prod deployment ... yet?
 
-### Meilisearch (dev only)
-
-`meilisearch` starts with everything else via a plain `docker compose up -d` — it's not behind the
-`tools` profile. Host-reachable at `localhost:${MEILISEARCH_PORT:-7701}` (internally the container
-still listens on Meilisearch's default `7700`, same host-vs-container split as Postgres/OpenSearch
-above). Auth is on via `MEILI_MASTER_KEY` in `infra/.env`.
-
-This is dev-only for now: no entry in `docker-compose.prod.yml`, and nothing in `apps/api` or
-`apps/web` talks to it yet — it's just standing the container up.
-
 ## Data persistence
 
-Data lives in three named Docker volumes: `pg-data`, `os-data`, `meili-data`. These are NOT inside this
+Data lives in two named Docker volumes: `pg-data`, `os-data`. These are NOT inside this
 repo folder, they live in Docker's own storage area. `docker compose down` does not
 touch them. Only `docker compose down -v`, or manually running `docker volume rm`, deletes
 them.

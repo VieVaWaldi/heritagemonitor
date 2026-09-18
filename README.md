@@ -23,7 +23,6 @@ docker compose -f infra/docker-compose.yml up -d --build
 
 * Node http://localhost:3001/v1/health
 * Web http://localhost:3000/health
-* Meilisearch http://localhost:7701/health (dev only, see infra/README.md)
 
 Start DbGate (Postgres UI) and OpenSearch UI with `docker compose --profile tools up -d`
 

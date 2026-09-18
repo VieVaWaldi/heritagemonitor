@@ -50,11 +50,12 @@ function parseSort(sort?: string): {field: string; order: 'asc' | 'desc'} | unde
     return {field, order: order as 'asc' | 'desc'}
 }
 
-// OpenSearch's terms-aggregation buckets -> the same {field: {value: count}}
-// shape Meilisearch's facetDistribution already returned, so nothing
-// downstream (apps/web) needs to change. key_as_string covers boolean
-// buckets (has_subgroups comes back as key: 0/1, key_as_string: "false"/
-// "true") -- falls back to String(key) for everything else.
+// OpenSearch's terms-aggregation buckets -> the {field: {value: count}}
+// shape the shared MinorityFacetDistribution contract expects, so apps/web
+// doesn't need to know how the aggregation was computed. key_as_string
+// covers boolean buckets (has_subgroups comes back as key: 0/1,
+// key_as_string: "false"/"true") -- falls back to String(key) for
+// everything else.
 function toFacetDistribution(aggregations: Record<string, {buckets: TermsBucket[]}>): MinorityFacetDistribution {
     return Object.fromEntries(
         Object.entries(aggregations).map(([field, agg]) => [
@@ -65,7 +66,7 @@ function toFacetDistribution(aggregations: Record<string, {buckets: TermsBucket[
 }
 
 // Raw OpenSearch hits/documents are untyped (the index has no schema
-// Meilisearch itself enforces) — this is the one place that trusts their
+// enforcement of its own) — this is the one place that trusts their
 // shape, validating against the same minorityDtoSchema the API's own
 // response contract is built from (rather than hand-defaulting each field)
 // so a genuinely malformed document is caught here, not served silently

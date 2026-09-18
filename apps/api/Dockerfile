@@ -3,10 +3,10 @@
 # pnpm needs to see the workspace root (pnpm-workspace.yaml, pnpm-lock.yaml)
 # plus the dependenies packages' source to resolve `workspace:*` dependencies.
 #
-# Hot reload: docker-compose.yml mounts apps/api, packages/db, packages/search,
-# packages/search2 and packages/shared into their real paths under /app at
-# runtime, and CMD runs `tsx watch`, so editing a file on the host restarts
-# the process inside the container automatically.
+# Hot reload: docker-compose.yml mounts apps/api, packages/db, packages/search
+# and packages/shared into their real paths under /app at runtime, and CMD
+# runs `tsx watch`, so editing a file on the host restarts the process inside
+# the container automatically.
 
 FROM node:24-alpine
 
@@ -30,13 +30,12 @@ WORKDIR /app
 
 # Copy workspace manifests first so `pnpm install` is cached unless
 # dependencies change. Only api and its workspace dependencies (db, search,
-# search2, shared) need to be present. pnpm only sees packages that actually
-# exist in the build context.
+# shared) need to be present. pnpm only sees packages that actually exist in
+# the build context.
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/search/package.json packages/search/package.json
-COPY packages/search2/package.json packages/search2/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install
 
@@ -45,7 +44,6 @@ RUN pnpm install
 COPY apps/api apps/api
 COPY packages/db packages/db
 COPY packages/search packages/search
-COPY packages/search2 packages/search2
 COPY packages/shared packages/shared
 
 WORKDIR /app/apps/api

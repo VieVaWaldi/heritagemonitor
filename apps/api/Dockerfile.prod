@@ -28,26 +28,20 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/search/package.json packages/search/package.json
-COPY packages/search2/package.json packages/search2/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY apps/api apps/api
 COPY packages/db packages/db
 COPY packages/search packages/search
-COPY packages/search2 packages/search2
 COPY packages/shared packages/shared
 
-# Order matters: shared/db/search/search2 must land in dist/ before api's own
-# build, since api's tsc build resolves their `exports` against compiled
-# .d.ts, not raw src/ (see infra/README.md's Docker Gotchas / infra/Dockerfile.libs).
-# search2 (Meilisearch) has no prod container yet (infra/README.md) — api
-# still needs it compiled in since health.service.ts imports it unconditionally,
-# it just never calls the check when MEILISEARCH_HOST is unset (prod's case).
+# Order matters: shared/db/search must land in dist/ before api's own build,
+# since api's tsc build resolves their `exports` against compiled .d.ts, not
+# raw src/ (see infra/README.md's Docker Gotchas / infra/Dockerfile.libs).
 RUN pnpm --filter @heritagemonitor/shared build && \
     pnpm --filter @heritagemonitor/db build && \
     pnpm --filter @heritagemonitor/search build && \
-    pnpm --filter @heritagemonitor/search2 build && \
     pnpm --filter @heritagemonitor/api build
 
 
@@ -70,7 +64,6 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/search/package.json packages/search/package.json
-COPY packages/search2/package.json packages/search2/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --prod --frozen-lockfile
 
@@ -78,7 +71,6 @@ RUN pnpm install --prod --frozen-lockfile
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/packages/db/dist packages/db/dist
 COPY --from=build /app/packages/search/dist packages/search/dist
-COPY --from=build /app/packages/search2/dist packages/search2/dist
 COPY --from=build /app/packages/shared/dist packages/shared/dist
 
 WORKDIR /app/apps/api

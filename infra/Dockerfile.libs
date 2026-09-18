@@ -1,6 +1,6 @@
-# Compiles every pure-TS workspace package (shared, db, search, search2) that
-# apps/api and apps/web import via compiled dist/ output rather than raw src/.
-# One container, four `tsc --watch`processes (infra/build-libs.sh),
+# Compiles every pure-TS workspace package (shared, db, search) that apps/api
+# and apps/web import via compiled dist/ output rather than raw src/.
+# One container, three `tsc --watch` processes (infra/build-libs.sh),
 # so api/web depend on a single healthcheck.
 
 # Build context is the monorepo root (see docker-compose.yml) so pnpm can see
@@ -28,13 +28,11 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared/package.json packages/shared/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/search/package.json packages/search/package.json
-COPY packages/search2/package.json packages/search2/package.json
 RUN pnpm install
 
 COPY packages/shared packages/shared
 COPY packages/db packages/db
 COPY packages/search packages/search
-COPY packages/search2 packages/search2
 COPY infra/build-libs.sh build-libs.sh
 RUN chmod +x build-libs.sh
 

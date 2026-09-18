@@ -4,7 +4,7 @@ import {z} from 'zod'
 // this shape) and apps/web (which validates the response against it at the
 // network boundary before trusting it).
 
-export const healthCheckNameSchema = z.enum(['api', 'postgres', 'opensearch', 'meilisearch'])
+export const healthCheckNameSchema = z.enum(['api', 'postgres', 'opensearch'])
 export const healthCheckStatusSchema = z.enum(['ok', 'error'])
 
 export const healthCheckResultSchema = z.object({

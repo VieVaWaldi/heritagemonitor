@@ -26,9 +26,9 @@ function EmptyTabMessage({message}: {message: string}) {
 }
 
 // Results list + tabbed detail panel for a /search UseCase. No data hook
-// yet — each UseCase gets its own API endpoint + Meilisearch collection
-// later, so this renders the real end-state layout with genuinely empty
-// data rather than a "coming soon" placeholder.
+// yet — each UseCase gets its own API endpoint + OpenSearch index later, so
+// this renders the real end-state layout with genuinely empty data rather
+// than a "coming soon" placeholder.
 export function SearchResultsPanel() {
     const items: SearchResultRowData[] = []
     const [year, setYear] = useState<string[]>([])
@@ -36,8 +36,8 @@ export function SearchResultsPanel() {
 
     return (
         <Box sx={{width: '80%', mx: 'auto', height: '100%', display: 'flex', gap: 3}}>
-            {/* Options are empty until each UseCase's own Meilisearch
-                collection is wired up — no real facet values to show yet. */}
+            {/* Options are empty until each UseCase's own OpenSearch index
+                is wired up — no real facet values to show yet. */}
             <FacetSidebar>
                 <FacetSection label="Year" options={[]} value={year} onChange={setYear} />
                 <FacetSection label="Discipline" options={[]} value={discipline} onChange={setDiscipline} />

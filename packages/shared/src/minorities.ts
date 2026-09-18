@@ -2,8 +2,8 @@ import {z} from 'zod'
 
 // Contract for GET /v1/minorities/search, /v1/minorities/suggest and
 // /v1/minorities/:qid, shared between apps/api (produces, mapped from the
-// Meilisearch `minorities` index — see hm_pipeline's
-// index_meilisearch.py for the raw document shape) and apps/web (validates
+// OpenSearch `minorities` index — see hm_pipeline's
+// index_opensearch.py for the raw document shape) and apps/web (validates
 // at the network boundary before trusting it). Only the fields the UI
 // actually uses are modeled — the raw index also carries `diaspora` (always
 // empty), `part_of`/`has_parts`/`merged_qids` (pipeline-internal), which
@@ -11,12 +11,12 @@ import {z} from 'zod'
 
 // Which minorities fields are checkbox facets, their display label, and
 // primary/secondary tiering — the one place this lives on the TS side.
-// apps/api reads the field list to know which Meilisearch facets to
+// apps/api reads the field list to know which OpenSearch aggregations to
 // request; apps/web reads the whole thing to render both the sidebar and
 // the filter bar (one map, not hand-duplicated JSX) and to know which
 // MinorityFilters keys are array-valued. Mirrors (but can't literally
 // import — different language, different repo) the tiering rationale in
-// hm_pipeline's index_meilisearch.py docstring; if that pipeline's facet
+// hm_pipeline's index_opensearch.py docstring; if that pipeline's facet
 // fields ever change, this is the one place the TS side needs to follow.
 export type MinorityFacetField =
     | 'countries'
@@ -44,10 +44,10 @@ export const MINORITY_FACET_FIELDS: MinorityFacetFieldConfig[] = [
 ]
 
 // manual_seed/indigenous_to_europe are internal pipeline vocabulary (see
-// index_meilisearch.py) and need a real relabel; the rest are already
+// index_opensearch.py) and need a real relabel; the rest are already
 // human-readable words, just lowercase in the raw data, so they only need
 // capitalizing.
-// Mirrors sortableAttributes on the `minorities` Meilisearch index
+// Mirrors the sortable fields on the `minorities` OpenSearch index
 // (group_name_en, population) — the one place both apps/api's querystring
 // validation and apps/web's RankingButton get this list from.
 export const MINORITY_SORT_OPTIONS = [
@@ -90,7 +90,7 @@ export const minorityDtoSchema = z.object({
 export type MinorityDto = z.infer<typeof minorityDtoSchema>
 
 // One entry per filterable field requested — value -> count, same shape
-// Meilisearch itself returns.
+// apps/api's opensearch.repository.ts flattens its terms aggregations into.
 export const minorityFacetDistributionSchema = z.record(z.string(), z.record(z.string(), z.number()))
 export type MinorityFacetDistribution = z.infer<typeof minorityFacetDistributionSchema>
 

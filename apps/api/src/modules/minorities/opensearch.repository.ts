@@ -16,12 +16,11 @@ function keywordField(field: string): string {
     return KEYWORD_MULTIFIELDS.has(field) ? `${field}.keyword` : field
 }
 
-// Query-time field boosts replicate Meilisearch's searchableAttributes
-// ranking (a hit on the group's own name should always outrank one that
-// only matched via a language/country/religion name) — OpenSearch has no
-// index-setting equivalent for this, so it lives here instead of in
-// hm_pipeline's mapping. Order/weights mirror index_meilisearch.py's
-// searchableAttributes list.
+// Query-time field boosts (a hit on the group's own name should always
+// outrank one that only matched via a language/country/religion name) —
+// OpenSearch has no index-setting equivalent for this, so it lives here
+// instead of in hm_pipeline's mapping. Order/weights mirror
+// index_opensearch.py's field-boost rationale.
 const SEARCH_FIELD_BOOSTS = ['group_name_en^5', 'search_keywords^4', 'native_languages^2', 'countries^2', 'religions', 'subclass_of']
 
 function buildTextQuery(q: string) {
@@ -136,10 +135,9 @@ export async function search({q, filters = [], hasSubgroups, facetFields = [], s
 }
 
 // group_name_en/search_keywords only, with match_phrase_prefix instead of
-// the ranked multi_match `search()` uses — an approximation of Meilisearch's
-// built-in prefix search, since the index has no edge_ngram field to give a
-// true instant-search feel (would need a mapping change on hm_pipeline's
-// side, not just here).
+// the ranked multi_match `search()` uses — an approximation of true
+// instant-search, since the index has no edge_ngram field for that (would
+// need a mapping change on hm_pipeline's side, not just here).
 export async function suggest(q: string, limit: number) {
     const {body} = await client.search({
         index: indices.minoritiesIndexName,
