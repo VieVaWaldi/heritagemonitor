@@ -17,6 +17,7 @@ export default getRequestConfig(async () => {
         ...(await import(`../../modules/home/messages/${locale}.json`)).default,
         ...(await import(`../../modules/health/messages/${locale}.json`)).default,
         ...(await import(`../../modules/search/minorities/messages/${locale}.json`)).default,
+        ...(await import(`../../modules/notFound/messages/${locale}.json`)).default,
     }
 
     return {locale, messages}

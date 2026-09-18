@@ -1,0 +1,7 @@
+{
+    "NotFound": {
+        "title": "404",
+        "message": "You lost?",
+        "backHome": "Take me back home, please!"
+    }
+}
