@@ -14,15 +14,10 @@ import {CorpusPanel} from './CorpusPanel'
 // pushed past it by the navbar sitting above.
 export const NAVBAR_HEIGHT = 44
 
-// "tall" is double height — used by /search and friends, whose Navbar
-// carries an ActionBar in the middle slot that needs more room than a plain
-// tab strip does.
 export const NAVBAR_HEIGHT_TALL = NAVBAR_HEIGHT * 2
 
-// A fraction of the theme's divider color — deliberately faint, just a soft
-// hint of a break rather than a hard rule. Shared with anything that should
-// visually read as part of the same top-chrome as the navbar, e.g.
-// LlmChatSidePanel's border.
+export const NAVBAR_HEIGHT_MID = NAVBAR_HEIGHT * 1.5
+
 export const NAVBAR_BORDER_COLOR = (theme: Theme) => alpha(theme.palette.divider, 0.5)
 
 export interface NavbarProps {
@@ -36,9 +31,10 @@ export interface NavbarProps {
      * away with the page. */
     sticky?: boolean
     /** 'tall' doubles the bar's height (see NAVBAR_HEIGHT_TALL) — for
-     * content heavier than a tab strip, e.g. /search's ActionBar. Defaults
+     * content heavier than a tab strip, e.g. /search's ActionBar. 'mid' is
+     * 1.5x height (see NAVBAR_HEIGHT_MID) — used by the home page. Defaults
      * to 'default'. */
-    size?: 'default' | 'tall'
+    size?: 'default' | 'mid' | 'tall'
     /** Page-specific content, placed between HMMenu and the corpus selector — e.g. a route's own tab strip. */
     children?: ReactNode
     /** Extra action(s) hugging the right edge past the corpus selector, e.g.
@@ -61,7 +57,7 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
                 zIndex: (t) => t.zIndex.appBar,
                 display: 'flex',
                 alignItems: 'center',
-                height: size === 'tall' ? NAVBAR_HEIGHT_TALL : NAVBAR_HEIGHT,
+                height: size === 'tall' ? NAVBAR_HEIGHT_TALL : size === 'mid' ? NAVBAR_HEIGHT_MID : NAVBAR_HEIGHT,
                 backgroundColor: 'background.paper',
                 borderBottom: bordered ? 1 : 0,
                 borderColor: NAVBAR_BORDER_COLOR,

@@ -2,7 +2,7 @@
 
 import {useState} from 'react'
 import Box from '@mui/material/Box'
-import {Navbar, NAVBAR_HEIGHT} from '@/common/components'
+import {Navbar, NAVBAR_HEIGHT_MID} from '@/common/components'
 import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
 import {LlmChatSidePanel} from '@/common/llmchat/LlmChatSidePanel'
 import {HeroPage} from './HeroPage'
@@ -18,6 +18,7 @@ export function HomePage() {
             <Navbar
                 sticky
                 bordered
+                size="mid"
                 endAction={<LlmChatNavToggle open={chatOpen} onToggle={() => setChatOpen((open) => !open)} />}
             />
             {/* Flex row so the Lucy panel docks beside the page content
@@ -30,7 +31,7 @@ export function HomePage() {
                     <Footer />
                 </Box>
 
-                {chatOpen && <LlmChatSidePanel topOffset={NAVBAR_HEIGHT} />}
+                {chatOpen && <LlmChatSidePanel topOffset={NAVBAR_HEIGHT_MID} />}
             </Box>
         </>
     )
