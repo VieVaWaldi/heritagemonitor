@@ -7,9 +7,10 @@ import {
     type MinoritySuggestResponse,
 } from '@heritagemonitor/shared'
 import {AppError} from '../../plugins/errors.js'
-import * as meilisearchRepository from './meilisearch.repository.js'
+import * as opensearchRepository from './opensearch.repository.js'
+import type {MinorityFilterClause, TermsBucket} from './opensearch.repository.js'
 
-// Service layer: business/domain logic — query building and Meilisearch-hit
+// Service layer: business/domain logic — query building and OpenSearch-hit
 // -> DTO mapping. Agnostic of transport, storage details live in the
 // repository. See apps/api/RULES.md rule 3.
 
@@ -34,36 +35,36 @@ export interface MinoritySearchFilters {
     has_subgroups?: boolean
 }
 
-// Meilisearch filter strings take double-quoted values — escape any
-// embedded quote rather than reject/strip it, since Wikidata group/country
-// names can legitimately contain one (e.g. a name with an apostrophe-like
-// quote character).
-function quoted(value: string): string {
-    return `"${value.replace(/"/g, '\\"')}"`
+const FILTER_FIELDS = ['countries', 'source_class', 'religions', 'native_languages', 'subclass_of', 'admin_territory', 'ancestral_home'] as const
+
+function buildFilterClauses(filters: MinoritySearchFilters): MinorityFilterClause[] {
+    return FILTER_FIELDS.filter((field) => filters[field] && filters[field]!.length > 0).map((field) => ({
+        field,
+        values: filters[field]!,
+    }))
 }
 
-function inFilter(field: string, values?: string[]): string | null {
-    if (!values || values.length === 0) return null
-    return `${field} IN [${values.map(quoted).join(', ')}]`
+function parseSort(sort?: string): {field: string; order: 'asc' | 'desc'} | undefined {
+    if (!sort) return undefined
+    const [field, order] = sort.split(':')
+    return {field, order: order as 'asc' | 'desc'}
 }
 
-function buildFilterExpression(filters: MinoritySearchFilters): string[] {
-    const clauses = [
-        inFilter('countries', filters.countries),
-        inFilter('source_class', filters.source_class),
-        inFilter('religions', filters.religions),
-        inFilter('native_languages', filters.native_languages),
-        inFilter('subclass_of', filters.subclass_of),
-        inFilter('admin_territory', filters.admin_territory),
-        inFilter('ancestral_home', filters.ancestral_home),
-    ].filter((clause): clause is string => clause !== null)
-
-    if (filters.has_subgroups != null) clauses.push(`has_subgroups = ${filters.has_subgroups}`)
-
-    return clauses
+// OpenSearch's terms-aggregation buckets -> the same {field: {value: count}}
+// shape Meilisearch's facetDistribution already returned, so nothing
+// downstream (apps/web) needs to change. key_as_string covers boolean
+// buckets (has_subgroups comes back as key: 0/1, key_as_string: "false"/
+// "true") -- falls back to String(key) for everything else.
+function toFacetDistribution(aggregations: Record<string, {buckets: TermsBucket[]}>): MinorityFacetDistribution {
+    return Object.fromEntries(
+        Object.entries(aggregations).map(([field, agg]) => [
+            field,
+            Object.fromEntries(agg.buckets.map((bucket) => [bucket.key_as_string ?? String(bucket.key), bucket.doc_count])),
+        ]),
+    )
 }
 
-// Raw Meilisearch hits/documents are untyped (the index has no schema
+// Raw OpenSearch hits/documents are untyped (the index has no schema
 // Meilisearch itself enforces) — this is the one place that trusts their
 // shape, validating against the same minorityDtoSchema the API's own
 // response contract is built from (rather than hand-defaulting each field)
@@ -89,48 +90,41 @@ export async function searchMinorities(
     const limit = PAGE_SIZE
     const offset = (page - 1) * limit
 
-    const result = await meilisearchRepository.search({
+    const result = await opensearchRepository.search({
         q,
-        filter: buildFilterExpression(filters),
-        facets: FACET_FIELDS,
-        sort: sort ? [sort] : undefined,
+        filters: buildFilterClauses(filters),
+        hasSubgroups: filters.has_subgroups,
+        facetFields: FACET_FIELDS,
+        sort: parseSort(sort),
         limit,
         offset,
     })
 
-    const estimatedTotalHits = result.estimatedTotalHits ?? 0
-
     return {
         hits: result.hits.map(parseMinorityDoc).filter((dto): dto is MinorityDto => dto !== null),
-        facetDistribution: (result.facetDistribution ?? {}) as MinorityFacetDistribution,
-        estimatedTotalHits,
+        facetDistribution: toFacetDistribution(result.aggregations),
+        estimatedTotalHits: result.total,
         page,
-        pageCount: Math.max(1, Math.ceil(estimatedTotalHits / limit)),
+        pageCount: Math.max(1, Math.ceil(result.total / limit)),
     }
 }
 
-// group_name_en ranks highest in the index's searchableAttributes, so
-// restricting the search to just group_name_en/search_keywords here (rather
-// than every searchable field, as /search does) keeps suggestions to "names
-// that actually match", not groups that only matched via a shared country
-// or religion.
+// group_name_en ranks highest in search()'s field boosts, but suggest() uses
+// its own prefix-only query (see opensearch.repository.ts) rather than
+// search()'s ranked one, keeping suggestions to "names that actually
+// prefix-match", not groups that only matched via a shared country or
+// religion.
 export async function suggestMinorities(q: string): Promise<MinoritySuggestResponse> {
     if (!q.trim()) return {suggestions: []}
 
-    const result = await meilisearchRepository.search({
-        q,
-        attributesToSearchOn: ['group_name_en', 'search_keywords'],
-        limit: SUGGEST_LIMIT,
-        offset: 0,
-    })
+    const docs = await opensearchRepository.suggest(q, SUGGEST_LIMIT)
 
     const suggestions: string[] = []
     const seen = new Set<string>()
-    for (const hit of result.hits as Record<string, unknown>[]) {
-        const name = hit.group_name_en
-        if (typeof name === 'string' && !seen.has(name)) {
-            seen.add(name)
-            suggestions.push(name)
+    for (const doc of docs) {
+        if (!seen.has(doc.group_name_en)) {
+            seen.add(doc.group_name_en)
+            suggestions.push(doc.group_name_en)
         }
     }
 
@@ -138,7 +132,7 @@ export async function suggestMinorities(q: string): Promise<MinoritySuggestRespo
 }
 
 export async function getMinorityById(qid: string): Promise<MinorityDto> {
-    const doc = await meilisearchRepository.getById(qid).catch(() => null)
+    const doc = await opensearchRepository.getById(qid).catch(() => null)
     if (!doc) throw new AppError(`Minority group '${qid}' not found`, 404)
 
     const dto = parseMinorityDoc(doc)
