@@ -12,7 +12,7 @@ export function NotFoundPage() {
 
     return (
         <>
-            <Navbar />
+            {/*<Navbar size={"mid"} />*/}
             <Box
                 sx={{
                     minHeight: `calc(100dvh - ${NAVBAR_HEIGHT}px)`,
