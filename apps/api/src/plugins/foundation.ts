@@ -5,6 +5,7 @@ import {registerAuthPlaceholder} from './auth.js'
 import {InMemoryCache} from './cache.js'
 import {registerErrorHandling} from './errors.js'
 import {registerNoStore} from './noStore.js'
+import {registerRecentRequestsLog} from './recentRequestsLog.js'
 import {registerRequestLog} from './requestLog.js'
 import {registerRequestMetrics} from './requestMetrics.js'
 
@@ -24,6 +25,7 @@ async function foundation(fastify: FastifyInstance) {
     registerAuthPlaceholder(fastify)
     registerRequestLog(fastify)
     registerRequestMetrics(fastify)
+    registerRecentRequestsLog(fastify)
     registerNoStore(fastify)
 
     const maxCacheEntries = Number(process.env.CACHE_MAX_ENTRIES) || undefined

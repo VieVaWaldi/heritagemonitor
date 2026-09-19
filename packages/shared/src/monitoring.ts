@@ -47,3 +47,23 @@ export const requestCountResponseSchema = z.object({
     counts: z.array(routeRequestCountSchema),
 })
 export type RequestCountResponse = z.infer<typeof requestCountResponseSchema>
+
+// Contract for GET /v1/monitoring/recent-requests — raw last-100 request
+// feed for the live-requests monitoring page. Unlike the time-series/count
+// endpoints above, this carries the actual incoming path + query string
+// values (not the route pattern), since the page exists to show exactly what
+// was requested. Request bodies are never captured.
+export const recentRequestEntrySchema = z.object({
+    timestamp: z.coerce.date(),
+    method: z.string(),
+    path: z.string(),
+    query: z.record(z.string(), z.string()),
+    statusCode: z.number(),
+    durationMs: z.number(),
+})
+export type RecentRequestEntry = z.infer<typeof recentRequestEntrySchema>
+
+export const recentRequestsResponseSchema = z.object({
+    requests: z.array(recentRequestEntrySchema),
+})
+export type RecentRequestsResponse = z.infer<typeof recentRequestsResponseSchema>

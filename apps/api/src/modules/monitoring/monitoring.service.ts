@@ -1,4 +1,5 @@
 import type {RequestTimeBucket, RequestTimeWindow, RouteRequestCount} from '@heritagemonitor/shared'
+import {inMemoryRecentRequestsStore, type RecentRequestEntry} from './recentRequests.store.js'
 import {BUCKET_MS, inMemoryRequestMetricsStore as store, type RawBucket} from './requestMetrics.store.js'
 
 // Business logic: window→ms mapping and downsampling to a chart-friendly
@@ -22,6 +23,14 @@ export function recordRequestDuration(routeKey: string, durationMs: number): voi
 
 export function listMonitoredRoutes(): string[] {
     return store.listRoutes()
+}
+
+export function recordRecentRequest(entry: RecentRequestEntry): void {
+    inMemoryRecentRequestsStore.record(entry)
+}
+
+export function listRecentRequests(): RecentRequestEntry[] {
+    return inMemoryRecentRequestsStore.list()
 }
 
 export function getRequestTimeSeries(routeKey: string | null, window: RequestTimeWindow): RequestTimeBucket[] {

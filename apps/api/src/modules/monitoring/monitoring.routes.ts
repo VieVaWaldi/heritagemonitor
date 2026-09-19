@@ -1,12 +1,19 @@
 import {
     type MonitoredRoutesResponse,
     monitoredRoutesResponseSchema,
+    type RecentRequestsResponse,
+    recentRequestsResponseSchema,
     type RequestCountResponse,
     type RequestTimeSeriesResponse,
     requestTimeWindowSchema,
 } from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
-import {getRequestCountByRoute, getRequestTimeSeries, listMonitoredRoutes} from './monitoring.service.js'
+import {
+    getRequestCountByRoute,
+    getRequestTimeSeries,
+    listMonitoredRoutes,
+    listRecentRequests,
+} from './monitoring.service.js'
 
 interface RequestTimeQuery {
     route?: string
@@ -56,5 +63,9 @@ export async function monitoringRoutes(fastify: FastifyInstance) {
         const {window} = request.query
         const counts = getRequestCountByRoute(window as RequestCountResponse['window'])
         return {window: window as RequestCountResponse['window'], counts}
+    })
+
+    fastify.get('/monitoring/recent-requests', (): RecentRequestsResponse => {
+        return recentRequestsResponseSchema.parse({requests: listRecentRequests()})
     })
 }
