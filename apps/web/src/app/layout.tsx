@@ -8,6 +8,7 @@ import {isMode, THEME_MODE_COOKIE} from '@/common/theme/themeMode'
 import {ebGaramond, inter} from '@/common/theme/fonts'
 import {CorpusProvider} from '@/common/catalog'
 import {PageChatContextProvider} from '@/common/llmchat/PageChatContext'
+import {LlmChatRuntimeProvider} from '@/common/llmchat/LlmChatRuntime'
 
 export const metadata: Metadata = {
     title: 'HeritageMonitor',
@@ -30,7 +31,13 @@ export default async function RootLayout({children}: Readonly<{children: React.R
                     <ThemeModeProvider initialMode={initialMode}>
                         <NextIntlClientProvider>
                             <CorpusProvider>
-                                <PageChatContextProvider>{children}</PageChatContextProvider>
+                                <PageChatContextProvider>
+                                    {/* Mounted once here (not per-page) so the
+                                        chat instance inside never unmounts on
+                                        client-side navigation — see
+                                        LlmChatRuntime.tsx. */}
+                                    <LlmChatRuntimeProvider>{children}</LlmChatRuntimeProvider>
+                                </PageChatContextProvider>
                             </CorpusProvider>
                         </NextIntlClientProvider>
                     </ThemeModeProvider>

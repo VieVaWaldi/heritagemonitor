@@ -1,13 +1,13 @@
 'use client'
 
-import {Suspense, useState} from 'react'
+import {Suspense} from 'react'
 import Box from '@mui/material/Box'
 import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {Navbar, NAVBAR_HEIGHT_TALL} from '@/common/components'
 import {USE_CASES} from '@/common/catalog'
 import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
-import {LlmChatSidePanel} from '@/common/llmchat/LlmChatSidePanel'
+import {useLlmChatContentSx, useLlmChatTopOffset} from '@/common/llmchat/LlmChatRuntime'
 import {SearchNav} from './components/SearchNav'
 import {SearchResultsPanel} from './components/SearchResultsPanel'
 import {RESULTS_PANEL_BY_USE_CASE} from './resultsPanelRegistry'
@@ -25,8 +25,9 @@ export interface UseCaseSearchPageProps {
 // Collaboration, whose right-hand side will likely end up being a
 // graph/map widget instead of this same panel.
 export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPageProps) {
-    const [chatOpen, setChatOpen] = useState(false)
-    const handleChatToggle = () => setChatOpen((open) => !open)
+    // Same app-wide Lucy panel as HomePage — see LlmChatRuntime.
+    useLlmChatTopOffset(NAVBAR_HEIGHT_TALL)
+    const contentSx = useLlmChatContentSx()
 
     const useCase = USE_CASES.find((candidate) => candidate.key === useCaseKey) ?? USE_CASES[0]
     const subUseCase = useCase.subUseCases?.find((candidate) => candidate.key === subUseCaseKey)
@@ -40,45 +41,29 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
                 static rendering. Fallback mirrors its own empty shell, endAction
                 included, so there's no layout jump (the bar growing by the
                 toggle's width) once the real bar hydrates. */}
-            <Suspense
-                fallback={
-                    <Navbar
-                        size="tall"
-                        bordered
-                        sticky
-                        endAction={<LlmChatNavToggle open={chatOpen} onToggle={handleChatToggle} />}
-                    />
-                }
-            >
-                <SearchNav
-                    useCaseKey={useCaseKey}
-                    subUseCaseKey={subUseCaseKey}
-                    chatOpen={chatOpen}
-                    onChatToggle={handleChatToggle}
-                />
+            <Suspense fallback={<Navbar size="tall" bordered sticky endAction={<LlmChatNavToggle />} />}>
+                <SearchNav useCaseKey={useCaseKey} subUseCaseKey={subUseCaseKey} />
             </Suspense>
-            {/* Flex row so the Lucy panel docks beside the results instead of
-                overlaying them — see HomePage for the same pattern. */}
-            <Box sx={{display: 'flex', alignItems: 'flex-start'}}>
-                <Box sx={{flex: 1, minWidth: 0}}>
-                    {hasResultsPanel ? (
-                        <Box sx={{height: `calc(100dvh - ${NAVBAR_HEIGHT_TALL}px)`, py: 3}}>
-                            {/* Falls back to the shared empty-data placeholder for
-                                any UseCase not yet registered in
-                                resultsPanelRegistry.ts — i.e. one without a real
-                                backend behind it yet. */}
-                            <ResultsPanel />
-                        </Box>
-                    ) : (
-                        <Box sx={{display: 'flex', justifyContent: 'center', py: fluidUnit(8), px: 3}}>
-                            <Text variant="body1" sx={{color: 'text.secondary'}}>
-                                Results for &ldquo;{useCaseKey}
-                                {subUseCaseKey ? `/${subUseCaseKey}` : ''}&rdquo; — coming soon.
-                            </Text>
-                        </Box>
-                    )}
-                </Box>
-                {chatOpen && <LlmChatSidePanel topOffset={NAVBAR_HEIGHT_TALL} />}
+            {/* Leaves room on the right for the app-wide Lucy panel to dock
+                beside this content instead of covering it — see
+                LlmChatRuntime and HomePage for the same pattern. */}
+            <Box sx={contentSx}>
+                {hasResultsPanel ? (
+                    <Box sx={{height: `calc(100dvh - ${NAVBAR_HEIGHT_TALL}px)`, py: 3}}>
+                        {/* Falls back to the shared empty-data placeholder for
+                            any UseCase not yet registered in
+                            resultsPanelRegistry.ts — i.e. one without a real
+                            backend behind it yet. */}
+                        <ResultsPanel />
+                    </Box>
+                ) : (
+                    <Box sx={{display: 'flex', justifyContent: 'center', py: fluidUnit(8), px: 3}}>
+                        <Text variant="body1" sx={{color: 'text.secondary'}}>
+                            Results for &ldquo;{useCaseKey}
+                            {subUseCaseKey ? `/${subUseCaseKey}` : ''}&rdquo; — coming soon.
+                        </Text>
+                    </Box>
+                )}
             </Box>
         </>
     )

@@ -3,11 +3,7 @@
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
 import Diversity2Icon from '@mui/icons-material/Diversity2'
-
-export interface LlmChatNavToggleProps {
-    open: boolean
-    onToggle: () => void
-}
+import {useLlmChatToggle} from './LlmChatRuntime'
 
 // Lives in Navbar's endAction slot (see HomePage) rather than floating over
 // the page or living inside LlmChatBox's own header — a single button for
@@ -16,11 +12,14 @@ export interface LlmChatNavToggleProps {
 // border is always visible (unlike a plain IconButton, which only shows its
 // hover/focus circle) so it reads as a discrete toggle sitting on the bar;
 // it fills in primary color while the panel is open to show which state
-// it's in.
-export function LlmChatNavToggle({open, onToggle}: LlmChatNavToggleProps) {
+// it's in. Takes no props — reads open/toggle straight from
+// LlmChatRuntimeProvider (mounted once in app/layout.tsx) since the panel
+// itself is now a single app-wide instance, not something each page owns.
+export function LlmChatNavToggle() {
+    const {open, toggle} = useLlmChatToggle()
     return (
         <IconButton
-            onClick={onToggle}
+            onClick={toggle}
             aria-label={open ? 'close Lucy chat' : 'open Lucy chat'}
             aria-pressed={open}
             size="small"

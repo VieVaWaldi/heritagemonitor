@@ -3,7 +3,8 @@ import {readFileSync} from 'node:fs'
 import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import type {LlmChatRequest} from '@heritagemonitor/shared'
-import {DEFAULT_MODEL_ID} from './models.js'
+import {estimateTokens, trimMessagesToBudget} from './contextBudget.js'
+import {DEFAULT_MODEL, DEFAULT_MODEL_ID} from './models.js'
 import {streamChatCompletion, type OpenRouterMessage} from './openrouter.client.js'
 
 // Service layer: business/domain logic, agnostic of transport. See RULES.md
@@ -32,11 +33,14 @@ function buildMessages(request: LlmChatRequest): OpenRouterMessage[] {
     if (request.context?.length) {
         systemParts.push('Context the user currently has open:', ...request.context)
     }
+    const systemContent = systemParts.join('\n\n')
 
-    return [
-        {role: 'system', content: systemParts.join('\n\n')},
-        ...request.messages.map((message) => ({role: message.role, content: message.content})),
-    ]
+    const history = request.messages.map((message) => ({role: message.role, content: message.content}))
+    // Drops the oldest turns once system + context + history would no longer
+    // fit the model's window — see contextBudget.ts.
+    const trimmedHistory = trimMessagesToBudget(history, DEFAULT_MODEL.contextLength, estimateTokens(systemContent))
+
+    return [{role: 'system', content: systemContent}, ...trimmedHistory]
 }
 
 export async function* streamLlmChat(

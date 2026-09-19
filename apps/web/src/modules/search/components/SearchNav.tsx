@@ -12,13 +12,11 @@ import {useUseCaseSearch} from '../hooks/useUseCaseSearch'
 export interface SearchNavProps {
     useCaseKey: string
     subUseCaseKey?: string
-    chatOpen: boolean
-    onChatToggle: () => void
 }
 
 // The 'tall' Navbar variant carrying this route's ActionBar, configured the
 // same way the same UseCase/SubUseCase shows it on the HeroPage.
-export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: SearchNavProps) {
+export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
     const {
         useCase,
         subUseCase,
@@ -38,12 +36,7 @@ export function SearchNav({useCaseKey, subUseCaseKey, chatOpen, onChatToggle}: S
     const AboutTrigger = ABOUT_TRIGGER_BY_USE_CASE[useCaseKey]
 
     return (
-        <Navbar
-            size="tall"
-            bordered
-            sticky
-            endAction={<LlmChatNavToggle open={chatOpen} onToggle={onChatToggle} />}
-        >
+        <Navbar size="tall" bordered sticky endAction={<LlmChatNavToggle />}>
             {/* Grid, not flex + margin: two equal 1fr tracks either side of the
                 capped ActionBar track center it within the middle slot
                 regardless of the label's width — margin/auto tricks only center

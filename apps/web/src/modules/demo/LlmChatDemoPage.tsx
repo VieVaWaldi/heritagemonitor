@@ -32,7 +32,7 @@ export function LlmChatDemoPage() {
             </Text>
 
             {/* LlmChatBox itself carries no border/radius/overflow chrome —
-                LlmChatSidePanel supplies that for the docked /home & /search
+                LlmChatRuntime supplies that for the docked /home & /search
                 case, so this standalone page supplies its own instead. */}
             <LlmChatBox
                 sx={{
