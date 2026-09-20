@@ -82,6 +82,7 @@ services:
       # Browser-visible (client-side polling hits this directly) — see
       # apps/web/RULES.md #11, links/urls stay in env vars, never hardcoded.
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
     depends_on:
       api:
         condition: service_started
