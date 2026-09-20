@@ -6,16 +6,24 @@ import type {SxProps, Theme} from '@mui/material/styles'
 import ClearIcon from '@mui/icons-material/DeleteOutlined'
 import {ChatBox} from '@mui/x-chat'
 import {useRouter} from 'next/navigation'
-import {forwardRef, useCallback, useMemo, useState, type ComponentPropsWithoutRef, type MouseEvent} from 'react'
+import {
+    forwardRef,
+    useCallback,
+    useMemo,
+    useState,
+    type ComponentPropsWithoutRef,
+    type MouseEvent,
+} from 'react'
 import {
     ACTION_BAR_BORDER_WIDTH,
     ACTION_BAR_BORDER_COLOR,
     ACTION_BAR_BORDER_HOVER_COLOR,
 } from '@/common/components/actionBarStyle'
-import {USE_CASES} from '@/common/catalog'
+import {useSelectedCorpusReader, USE_CASES} from '@/common/catalog'
 import {useActiveUseCase} from '@/common/hooks/useActiveUseCase'
 import {Text} from '@/common/text'
 import {createLlmChatAdapter} from './adapter'
+import {ChatEventIndicator} from './ChatEventIndicator'
 import {LlmChatHeaderRight} from './LlmChatHeader'
 import {usePageChatContextReader} from './PageChatContext'
 
@@ -104,7 +112,9 @@ function createComposerRootWithClear(onClear: () => void) {
         // default styled 'form' — which quietly consumes it. Box doesn't, so
         // it leaks onto the DOM <form> node as an invalid attribute unless
         // dropped here explicitly.
-        const {ownerState: _ownerState, ...rootProps} = rest as ComposerRootWithClearProps & {ownerState?: unknown}
+        const {ownerState: _ownerState, ...rootProps} = rest as ComposerRootWithClearProps & {
+            ownerState?: unknown
+        }
         return (
             <Box
                 component="form"
@@ -159,7 +169,38 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // identity is stable (see usePageChatContextReader), so this still only
     // constructs the adapter once despite depending on it.
     const getPageContext = usePageChatContextReader()
-    const adapter = useMemo(() => createLlmChatAdapter(getPageContext), [getPageContext])
+    const getSelectedCorpus = useSelectedCorpusReader()
+    // Drives the `streamingIndicator` slot override below — see adapter.ts's
+    // watchChatEvents for where this gets called.
+    const [eventMessage, setEventMessage] = useState<string | null>(null)
+    const adapter = useMemo(
+        () => createLlmChatAdapter(getPageContext, getSelectedCorpus, setEventMessage),
+        [getPageContext, getSelectedCorpus, setEventMessage],
+    )
+
+    // Swaps ChatBox's own animated-dots streamingIndicator for
+    // ChatEventIndicator only while an `event` is active — same trailing-row
+    // position (directly under the user's message, before the reply bubble
+    // appears) the default indicator already uses, so no separate placement
+    // logic is needed. Recreated only when the message text itself changes
+    // (rare — once or twice per reply), and `undefined` the rest of the time
+    // so ChatBox falls back to its own default dots as normal.
+    //
+    // @mui/x-chat mounts this same slot component in two places (see
+    // ChatMessage.js and ChatStreamingIndicatorRow.js in @mui/x-chat): the
+    // trailing "waiting" row below the last message, which always passes
+    // `message: null`, and — once the assistant's reply bubble exists —
+    // again inside that bubble with the real (streaming) message. Only the
+    // trailing-row placement is wanted here, so the in-bubble mount renders
+    // nothing rather than showing the same status a second time.
+    const streamingIndicatorSlot = useMemo(() => {
+        if (!eventMessage) return undefined
+        const text = eventMessage
+        return function EventStreamingIndicator({message}: {message?: unknown}) {
+            if (message) return null
+            return <ChatEventIndicator message={text} />
+        }
+    }, [eventMessage])
 
     // Reuses the same route -> UseCase/SubUseCase matching HMMenu's selection
     // state is built on (see useActiveUseCase) instead of re-deriving it —
@@ -193,7 +234,12 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                 conversationId: CONVERSATION_ID,
                 role: 'assistant' as const,
                 status: 'sent' as const,
-                parts: [{type: 'text' as const, text: `Welcome to HeritageMonitor, we are on ${pageName}.`}],
+                parts: [
+                    {
+                        type: 'text' as const,
+                        text: `Welcome to HeritageMonitor, we are on ${pageName}.`,
+                    },
+                ],
             },
         ],
         [pageName],
@@ -203,7 +249,10 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // mounts LlmChatBox standalone with nothing to reset — so slots.composerRoot
     // below falls back to @mui/x-chat's own default styled root instead of
     // rendering a clear button that does nothing.
-    const ComposerRootWithClear = useMemo(() => (onClear ? createComposerRootWithClear(onClear) : undefined), [onClear])
+    const ComposerRootWithClear = useMemo(
+        () => (onClear ? createComposerRootWithClear(onClear) : undefined),
+        [onClear],
+    )
 
     // Markdown links in Lucy's replies render via @mui/x-chat's own built-in
     // renderer (MarkdownLink in renderMarkdown.js, not something this module
@@ -224,7 +273,14 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
             // browser gestures for "open in a new tab/window regardless of
             // what the link normally does" — respect that intent instead of
             // forcing every click to stay in this tab.
-            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+            if (
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+            )
+                return
             const anchor = (event.target as HTMLElement).closest('a')
             const href = anchor?.getAttribute('href')
             if (!href) return
@@ -280,6 +336,7 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                     // the "Lucy" title/icon instead of the default title/subtitle.
                     conversationHeaderActions: LlmChatHeaderRight,
                     ...(ComposerRootWithClear ? {composerRoot: ComposerRootWithClear} : {}),
+                    ...(streamingIndicatorSlot ? {streamingIndicator: streamingIndicatorSlot} : {}),
                 }}
                 slotProps={{
                     // Same border treatment as ActionBar's SearchBar instead of

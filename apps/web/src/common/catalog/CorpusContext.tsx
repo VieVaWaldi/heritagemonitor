@@ -1,6 +1,15 @@
 'use client'
 
-import {createContext, useContext, useMemo, useState, type ReactNode} from 'react'
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode,
+} from 'react'
 import {DEFAULT_CORPUS, type CorpusKey} from './corpus'
 
 interface CorpusContextValue {
@@ -22,4 +31,18 @@ export function useCorpus(): CorpusContextValue {
     const context = useContext(CorpusContext)
     if (!context) throw new Error('useCorpus must be used within a CorpusProvider')
     return context
+}
+
+// Stable accessor for the current selection, same "ref updated after every
+// render, read fresh from a stable callback" pattern as
+// PageChatContext.tsx's usePageChatContextReader — for the one consumer
+// (LlmChatBox, via adapter.ts) that needs a fresh value from inside a
+// closure constructed once per chat session.
+export function useSelectedCorpusReader(): () => CorpusKey {
+    const {selectedCorpus} = useCorpus()
+    const ref = useRef(selectedCorpus)
+    useEffect(() => {
+        ref.current = selectedCorpus
+    })
+    return useCallback(() => ref.current, [])
 }

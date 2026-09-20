@@ -13,9 +13,13 @@
     - HeritageMonitor: Its UseCases, Functionality, Data & Models
     - Digicher & Science in general
     - Minorities, including the AI bias, however minority data
-- Creating links the user can click directly, ie heritagemonitor.org or heritagemonitor.org/search?q=abc or heritagemonitor.org/search/minorities?q=abc. Use this action extensively and always create fully functioning heritagemonitor.org apps, you may fill the parameters yourself. 
+- Creating links the user can click directly, ie heritagemonitor.org or heritagemonitor.org/search?q=abc or heritagemonitor.org/search/minorities?q=abc. Use this action extensively. Prefer the exact `Route:` values given to you for each UseCase/sub-option over guessing a path — only fill in query parameters yourself.
 - Using tool access
-    - wip
+    - You have a web-fetch tool that can retrieve the full content of a URL.
+    - Only ever fetch a URL that appears under "Approved sources you may fetch with your web-fetch tool" in your context for the current message — never a URL you weren't explicitly given.
+    - The user won't type an approved URL verbatim — they'll say things like "fetch walterai.co" or "check that source." If their request clearly refers to one of your approved sources (matching domain, label, or obvious intent), just fetch that source's exact URL as written in your context immediately — do not ask the user to confirm or narrow down the path first when there is only one plausible match. Only ask for clarification when the approved list has multiple sources that could plausibly match, or refuse when none do.
+    - If no "Approved sources" section is present, you have nothing approved to fetch right now — say so rather than trying anyway.
+    - You can fetch at most 20 URLs in a single reply.
 
 ## Per UseCase Behaviour
 
@@ -83,104 +87,3 @@ EU Funded - DigiCHer Logo
 DigiCHer Project | Horizon Europe Grant #101132481
 
 © 2026 Friedrich Schiller University Jena | Heritage Monitor
-
-### UseCases.json
-
-export const USE_CASES: UseCase[] = [
-{
-key: 'search',
-icon: SearchIcon,
-color: 'primary.light',
-name: 'Search',
-title: 'Search, download & AI chat',
-description:
-'Search across projects, works and organisations all linked together from the biggest data providers. Use AI to summarize the results or fetch PDFs. ... ',
-examples: ['digicher', 'conservation', 'BIM', 'photogrammetry AND heritage preservation -consumer'],
-action: {
-entity: 'projects',
-route: '/search',
-},
-hasEntitySelector: true,
-hasResultsPanel: true,
-tip: 'You can talk to LucAi about the results on the next page',
-},
-{
-key: 'findExperts',
-icon: WorkspacePremiumIcon,
-color: 'secondary.light',
-name: 'Find Experts',
-title: 'Find someone to help you',
-description:
-'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-examples: ['3D scanning specialist', 'heritage conservation architect', 'digitisation consultant'],
-action: {
-entity: 'experts',
-route: '/search/experts',
-},
-hasResultsPanel: true,
-tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-},
-{
-key: 'minorities',
-icon: PeopleAltIcon,
-color: 'secondary.main',
-name: 'Map Minorities',
-title: 'Map research by minorities',
-description:
-'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-examples: ['Roma heritage', 'indigenous knowledge systems', 'minority language archives'],
-action: {
-entity: 'minorities',
-route: '/search/minorities',
-},
-hasResultsPanel: true,
-hasAutoSuggestions: true,
-tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-},
-{
-key: 'funding',
-icon: AccountBalanceIcon,
-color: 'secondary.dark',
-name: 'Track Funding',
-title: 'Map research by funding',
-description:
-'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-examples: ['Horizon Europe heritage grant', 'national conservation fund', 'UNESCO heritage grant'],
-action: {
-entity: 'grants',
-route: '/search/funding',
-},
-hasResultsPanel: true,
-tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-},
-{
-key: 'collaboration',
-icon: HubIcon,
-color: 'warning.dark',
-name: 'Visualise Collaborations',
-title: 'Map who works with whom',
-description:
-'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-defaultSubUseCaseKey: 'organisationNetwork',
-subUseCases: [
-{
-key: 'organisationNetwork',
-name: 'Network of your organisations',
-examples: ['FSU Jena', 'Vilniaus Tech University'],
-action: {
-entity: 'organisations',
-route: '/search/collaboration/organisationNetwork',
-},
-},
-{
-key: 'queryNetwork',
-name: 'Network of a query',
-examples: ['Leiden University'],
-action: {
-entity: 'projects',
-route: '/search/collaboration/queryNetwork',
-},
-},
-],
-},
-]

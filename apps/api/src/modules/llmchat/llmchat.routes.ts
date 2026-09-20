@@ -33,6 +33,17 @@ export async function llmchatRoutes(fastify: FastifyInstance) {
                             },
                         },
                         context: {type: 'array', items: {type: 'string'}},
+                        sourceUrls: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    label: {type: 'string'},
+                                    url: {type: 'string', format: 'uri'},
+                                },
+                                required: ['label', 'url'],
+                            },
+                        },
                     },
                     required: ['messages'],
                 },
