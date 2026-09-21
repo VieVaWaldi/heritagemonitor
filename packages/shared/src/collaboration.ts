@@ -104,6 +104,26 @@ export const queryNetworkResponseSchema = z.object({
     nodes: z.array(networkNodeSchema),
     /** Strongest first: shared projects, ties broken by the ranking of those projects. */
     edges: z.array(networkEdgeSchema),
+    /**
+     * The scanned projects that touch a drawn organisation, in RANKING order
+     * (index = position among them), as parallel columns to keep 2,000 of them
+     * small. Missing values are `0` (year, amount) or `-1` (topic, funder).
+     * `orgs` are indexes into `nodes`; `topic` and `funder` index the two
+     * dictionaries below. No index change: all of it comes from doc values.
+     */
+    projects: z
+        .object({
+            ids: z.array(z.string()),
+            orgs: z.array(z.array(z.number())),
+            topic: z.array(z.number()),
+            year: z.array(z.number()),
+            amount: z.array(z.number()),
+            funder: z.array(z.number()),
+        })
+        .default({ids: [], orgs: [], topic: [], year: [], amount: [], funder: []}),
+    /** Topic ids (the projects index's `topic_id`) that `projects.topic` points into. */
+    topics: z.array(z.string()).default([]),
+    funders: z.array(z.string()).default([]),
     meta: z.object({
         /** Projects actually counted (at most QUERY_NETWORK_PROJECTS_SCANNED). */
         projectsScanned: z.number(),

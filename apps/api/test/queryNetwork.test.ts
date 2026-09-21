@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import type {NetworkOrganisation} from '../dist/modules/collaboration/network.js'
-import {buildQueryNetwork, countPairs, MAX_ORGS_PER_PROJECT, topEdges} from '../dist/modules/collaboration/queryNetwork.js'
+import {buildProjectColumns, buildQueryNetwork, countPairs, MAX_ORGS_PER_PROJECT, topEdges} from '../dist/modules/collaboration/queryNetwork.js'
 
 const org = (id: string, nameKey: string | null = `k${id}`, lat = 50, lng = 8): NetworkOrganisation => ({
     id,
@@ -90,4 +90,30 @@ test('a duplicate record with coordinates places an institution whose representa
     assert.equal(node.lat, 48.8)
     assert.equal(node.w, 2)
     assert.equal(payload.capped, false)
+})
+
+test('per-project columns: node indexes in ranking order, dictionaries for topic and funder, undrawn projects left out', () => {
+    const organisations = table(org('a1', 'ka'), org('a2', 'ka'), org('b'), org('c'), org('zz'))
+    const counts = countPairs([project('a1', 'b'), project('b', 'c'), project('c', 'a2')], organisations, 2000)
+    const payload = buildQueryNetwork({counts, organisations, maxEdges: 10})
+    const idx = (key: string) => payload.nodeIndexByKey.get(key)!
+    const columns = buildProjectColumns({
+        projects: [
+            {id: 'p1', orgIds: ['a1', 'b'], topic: 't1', year: 2020, amount: 1000.4, funder: 'EC'},
+            {id: 'p2', orgIds: ['zz'], topic: 't9'},
+            {id: 'p3', orgIds: ['a2', 'a1', 'c'], topic: 't1', year: 0, funder: 'EC'},
+            {id: 'p4', orgIds: ['b', 'ghost'], funder: 'NIH'},
+        ],
+        organisations,
+        nodeIndexByKey: payload.nodeIndexByKey,
+    })
+    assert.deepEqual(columns.ids, ['p1', 'p3', 'p4'], 'p2 touches no drawn organisation')
+    assert.deepEqual(columns.orgs[0], [idx('ka'), idx('kb')])
+    assert.deepEqual(columns.orgs[1], [idx('ka'), idx('kc')], 'two records of one institution are one node')
+    assert.deepEqual(columns.topics, ['t1'])
+    assert.deepEqual(columns.topic, [0, 0, -1])
+    assert.deepEqual(columns.funders, ['EC', 'NIH'])
+    assert.deepEqual(columns.funder, [0, 0, 1])
+    assert.deepEqual(columns.year, [2020, 0, 0])
+    assert.deepEqual(columns.amount, [1000, 0, 0])
 })

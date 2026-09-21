@@ -28,6 +28,8 @@ export interface ForceInputNode {
 export interface ForceInputLink {
     source: string
     target: string
+    /** Pull between the two ends, 0..1. Defaults to a gentle uniform pull; a caller that wants groups to hold together gives links inside a group more. */
+    strength?: number
 }
 
 export interface ForceLayoutResult {
@@ -58,12 +60,12 @@ export function layoutForceGraph(nodes: readonly ForceInputNode[], links: readon
         return {id: node.id, degree: neighbours.get(node.id)!.size, x: Math.cos(angle) * SEED_RADIUS, y: Math.sin(angle) * SEED_RADIUS}
     })
     const known = new Set(nodes.map((node) => node.id))
-    const simLinks: Array<SimulationLinkDatum<SimNode> & {source: string; target: string}> = links
+    const simLinks: Array<SimulationLinkDatum<SimNode> & {source: string; target: string; strength?: number}> = links
         .filter((link) => known.has(link.source) && known.has(link.target) && link.source !== link.target)
-        .map((link) => ({source: link.source, target: link.target}))
+        .map((link) => ({source: link.source, target: link.target, strength: link.strength}))
 
     const simulation = forceSimulation(simNodes)
-        .force('link', forceLink<SimNode, (typeof simLinks)[number]>(simLinks).id((node) => node.id).distance(LINK_DISTANCE).strength(LINK_STRENGTH))
+        .force('link', forceLink<SimNode, (typeof simLinks)[number]>(simLinks).id((node) => node.id).distance(LINK_DISTANCE).strength((link) => link.strength ?? LINK_STRENGTH))
         .force('charge', forceManyBody().strength(CHARGE_STRENGTH))
         .force('center', forceCenter(0, 0))
         .force('collide', forceCollide<SimNode>((node) => collideRadius(node.degree)))
@@ -98,4 +100,19 @@ export function fitOrthographicView(bounds: ForceLayoutResult['bounds'], viewpor
         target: [(bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2, 0],
         zoom: Math.log2(viewportSize / Math.max(width, height)) - 0.3,
     }
+}
+
+/**
+ * The circle around a group of nodes: their centre and the distance to the
+ * furthest one, plus `padding`. Drawn behind the nodes as the group's "blob".
+ */
+export function blobOf(positions: ReadonlyMap<string, {x: number; y: number}>, ids: readonly string[], padding = 30): {x: number; y: number; radius: number} | null {
+    const points = ids.flatMap((id) => {
+        const point = positions.get(id)
+        return point ? [point] : []
+    })
+    if (points.length === 0) return null
+    const x = points.reduce((sum, point) => sum + point.x, 0) / points.length
+    const y = points.reduce((sum, point) => sum + point.y, 0) / points.length
+    return {x, y, radius: Math.max(...points.map((point) => Math.hypot(point.x - x, point.y - y))) + padding}
 }

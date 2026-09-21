@@ -1,9 +1,21 @@
 'use client'
 
+// CLUSTER-FIRST QUERY NETWORK
+//
+// Purpose: a user searches a topic to learn which research COMMUNITIES exist
+// around it, who is in each, and who bridges them. Single institutions in a
+// graph nobody can click do not answer that — so the list on the left lists
+// CLUSTERS (Louvain communities of the capped collaboration network, ranked by
+// the shared projects inside them), the graph colours and selects by cluster,
+// and the tabs describe the selected cluster: overview, members, projects, and
+// the bridges (hinge organisations, bridge projects) that connect clusters.
+// The maths lives in ./clusters (pure, deterministic, unit-tested).
+
 import {projectSearchResponseSchema, type ProjectSearchResponse} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
+import HubIcon from '@mui/icons-material/Hub'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
@@ -15,10 +27,12 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    buildSuggestionLink,
     describeUrlParams,
     readText,
     SEARCH_PARAM,
     useUrlCorpus,
+    useUrlDetailPage,
     useUrlFilters,
     useUrlLayer,
     useUrlMapView,
@@ -26,28 +40,30 @@ import {
     useUrlPage,
     useUrlSelection,
     useUrlState,
-    useUrlTab,
     useUrlYears,
 } from '@/common/url'
 import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
 import {FacetValuesMenuButton} from '../entity/FacetValuesMenuButton'
 import {RelatedList, type RelatedRow} from '../entity/RelatedList'
+import {queryNetworkHiddenTabs, visibleTabs} from '../entity/tabAvailability'
 import {TopicsFilterButton} from '../entity/TopicsFilterButton'
-import {useRelatedRequest} from '../entity/useRelatedRequest'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
 import {useTopicNames} from '../entity/useTopicBrowser'
-import {selectedOrganisationSection} from '../organisations/organisationsChatContext'
 import {NETWORK_COVERAGE_NOTE} from './networkChatContext'
 import {pageCountOf, pageOf} from './networkAdapter'
-import {QueryEdgeDetailTab} from './QueryEdgeDetailTab'
-import {QueryEdgeRow} from './QueryEdgeRow'
+import {BRIDGE_LIST_LIMIT, BridgesTab} from './BridgesTab'
+import {ClusterOverviewTab} from './ClusterOverviewTab'
+import {ClusterRow, clusterRowSubtitle} from './ClusterRow'
+import {clusterArcs, selectedClusterPoints} from './clusterGraph'
+import {findCluster} from './clusters'
 import {QUERY_NETWORK_LAYERS, QueryNetworkGraphTab} from './QueryNetworkGraphTab'
-import {edgeArcLinks, edgeProjectsPath, findEdge, matchingProjectsPath, queryEdges, queryNetworkFilterQuery, QUERY_LIST_PAGE_SIZE} from './queryNetworkAdapter'
-import {queryNetworkLazyContext, queryNetworkStateSection} from './queryNetworkChatContext'
-import {useOrganisationDetail} from './useOrganisationNetwork'
+import {byIdOrder, projectsByIdsPath, queryNetworkFilterQuery, QUERY_LIST_PAGE_SIZE} from './queryNetworkAdapter'
+import {queryNetworkLazyContext, queryNetworkStateSection, selectedClusterSection} from './queryNetworkChatContext'
+import {useClusterModel} from './useClusterModel'
 import {useQueryNetwork} from './useQueryNetwork'
 
-const TABS = ['graph', 'detail', 'projects'] as const
+const TAB_LIST = ['graph', 'overview', 'organisations', 'projects', 'bridges'] as const
 const FILTER_PARAMS = [
     SEARCH_PARAM.funder,
     SEARCH_PARAM.programme,
@@ -79,29 +95,10 @@ function EmptyTabMessage({message}: {message: string}) {
     )
 }
 
-function projectRow(project: ProjectSearchResponse['hits'][number]): RelatedRow {
-    return {
-        id: project.id,
-        primary: project.acronym && project.title ? `${project.acronym} — ${project.title}` : (project.title ?? project.acronym ?? project.id),
-        secondary: [project.year != null ? String(project.year) : null, [...project.funder, ...project.programme].join(' / ') || null]
-            .filter(Boolean)
-            .join(' · '),
-    }
-}
-
 /**
- * `/search/collaboration/queryNetwork`: who collaborates within the projects a
- * text search matches.
- *
- * Left, the collaborations ranked by shared projects. Right, the tabbed panel:
- * the graph (a force layout, or arcs on a map), the selected collaboration
- * with the projects that link its two organisations, and the matching
- * projects. The network is counted over the top of the ranking, capped at the
- * strongest `maxEdges` — the page says so instead of implying a complete map.
- *
- * Holds no state of its own: q, corpus, filters, the cap, the layer, the
- * selected collaboration (`sel` = `<orgA>:<orgB>`), the tab, the list page and
- * the map camera all live in the URL (apps/web/RULES.md #7).
+ * `/search/collaboration/queryNetwork`. Holds no state of its own: q, corpus,
+ * filters, the cap, the layer, the selected cluster (`sel`), the tab, the list
+ * page and the map camera all live in the URL (apps/web/RULES.md #7).
  */
 export function QueryNetworkPanel() {
     const router = useRouter()
@@ -109,7 +106,6 @@ export function QueryNetworkPanel() {
     const query = readText(params, SEARCH_PARAM.query)
     const {corpus} = useUrlCorpus()
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {layer, setLayer} = useUrlLayer(QUERY_NETWORK_LAYERS)
     const {initialView, onViewChange} = useUrlMapView()
     const {years, setYears, minYear, maxYear} = useUrlYears()
@@ -119,42 +115,64 @@ export function QueryNetworkPanel() {
 
     const filterQuery = queryNetworkFilterQuery(params)
     const {data: network, loading, error} = useQueryNetwork(filterQuery, maxEdges)
-    const edges = useMemo(() => queryEdges(network), [network])
+    const {model, titles} = useClusterModel(network)
 
-    const pageCount = pageCountOf(edges.length, QUERY_LIST_PAGE_SIZE)
+    const pageCount = pageCountOf(model.clusters.length, QUERY_LIST_PAGE_SIZE)
     const currentPage = Math.min(page, pageCount)
-    const pageEdges = pageOf(edges, currentPage, QUERY_LIST_PAGE_SIZE)
+    const pageClusters = pageOf(model.clusters, currentPage, QUERY_LIST_PAGE_SIZE)
 
-    // `sel` falls back to the strongest collaboration; an id that is not in
-    // this network (a stale link, a lowered cap) falls back the same way.
-    const {selectedId: requestedId} = useUrlSelection(edges[0]?.id ?? null)
-    const selectedEdge = findEdge(edges, requestedId) ?? edges[0] ?? null
+    // `sel` falls back to the strongest cluster; a number that is not a cluster
+    // of this network (a stale link, a lowered cap) falls back the same way.
+    const {selectedId: requestedId} = useUrlSelection(model.clusters[0]?.id ?? null)
+    const selectedCluster = findCluster(model, requestedId) ?? model.clusters[0] ?? null
 
-    const related = useRelatedRequest('collaboration:queryNetwork')
-    const detailA = useOrganisationDetail(selectedEdge?.a.id ?? null)
-    const detailB = useOrganisationDetail(selectedEdge?.b.id ?? null)
-    const sharedTab = useRelatedSearch({
-        key: selectedEdge ? `${selectedEdge.id}|${filterQuery}` : null,
-        path: (dpage) => edgeProjectsPath(selectedEdge!, dpage, filterQuery),
+    // Tabs with nothing to show are not offered (see entity/tabAvailability).
+    const hiddenTabs = useMemo(
+        () =>
+            queryNetworkHiddenTabs(
+                selectedCluster ? {clusterProjects: selectedCluster.projects.length, hinges: model.hinges.length, hingeProjects: model.hingeProjects.length} : null,
+            ),
+        [selectedCluster, model],
+    )
+    const {tab, setTab, available} = useAvailableTab(TAB_LIST, hiddenTabs)
+    const {page: dpage, setPage: setDetailPage} = useUrlDetailPage()
+
+    const topicLabel = useCallback((topicId: string) => topicName('topic', topicId), [topicName])
+
+    // The cluster's projects, one page of ids at a time through the projects
+    // search (`only=`), put back in the ranking order the ids are held in.
+    const clusterProjectIds = useMemo(() => (selectedCluster ? selectedCluster.projects.map((project) => network.projects.ids[project]) : []), [selectedCluster, network.projects.ids])
+    const projectPageIds = pageOf(clusterProjectIds, dpage, QUERY_LIST_PAGE_SIZE)
+    const projectsTab = useRelatedSearch({
+        key: selectedCluster ? `${selectedCluster.id}|${filterQuery}|${maxEdges}` : null,
+        path: (requested) => projectsByIdsPath(pageOf(clusterProjectIds, requested, QUERY_LIST_PAGE_SIZE)),
         schema: projectSearchResponseSchema,
         empty: EMPTY_PROJECTS,
-        enabled: tab === 'detail' && selectedEdge !== null,
+        enabled: tab === 'projects' && selectedCluster !== null && clusterProjectIds.length > 0,
     })
-    const matchingTab = useRelatedSearch({
-        key: filterQuery,
-        path: (dpage) => matchingProjectsPath(filterQuery, dpage),
+    const placementByProjectId = useMemo(() => new Map(model.placements.map((placement) => [network.projects.ids[placement.project], placement])), [model.placements, network.projects.ids])
+
+    const bridgePlacements = useMemo(() => model.hingeProjects.slice(0, BRIDGE_LIST_LIMIT), [model.hingeProjects])
+    const bridgeIds = useMemo(() => bridgePlacements.map((placement) => network.projects.ids[placement.project]), [bridgePlacements, network.projects.ids])
+    const bridgesTab = useRelatedSearch({
+        key: `bridges|${filterQuery}|${maxEdges}`,
+        path: () => projectsByIdsPath(bridgeIds),
         schema: projectSearchResponseSchema,
         empty: EMPTY_PROJECTS,
-        enabled: tab === 'projects',
+        enabled: tab === 'bridges' && bridgeIds.length > 0,
     })
+    const bridgeHits = useMemo(() => {
+        const byId = new Map(bridgesTab.data.hits.map((hit) => [hit.id, hit]))
+        return bridgeIds.map((id) => byId.get(id))
+    }, [bridgesTab.data.hits, bridgeIds])
 
-    // A row selects the collaboration; from the graph it also opens its detail.
-    const selectEdge = useCallback((id: string) => update({[SEARCH_PARAM.selection]: id}), [update])
-    const selectEdgeFromGraph = useCallback((id: string) => update({[SEARCH_PARAM.selection]: id, [SEARCH_PARAM.tab]: 'detail'}), [update])
-    const openProject = useCallback(
-        (projectId: string) => router.push(buildEntityLink({entity: 'projects', id: projectId, corpus})),
+    const selectCluster = useCallback((id: string) => update({[SEARCH_PARAM.selection]: id}), [update])
+    const openOrganisation = useCallback((id: string) => router.push(buildEntityLink({entity: 'organisations', id, corpus})), [router, corpus])
+    const openNetworkOf = useCallback(
+        (id: string) => router.push(buildSuggestionLink({route: '/search/collaboration/organisationNetwork', entity: 'organisations', id, corpus, focus: 'center'})),
         [router, corpus],
     )
+    const openProject = useCallback((id: string) => router.push(buildEntityLink({entity: 'projects', id, corpus})), [router, corpus])
 
     const hasActiveFilters = activeCount > 0 || years !== null
     const resetFilters = useCallback(
@@ -165,14 +183,11 @@ export function QueryNetworkPanel() {
     const labelUrlValue = useCallback(
         (param: string, value: string) => {
             if (param === SEARCH_PARAM.corpus) return CORPUSES.find((option) => option.key === value)?.fullName ?? value
-            if (param === SEARCH_PARAM.selection) {
-                const edge = findEdge(edges, value)
-                return edge ? `${edge.a.name} <-> ${edge.b.name}` : value
-            }
+            if (param === SEARCH_PARAM.selection) return findCluster(model, value) ? `cluster ${value}: ${titles.get(value)?.title ?? ''}` : value
             if (param === 'topic' || param === 'subfield' || param === 'field') return topicName(param, value)
             return value
         },
-        [edges, topicName],
+        [model, titles, topicName],
     )
 
     const pageContext = useMemo(
@@ -183,30 +198,75 @@ export function QueryNetworkPanel() {
                         query,
                         corpusName: CORPUSES.find((option) => option.key === corpus)?.fullName ?? corpus,
                         network,
-                        edges,
+                        model,
+                        titles,
                         maxEdges,
                         layer,
                         urlParams: describeUrlParams(params, {labelValue: labelUrlValue})
                             .map((described) => `${described.label} = ${described.values.join(', ')}`)
                             .join('; '),
                     }),
-                    ...(selectedEdge
-                        ? [
-                              {heading: `Selected collaboration: ${selectedEdge.a.name} <-> ${selectedEdge.b.name}, ${selectedEdge.w} shared projects among the scanned ones.`, rows: []},
-                              ...(detailA ? [selectedOrganisationSection(detailA)] : []),
-                              ...(detailB ? [selectedOrganisationSection(detailB)] : []),
-                          ]
-                        : []),
+                    ...(selectedCluster ? [selectedClusterSection({cluster: selectedCluster, network, model, titles, topicLabel})] : []),
                 ],
                 sources: [],
-                lazy: queryNetworkLazyContext({edge: selectedEdge, filterQuery}),
+                lazy: queryNetworkLazyContext({cluster: selectedCluster, network, model, hiddenTabs}),
             }),
-        [query, corpus, network, edges, maxEdges, layer, params, labelUrlValue, selectedEdge, detailA, detailB, filterQuery],
+        [query, corpus, network, model, titles, maxEdges, layer, params, labelUrlValue, selectedCluster, topicLabel, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
-    const arcsDrawn = useMemo(() => edgeArcLinks(edges).length, [edges])
+    const arcsDrawn = useMemo(() => clusterArcs(network, model).links.length, [network, model])
+    // A cluster none of whose organisations has coordinates cannot be shown on the map.
+    const selectedUnlocated = selectedCluster !== null && selectedClusterPoints(network, model, selectedCluster.id).length === 0
     const {meta} = network
+    const edgeCount = network.edges.length
+
+    const projectRows: RelatedRow[] = byIdOrder(projectsTab.data.hits, projectPageIds).map((project) => {
+        const placement = placementByProjectId.get(project.id)
+        const bridge = placement?.isBridge ? placement.span.filter((id) => id !== selectedCluster?.id) : []
+        return {
+            id: project.id,
+            primary: project.acronym && project.title ? `${project.acronym} — ${project.title}` : (project.title ?? project.acronym ?? project.id),
+            secondary: [
+                project.year != null ? String(project.year) : null,
+                [...project.funder, ...project.programme].join(' / ') || null,
+                bridge.length ? `also spans cluster${bridge.length === 1 ? '' : 's'} ${bridge.join(', ')}` : null,
+            ]
+                .filter(Boolean)
+                .join(' · '),
+            badge: bridge.length ? 'Bridge' : undefined,
+        }
+    })
+
+    const memberRows: RelatedRow[] = selectedCluster
+        ? pageOf(selectedCluster.members, dpage, QUERY_LIST_PAGE_SIZE).map((member) => {
+              const node = network.nodes[member]
+              const lead = selectedCluster.leads.find((entry) => entry.node === member)
+              return {
+                  id: node.id,
+                  primary: node.name,
+                  secondary: [node.countryCode, lead ? `${lead.weight.toLocaleString('en-US')} shared projects inside the cluster` : null, selectedCluster.hingeNodes.includes(member) ? 'bridge organisation' : null]
+                      .filter(Boolean)
+                      .join(' · '),
+                  icon: (
+                      <Tooltip title="Show this organisation's collaboration network">
+                          <IconButton
+                              size="small"
+                              aria-label={`Show the network of ${node.name}`}
+                              onClick={(event) => {
+                                  event.stopPropagation()
+                                  openNetworkOf(node.id)
+                              }}
+                          >
+                              <HubIcon fontSize="small" />
+                          </IconButton>
+                      </Tooltip>
+                  ),
+              }
+          })
+        : []
+
+    const selectedTitle = selectedCluster ? (titles.get(selectedCluster.id) ?? {title: `Cluster ${selectedCluster.id}`, subtitle: ''}) : null
 
     return (
         <Box sx={SEARCH_BLOCK_SX}>
@@ -214,11 +274,11 @@ export function QueryNetworkPanel() {
                 <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} />
                 <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
                     <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 1}}>
-                        Collaborations shown
+                        Collaborations used
                     </Text>
                     <SingleSlider min={minEdges} max={maxEdgesCap} step={10} value={maxEdges} onChange={setMaxEdges} label="Strongest collaborations" playable={false} />
                     <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
-                        The cap keeps the collaborations with the most shared projects and, among equals, those in the best-ranked projects.
+                        The cap keeps the collaborations with the most shared projects and, among equals, those in the best-ranked projects. Clusters are found in what is kept.
                     </Text>
                 </Box>
                 <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
@@ -261,14 +321,21 @@ export function QueryNetworkPanel() {
                         Few results for <strong>{query}</strong>, showing close matches instead.
                     </NoticeBar>
                 )}
-                {edges.length > 0 && meta.capped && (
+                {model.clusters.length > 0 && <NoticeBar tone="note">Clusters depend on your search and on the edge cap.</NoticeBar>}
+                {edgeCount > 0 && meta.capped && (
                     <NoticeBar tone="note">
-                        Showing the {edges.length.toLocaleString('en-US')} strongest of {meta.edgesFound.toLocaleString('en-US')} collaborations. Raise the cap on the left to see more.
+                        Using the {edgeCount.toLocaleString('en-US')} strongest of {meta.edgesFound.toLocaleString('en-US')} collaborations. Raise the cap on the left to see more.
                     </NoticeBar>
                 )}
-                {layer === 'arcs' && edges.length > 0 && arcsDrawn < edges.length && (
+                {layer === 'arcs' && edgeCount > 0 && arcsDrawn < edgeCount && (
                     <NoticeBar tone="note">
-                        {(edges.length - arcsDrawn).toLocaleString('en-US')} collaborations involve an organisation without a location and are not drawn on the map; they are in the list and the network layout.
+                        {(edgeCount - arcsDrawn).toLocaleString('en-US')} collaborations involve an organisation without a location and are not drawn on the map; the clusters still count them.
+                    </NoticeBar>
+                )}
+
+                {layer === 'arcs' && selectedCluster && selectedUnlocated && (
+                    <NoticeBar tone="note">
+                        None of the organisations in cluster {selectedCluster.id} has a location, so the map cannot show it. Switch to the Network layout to see it.
                     </NoticeBar>
                 )}
 
@@ -277,14 +344,23 @@ export function QueryNetworkPanel() {
                         <PaginatedList
                             header={
                                 <Text variant="body2" truncate color="text.secondary">
-                                    {edges.length.toLocaleString('en-US')} collaborations{meta.capped ? ` of ${meta.edgesFound.toLocaleString('en-US')}` : ''} · strongest first
+                                    {model.clusters.length.toLocaleString('en-US')} cluster{model.clusters.length === 1 ? '' : 's'} · strongest first
                                 </Text>
                             }
-                            items={pageEdges}
-                            getItemKey={(edge) => edge.id}
-                            renderItem={(edge, index) => (
-                                <QueryEdgeRow edge={edge} rank={(currentPage - 1) * QUERY_LIST_PAGE_SIZE + index + 1} selected={edge.id === selectedEdge?.id} onSelect={selectEdge} />
-                            )}
+                            items={pageClusters}
+                            getItemKey={(cluster) => cluster.id}
+                            renderItem={(cluster) => {
+                                const entry = titles.get(cluster.id)
+                                return (
+                                    <ClusterRow
+                                        cluster={cluster}
+                                        title={entry?.title ?? `Cluster ${cluster.id}`}
+                                        subtitle={clusterRowSubtitle(cluster, entry?.subtitle ?? '')}
+                                        selected={cluster.id === selectedCluster?.id}
+                                        onSelect={selectCluster}
+                                    />
+                                )
+                            }}
                             page={currentPage}
                             pageCount={pageCount}
                             onPageChange={setPage}
@@ -294,67 +370,108 @@ export function QueryNetworkPanel() {
                     <Box sx={{flex: '1 1 0', minWidth: 0}}>
                         <TabbedPanel
                             value={tab}
-                            onChange={(next) => setTab(next as (typeof TABS)[number])}
-                            tabs={[
-                                {
-                                    value: 'graph',
-                                    label: 'Graph',
-                                    // fill + keepMounted: the canvas owns a WebGL
-                                    // context and its own camera; unmounting it
-                                    // on a tab switch would reset the view.
-                                    fill: true,
-                                    keepMounted: true,
-                                    content: (
-                                        <QueryNetworkGraphTab
-                                            network={network}
-                                            edges={edges}
-                                            loading={loading}
-                                            layer={layer}
-                                            onLayerChange={setLayer}
-                                            selectedEdgeId={selectedEdge?.id ?? null}
-                                            onSelectEdge={selectEdgeFromGraph}
-                                            initialView={initialView}
-                                            onViewChange={onViewChange}
-                                        />
-                                    ),
-                                },
-                                {
-                                    value: 'detail',
-                                    label: 'Overview',
-                                    content: selectedEdge ? (
-                                        <QueryEdgeDetailTab
-                                            edge={selectedEdge}
-                                            detailA={detailA}
-                                            detailB={detailB}
-                                            shared={sharedTab.data}
-                                            page={sharedTab.page}
-                                            onPageChange={sharedTab.setPage}
-                                            loading={sharedTab.loading}
-                                            filterCaption={related.caption}
-                                            onSelectProject={openProject}
-                                        />
-                                    ) : (
-                                        <EmptyTabMessage message="Select a collaboration from the list or click an edge in the graph." />
-                                    ),
-                                },
-                                {
-                                    value: 'projects',
-                                    label: 'Projects',
-                                    content: (
-                                        <RelatedList
-                                            caption={`${matchingTab.data.estimatedTotalHits.toLocaleString('en-US')}${matchingTab.data.totalCapped ? '+' : ''} matching projects`}
-                                            filterCaption={related.caption}
-                                            rows={matchingTab.data.hits.map(projectRow)}
-                                            page={matchingTab.page}
-                                            pageCount={matchingTab.data.pageCount}
-                                            onPageChange={matchingTab.setPage}
-                                            loading={matchingTab.loading}
-                                            emptyMessage="No projects match this search."
-                                            onSelect={openProject}
-                                        />
-                                    ),
-                                },
-                            ]}
+                            onChange={(next) => setTab(next as (typeof TAB_LIST)[number])}
+                            tabs={visibleTabs(
+                                [
+                                    {
+                                        value: 'graph',
+                                        label: 'Graph',
+                                        // fill + keepMounted: the canvas owns a WebGL
+                                        // context and its own camera; unmounting it
+                                        // on a tab switch would reset the view.
+                                        fill: true,
+                                        keepMounted: true,
+                                        content: (
+                                            <QueryNetworkGraphTab
+                                                network={network}
+                                                model={model}
+                                                titles={titles}
+                                                loading={loading}
+                                                layer={layer}
+                                                onLayerChange={setLayer}
+                                                selectedClusterId={selectedCluster?.id ?? null}
+                                                onSelectCluster={selectCluster}
+                                                initialView={initialView}
+                                                onViewChange={onViewChange}
+                                            />
+                                        ),
+                                    },
+                                    {
+                                        value: 'overview',
+                                        label: 'Overview',
+                                        content:
+                                            selectedCluster && selectedTitle ? (
+                                                <ClusterOverviewTab
+                                                    cluster={selectedCluster}
+                                                    title={selectedTitle.title}
+                                                    subtitle={selectedTitle.subtitle}
+                                                    network={network}
+                                                    model={model}
+                                                    titles={titles}
+                                                    topicLabel={topicLabel}
+                                                    onOpenOrganisation={openOrganisation}
+                                                    onSelectCluster={selectCluster}
+                                                    onOpenBridges={() => setTab('bridges')}
+                                                />
+                                            ) : (
+                                                <EmptyTabMessage message="No clusters for this search. Try a broader query or fewer filters." />
+                                            ),
+                                    },
+                                    {
+                                        value: 'organisations',
+                                        label: 'Organisations',
+                                        content: selectedCluster ? (
+                                            <RelatedList
+                                                caption={`${selectedCluster.members.length.toLocaleString('en-US')} organisations in this cluster, most connected first`}
+                                                rows={memberRows}
+                                                page={dpage}
+                                                pageCount={pageCountOf(selectedCluster.members.length, QUERY_LIST_PAGE_SIZE)}
+                                                onPageChange={setDetailPage}
+                                                loading={false}
+                                                emptyMessage="No organisations."
+                                                onSelect={openOrganisation}
+                                            />
+                                        ) : (
+                                            <EmptyTabMessage message="Select a cluster to see its organisations." />
+                                        ),
+                                    },
+                                    {
+                                        value: 'projects',
+                                        label: 'Projects',
+                                        content: selectedCluster ? (
+                                            <RelatedList
+                                                caption={`${clusterProjectIds.length.toLocaleString('en-US')} of the scanned projects belong to this cluster (most of their organisations are members), best-ranked first`}
+                                                rows={projectRows}
+                                                page={dpage}
+                                                pageCount={pageCountOf(clusterProjectIds.length, QUERY_LIST_PAGE_SIZE)}
+                                                onPageChange={setDetailPage}
+                                                loading={projectsTab.loading}
+                                                emptyMessage="No scanned project belongs to this cluster."
+                                                onSelect={openProject}
+                                            />
+                                        ) : (
+                                            <EmptyTabMessage message="Select a cluster to see its projects." />
+                                        ),
+                                    },
+                                    {
+                                        value: 'bridges',
+                                        label: 'Bridges',
+                                        content: (
+                                            <BridgesTab
+                                                network={network}
+                                                model={model}
+                                                titles={titles}
+                                                projects={bridgeHits}
+                                                projectPlacements={bridgePlacements}
+                                                onOpenOrganisation={openOrganisation}
+                                                onOpenProject={openProject}
+                                                onSelectCluster={selectCluster}
+                                            />
+                                        ),
+                                    },
+                                ],
+                                available,
+                            )}
                         />
                     </Box>
                 </Box>

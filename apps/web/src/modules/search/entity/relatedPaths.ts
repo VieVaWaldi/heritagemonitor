@@ -8,13 +8,24 @@
 
 const enc = encodeURIComponent
 
+/**
+ * Every list that hangs off a parent's number asks for the STRICT search only.
+ *
+ * The api's typo fallback fires per request when the strict total is small.
+ * Narrowing by the parent (this organisation, this stream) makes it small, so
+ * without this a tab silently becomes a looser search than the count it
+ * belongs to: '3 of its projects match' next to a tab of 199. The main lists
+ * do not send it and keep their 'close matches' fallback.
+ */
+export const STRICT = 'strict=true'
+
 /** `search` is the already-built forwarded query string (see relatedParams); may be empty. */
 export const relatedPaths = {
     projectOrganisations: (projectId: string, page: number) => `/v1/projects/${enc(projectId)}/organisations?page=${page}`,
 
     /** A project's or an organisation's works. */
     works: (entity: 'projects' | 'organisations', id: string, page: number, search = '') =>
-        `/v1/${entity}/${enc(id)}/works?page=${page}&${search}`,
+        `/v1/${entity}/${enc(id)}/works?page=${page}&${STRICT}&${search}`,
 
     organisationProjects: (organisationId: string, page: number, search = '') =>
         `/v1/organisations/${enc(organisationId)}/projects?page=${page}&${search}`,
@@ -27,6 +38,7 @@ export const relatedPaths = {
         const query = new URLSearchParams(search)
         query.set('stream', grantId)
         query.set('page', String(page))
+        query.set('strict', 'true')
         if (corpus) query.set('c', corpus)
         return `/v1/projects/search?${query.toString()}`
     },
@@ -37,15 +49,15 @@ export const relatedPaths = {
         return `/v1/grants/${enc(grantId)}/organisations${suffix}`
     },
 
-    minorityProjects: (qid: string, page: number, search = '') => `/v1/projects/search?minority=${enc(qid)}&page=${page}&${search}`,
-    minorityWorks: (qid: string, page: number, search = '') => `/v1/works/search?minority=${enc(qid)}&page=${page}&${search}`,
+    minorityProjects: (qid: string, page: number, search = '') => `/v1/projects/search?minority=${enc(qid)}&page=${page}&${STRICT}&${search}`,
+    minorityWorks: (qid: string, page: number, search = '') => `/v1/works/search?minority=${enc(qid)}&page=${page}&${STRICT}&${search}`,
     minorityOrganisations: (qid: string, page: number, search = '') =>
         `/v1/minorities/${enc(qid)}/organisations?page=${page}&${search}`,
 
     /** An expert's matching projects: the page's own query and filters plus `org`. */
     expertProjects: (apiParams: string, organisationId: string, page: number) =>
-        `/v1/projects/search?${apiParams}&org=${enc(organisationId)}&page=${page}`,
+        `/v1/projects/search?${apiParams}&org=${enc(organisationId)}&page=${page}&${STRICT}`,
     /** An expert's works, by default narrowed to the page's text (see ExpertsResultsPanel). */
     expertWorks: (organisationId: string, page: number, corpus: string, query: string) =>
-        `/v1/organisations/${enc(organisationId)}/works?page=${page}&c=${enc(corpus)}` + (query ? `&q=${enc(query)}` : ''),
+        `/v1/organisations/${enc(organisationId)}/works?page=${page}&c=${enc(corpus)}&${STRICT}` + (query ? `&q=${enc(query)}` : ''),
 }

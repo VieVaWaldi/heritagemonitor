@@ -63,10 +63,38 @@ test('merged sources never exceed the cap', async () => {
     assert.equal((await resolvePageContext(context)).sources.length, 60)
 })
 
+const params = (path: string) => new URL(path, 'http://x').searchParams
+
 test('related paths are the ones the tabs use, page 1', () => {
-    assert.equal(relatedPaths.works('projects', 'p 1', 1, 'c=dch'), '/v1/projects/p%201/works?page=1&c=dch')
     assert.equal(relatedPaths.projectOrganisations('9', 1), '/v1/projects/9/organisations?page=1')
-    assert.equal(relatedPaths.grantProjects('f::p', 'dch', 1, 'years=2019-2025'), '/v1/projects/search?years=2019-2025&stream=f%3A%3Ap&page=1&c=dch')
     assert.equal(relatedPaths.grantOrganisations('g', undefined), '/v1/grants/g/organisations')
-    assert.equal(relatedPaths.expertWorks('o', 1, 'dch', ''), '/v1/organisations/o/works?page=1&c=dch')
+    const works = params(relatedPaths.works('projects', 'p 1', 1, 'c=dch'))
+    assert.equal(new URL(relatedPaths.works('projects', 'p 1', 1, 'c=dch'), 'http://x').pathname, '/v1/projects/p%201/works')
+    assert.equal(works.get('page'), '1')
+    assert.equal(works.get('c'), 'dch')
+    const grant = params(relatedPaths.grantProjects('f::p', 'dch', 1, 'years=2019-2025'))
+    assert.equal(grant.get('stream'), 'f::p')
+    assert.equal(grant.get('years'), '2019-2025')
+    assert.equal(grant.get('c'), 'dch')
+    const expertWorks = params(relatedPaths.expertWorks('o', 1, 'dch', 'bim'))
+    assert.equal(expertWorks.get('q'), 'bim')
+    assert.equal(expertWorks.get('c'), 'dch')
+})
+
+test('every related list that carries the page\'s text asks for the STRICT search only', () => {
+    // These hang off a parent's number (an expert's "3 matching projects"); the
+    // api's typo fallback would otherwise widen them to "199" on their own.
+    const lists = [
+        relatedPaths.expertProjects('q=bim&c=science', 'o', 1),
+        relatedPaths.expertWorks('o', 1, 'science', 'bim'),
+        relatedPaths.grantProjects('f::p', 'science', 1, 'q=bim'),
+        relatedPaths.minorityProjects('Q1', 1, 'q=bim'),
+        relatedPaths.minorityWorks('Q1', 1, 'q=bim'),
+        relatedPaths.works('organisations', 'o', 1, 'q=bim'),
+        relatedPaths.works('projects', 'p', 1, 'q=bim'),
+    ]
+    for (const path of lists) assert.equal(params(path).get('strict'), 'true', path)
+    // the parent's own text is still there
+    assert.equal(params(relatedPaths.expertProjects('q=bim&c=science', 'o', 1)).get('q'), 'bim')
+    assert.equal(params(relatedPaths.expertProjects('q=bim&c=science', 'o', 1)).get('org'), 'o')
 })

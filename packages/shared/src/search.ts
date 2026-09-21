@@ -221,5 +221,14 @@ export const baseSearchRequestSchema = z.object({
     page: pageSchema.optional(),
     /** Deep link: restrict the list to these document ids. */
     only: z.array(z.string()).optional(),
+    /**
+     * `true` = the STRICT search only: no typo-tolerant rerun. The main lists
+     * leave it out and keep their "close matches" fallback; a list that hangs
+     * off a parent count (an expert's matching projects, a stream's projects)
+     * sends it, because narrowing by the parent drops the strict total below
+     * the fallback threshold and the list would silently become a looser
+     * search than the number it belongs to.
+     */
+    strict: z.enum(['true']).optional(),
 })
 export type BaseSearchRequest = z.infer<typeof baseSearchRequestSchema>

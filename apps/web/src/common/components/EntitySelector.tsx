@@ -7,6 +7,7 @@ import Divider from '@mui/material/Divider'
 import {alpha} from '@mui/material/styles'
 import type {Theme} from '@mui/material/styles'
 import type SvgIcon from '@mui/material/SvgIcon'
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import {Text} from '@/common/text'
 import {useValueChangeFlash} from '@/common/hooks/useValueChangeFlash'
 import {fluidUnit} from '@/common/theme/fluidUnit'
@@ -31,6 +32,17 @@ export interface EntitySelectorProps<Key extends string = string> {
     /** False renders a plain, non-clickable icon circle with no hover panel
      * — for UseCases with nothing to pick between. Defaults true. */
     interactive?: boolean
+    /**
+     * `circle` (default): the icon-only circle inside the ActionBar row.
+     * `label`: a text trigger — the selected option's name (its icon on narrow
+     * screens) with a dropdown arrow — for a bar that puts the picker beside
+     * the search instead of inside it. Same option list either way.
+     */
+    variant?: 'circle' | 'label'
+    /** Colour of the `label` trigger's text (sx colour path). Defaults to the text colour. */
+    labelColor?: string
+    /** Which edge of the `label` trigger the option list lines up with: `start` (default) when the trigger sits left of the bar, `end` when it sits at the right edge, so the list never runs off screen. */
+    panelAlign?: 'start' | 'end'
 }
 
 const ROW_HEIGHT = 44
@@ -54,6 +66,9 @@ export function EntitySelector<Key extends string = string>({
     value,
     onChange,
     interactive = true,
+    variant = 'circle',
+    labelColor,
+    panelAlign = 'start',
 }: EntitySelectorProps<Key>) {
     const [open, setOpen] = useState(false)
     const selectedOption = options.find((opt) => opt.key === value)
@@ -96,9 +111,38 @@ export function EntitySelector<Key extends string = string>({
         <Box
             onMouseEnter={interactive ? () => setOpen(true) : undefined}
             onMouseLeave={interactive ? () => setOpen(false) : undefined}
-            sx={{position: 'relative', alignSelf: 'stretch'}}
+            // Keyboard: Escape closes, and so does moving focus out of the picker.
+            onKeyDown={(event) => event.key === 'Escape' && setOpen(false)}
+            onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+            }}
+            sx={{position: 'relative', alignSelf: variant === 'label' ? 'center' : 'stretch'}}
         >
-            {interactive ? (
+            {variant === 'label' ? (
+                <ButtonBase
+                    onClick={() => setOpen((current) => !current)}
+                    aria-label="entity type"
+                    aria-haspopup="listbox"
+                    aria-expanded={open}
+                    sx={{
+                        alignSelf: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.25,
+                        px: 0.5,
+                        borderRadius: 1,
+                        color: labelColor ?? 'text.primary',
+                        '&:hover': {backgroundColor: 'action.hover'},
+                    }}
+                >
+                    {/* The name where there is room; the option's own icon where there is not, so the picker stays reachable. */}
+                    {selectedOption?.icon && <selectedOption.icon fontSize="small" sx={{display: {xs: 'block', md: 'none'}}} />}
+                    <Text variant="button" sx={{display: {xs: 'none', md: 'block'}, fontSize: '1.15rem', color: 'inherit', whiteSpace: 'nowrap'}}>
+                        {selectedOption?.label}
+                    </Text>
+                    <ArrowDropDownIcon fontSize="small" />
+                </ButtonBase>
+            ) : interactive ? (
                 <ButtonBase
                     onClick={() => setOpen(true)}
                     aria-label="entity type"
@@ -127,8 +171,8 @@ export function EntitySelector<Key extends string = string>({
                     sx={{
                         position: 'absolute',
                         top: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        ...(variant === 'label' ? (panelAlign === 'end' ? {right: 0} : {left: 0}) : {left: '50%'}),
+                        transform: variant === 'label' ? 'none' : 'translateX(-50%)',
                         pt: PANEL_GAP,
                         minWidth: PANEL_MIN_WIDTH,
                         opacity: open ? 1 : 0,

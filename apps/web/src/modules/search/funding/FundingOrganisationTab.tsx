@@ -74,6 +74,7 @@ export function FundingOrganisationTab({
                 <RelatedList
                     caption={`${formatResultCount(projects)} of the matching projects, largest budget first`}
                     filterCaption={filterCaption}
+                    closeMatches={projects.mode === 'fuzzy'}
                     rows={projects.hits.map(toRow)}
                     page={page}
                     pageCount={projects.pageCount}

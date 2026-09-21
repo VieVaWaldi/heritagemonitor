@@ -39,6 +39,7 @@ import {NetworkDetailTab} from './NetworkDetailTab'
 import {NetworkMapTab} from './NetworkMapTab'
 import {NETWORK_COVERAGE_NOTE, networkLazyContext, networkStateSection, selectedPairLine} from './networkChatContext'
 import {
+    centreOnPatch,
     centreOf,
     centreProjectsPath,
     findNode,
@@ -170,7 +171,7 @@ export function OrganisationNetworkPanel() {
     // `view` goes with the old centre: the map flies to the new one instead of
     // keeping a camera that was framing somebody else.
     const centreOn = useCallback(
-        (id: string) => update({[SEARCH_PARAM.center]: id, [SEARCH_PARAM.selection]: null, [SEARCH_PARAM.view]: null}),
+        (id: string) => update(centreOnPatch(id)),
         [update],
     )
     const openProject = useCallback(

@@ -42,12 +42,14 @@ export interface NavbarProps {
      * so it doesn't read as part of the corpus control. Omitted entirely
      * (no divider either) on pages with nothing to put there. */
     endAction?: ReactNode
+    /** A vertical divider right after HMMenu, the same one that sets endAction off from the corpus selector — for pages whose own content starts at the menu's edge (the search pages' use-case label). */
+    startDivider?: boolean
 }
 
 // App-wide top bar: HMMenu hugs the left edge, the corpus selector hugs the
 // right, and any page-specific content (tabs, an ActionBar, etc.) fills the
 // middle.
-export function Navbar({bordered = false, sticky = false, size = 'default', children, endAction}: NavbarProps) {
+export function Navbar({bordered = false, sticky = false, size = 'default', children, endAction, startDivider = false}: NavbarProps) {
     return (
         <Box
             component="nav"
@@ -64,7 +66,8 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
             }}
         >
             <HMMenu />
-            <Box sx={{flex: 1, minWidth: 0, height: '100%', display: 'flex', alignItems: 'center', px: 2}}>
+            {startDivider && <Divider orientation="vertical" flexItem sx={{my: 1}} />}
+            <Box sx={{flex: 1, minWidth: 0, height: '100%', display: 'flex', alignItems: 'center', px: startDivider ? 1.5 : 2}}>
                 {children}
             </Box>
             <CorpusPanel />

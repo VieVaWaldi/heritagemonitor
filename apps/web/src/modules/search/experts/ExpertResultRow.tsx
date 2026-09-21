@@ -4,7 +4,6 @@ import type {ExpertRow} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import ListItemButton from '@mui/material/ListItemButton'
-import PlaceIcon from '@mui/icons-material/Place'
 import Tooltip from '@mui/material/Tooltip'
 import {Text} from '@/common/text'
 import {formatCount, formatOrganisationFunding, knownRegion, organisationName} from '../organisations/organisationFormat'
@@ -55,12 +54,6 @@ export function ExpertResultRow({expert, selected, onSelect, coordinated = false
                     <Chip label={`${expert.mergedRecords} records`} size="small" variant="outlined" sx={{flexShrink: 0}} />
                 </Tooltip>
             )}
-            {expert.hasGeo && (
-                <Tooltip title="Has coordinates (appears on maps)">
-                    <PlaceIcon fontSize="small" sx={{color: 'text.disabled', flexShrink: 0}} />
-                </Tooltip>
-            )}
-            {expert.has_dch_project && <Chip label="DCH" size="small" color="secondary" variant="outlined" sx={{flexShrink: 0}} />}
 
             <Tooltip title={coordinated ? 'Matching projects this organisation coordinates' : 'Projects matching your current search'}>
                 <Chip

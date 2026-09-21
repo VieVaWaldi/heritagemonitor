@@ -21,6 +21,17 @@ export function networkFilterQuery(params: URLSearchParams): string {
     return relatedParams('collaboration:projects', params).toString()
 }
 
+/**
+ * The URL patch for "make this organisation the centre": the new centre, no
+ * selected partner (it belonged to the old network), no camera (the map flies
+ * to the new centre instead of keeping one that framed somebody else) and the
+ * MAP tab — a centre chosen from the Overview must not leave you reading the
+ * old partner's tab. `dpage` is cleared by the same update (a tab change).
+ */
+export function centreOnPatch(id: string): Record<string, string | null> {
+    return {[SEARCH_PARAM.center]: id, [SEARCH_PARAM.selection]: null, [SEARCH_PARAM.view]: null, [SEARCH_PARAM.tab]: 'map'}
+}
+
 export const networkPath = (centreId: string, filterQuery: string) =>
     `/v1/collaboration/organisations/${encodeURIComponent(centreId)}/network${filterQuery ? `?${filterQuery}` : ''}`
 

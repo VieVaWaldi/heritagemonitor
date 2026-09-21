@@ -32,6 +32,28 @@ export interface ActionBarProps<EntityKey extends string = string> {
      */
     onCompositionStart?: CompositionEventHandler<HTMLElement>
     onCompositionEnd?: CompositionEventHandler<HTMLElement>
+    /**
+     * False leaves the entity picker out of the bar: /search puts it to the
+     * LEFT of the bar instead (see modules/search SearchNav), and the other
+     * search routes have nothing to pick. The hero page keeps the default.
+     */
+    showEntitySelector?: boolean
+    /**
+     * `label` uses the EntitySelector's text variant (the entity's name with a
+     * dropdown arrow, see EntitySelector) instead of the circle — the /search
+     * navbar and the landing page's Search use case. Only applies while the
+     * selector is interactive: a use case with nothing to pick keeps its
+     * static circle icon on the right.
+     */
+    entitySelectorVariant?: 'circle' | 'label'
+    /**
+     * Which side of the bar the `label` variant sits on: `left` (the /search
+     * navbar, after the use case's name) or `right` (the landing page, where
+     * the circle used to be). The circle always sits on the right.
+     */
+    entitySelectorPlacement?: 'left' | 'right'
+    /** Colour (sx path) of the `label` variant's text — the use case's colour. */
+    entityLabelColor?: string
 }
 
 // SearchBar (a full pill) plus a circular icon-only EntitySelector floating
@@ -51,9 +73,28 @@ export function ActionBar<EntityKey extends string = string>({
     onSuggestionSelect,
     onCompositionStart,
     onCompositionEnd,
+    showEntitySelector = true,
+    entitySelectorVariant = 'circle',
+    entitySelectorPlacement = 'right',
+    entityLabelColor,
 }: ActionBarProps<EntityKey>) {
+    const useLabel = entitySelectorVariant === 'label' && entitySelectorInteractive
+    const labelOnLeft = useLabel && entitySelectorPlacement === 'left'
+    const selector = showEntitySelector ? (
+        <EntitySelector
+            options={entityOptions}
+            value={selectedEntity}
+            onChange={onEntityChange}
+            interactive={entitySelectorInteractive}
+            variant={useLabel ? 'label' : 'circle'}
+            labelColor={entityLabelColor}
+            panelAlign={labelOnLeft ? 'start' : 'end'}
+        />
+    ) : null
+
     return (
         <Box sx={{display: 'flex', alignItems: 'stretch', gap: fluidUnit(1), width: '100%'}}>
+            {labelOnLeft && selector}
             <Box sx={{flex: 1, minWidth: 0}}>
                 <SearchBar
                     value={searchValue}
@@ -71,12 +112,7 @@ export function ActionBar<EntityKey extends string = string>({
                     onCompositionEnd={onCompositionEnd}
                 />
             </Box>
-            <EntitySelector
-                options={entityOptions}
-                value={selectedEntity}
-                onChange={onEntityChange}
-                interactive={entitySelectorInteractive}
-            />
+            {!labelOnLeft && selector}
         </Box>
     )
 }

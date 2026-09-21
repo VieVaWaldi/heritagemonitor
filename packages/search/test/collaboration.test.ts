@@ -26,7 +26,7 @@ import {queryNetworkBody, QUERY_NETWORK_SCAN} from '../dist/query/collaboration.
 test('the query network scan reads two doc-value columns and never _source', () => {
     const body = queryNetworkBody({q: 'archaeology', filters: {corpus: 'dch'}}) as Record<string, unknown>
     assert.equal(body._source, false)
-    assert.deepEqual(body.docvalue_fields, ['org_ids', 'coordinator_ids'])
+    assert.deepEqual(body.docvalue_fields, ['org_ids', 'coordinator_ids', 'topic_id', 'year', 'funded_amount_eur', 'funder'])
     assert.equal(body.size, QUERY_NETWORK_SCAN)
     assert.equal(body.from, 0)
     assert.equal(body.sort, undefined, 'relevance is the default order of a text query')

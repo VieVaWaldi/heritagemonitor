@@ -40,6 +40,8 @@ interface PagedQuery {
 interface WorksQuery extends PagedQuery {
     q?: string
     c?: 'science' | 'dch'
+    /** `true`: strict search only, no typo rerun — see baseSearchRequestSchema. */
+    strict?: 'true'
 }
 
 type FacetValuesQuery = OrganisationSearchRequest & {facet?: string; facetQ?: string; size?: number}
@@ -141,7 +143,7 @@ export async function organisationsRoutes(fastify: FastifyInstance) {
                 params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
                 querystring: {
                     type: 'object',
-                    properties: {page: pageProp, q: {type: 'string'}, c: {type: 'string', enum: [...CORPUS_KEYS]}},
+                    properties: {page: pageProp, q: {type: 'string'}, c: {type: 'string', enum: [...CORPUS_KEYS]}, strict: {type: 'string', enum: ['true']}},
                 },
             },
         },
@@ -149,6 +151,7 @@ export async function organisationsRoutes(fastify: FastifyInstance) {
             searchWorksFor({organisation: request.params.id}, request.query.page ?? 1, {
                 q: request.query.q,
                 c: request.query.c,
+                strict: request.query.strict,
             }),
     )
 

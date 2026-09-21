@@ -4,6 +4,7 @@ import type {OrganisationNetworkResponse} from '@heritagemonitor/shared'
 import {
     arcLinks,
     arcNodes,
+    centreOnPatch,
     centreProjectsPath,
     findNode,
     formatShared,
@@ -15,7 +16,7 @@ import {
     partnerChatRow,
     sharedProjectsPath,
 } from '../src/modules/search/collaboration/networkAdapter.ts'
-import {applyPatch, buildFocusPatch, buildSuggestionLink, patchClearsSelection, SEARCH_PARAM, URL_PARAM_LABELS} from '../src/common/url/codecs.ts'
+import {applyPatch, buildFocusPatch, patchClearsDetailPage, buildSuggestionLink, patchClearsSelection, SEARCH_PARAM, URL_PARAM_LABELS} from '../src/common/url/codecs.ts'
 import {describeLinkVocabulary} from '../src/common/url/linkVocabulary.ts'
 
 const node = (id: string, w: number, lat: number | null = 50, lng: number | null = 8, ids = [id]) => ({id, ids, name: `Org ${id}`, lat, lng, w, countryCode: 'DE'})
@@ -107,4 +108,16 @@ test('a new centre clears the selected partner unless the same patch sets one; b
     assert.ok(URL_PARAM_LABELS[SEARCH_PARAM.center].length > 0)
     assert.ok(URL_PARAM_LABELS[SEARCH_PARAM.orgAll].length > 0)
     assert.ok(describeLinkVocabulary().join(' ').includes('organisationNetwork?center='))
+})
+
+test('"Show its network" recentres AND returns to the map tab in one update', () => {
+    const before = new URLSearchParams('center=old&sel=p1&tab=detail&dpage=2&view=48,8,5&c=dch&funder=EC')
+    const patch = centreOnPatch('p1')
+    assert.equal(patchClearsDetailPage(patch), true)
+    const after = applyPatch(before, {...patch, dpage: null})
+    assert.equal(after.get('center'), 'p1')
+    assert.equal(after.get('tab'), 'map')
+    for (const gone of ['sel', 'view', 'dpage']) assert.equal(after.has(gone), false, gone)
+    assert.equal(after.get('c'), 'dch')
+    assert.equal(after.get('funder'), 'EC')
 })

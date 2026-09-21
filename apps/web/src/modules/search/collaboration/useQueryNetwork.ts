@@ -8,6 +8,9 @@ import {queryNetworkPath} from './queryNetworkAdapter'
 export const EMPTY_QUERY_NETWORK: QueryNetworkResponse = {
     nodes: [],
     edges: [],
+    projects: {ids: [], orgs: [], topic: [], year: [], amount: [], funder: []},
+    topics: [],
+    funders: [],
     meta: {projectsScanned: 0, totalMatches: 0, totalCapped: false, approxTotal: null, edgesFound: 0, capped: false, withoutGeo: 0, mode: 'strict', didYouMean: [], complete: true},
 }
 

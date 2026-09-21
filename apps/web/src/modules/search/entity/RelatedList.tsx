@@ -38,6 +38,13 @@ export interface RelatedListProps {
      * it matters.
      */
     filterCaption?: string
+    /**
+     * True when the list came back from the api's typo-tolerant rerun. Related
+     * lists ask for the strict search only (see relatedPaths.STRICT), so this
+     * should not happen; if it ever does, the caption says so instead of
+     * presenting a looser search as the parent's exact count.
+     */
+    closeMatches?: boolean
 }
 
 const ROW_HEIGHT = 64
@@ -61,6 +68,7 @@ export function RelatedList({
     emptyMessage,
     onSelect,
     filterCaption,
+    closeMatches = false,
 }: RelatedListProps) {
     // Shown above the rows AND above the empty message: "why is this list
     // empty" is the question the caption exists to answer.
@@ -88,6 +96,7 @@ export function RelatedList({
             {filterLine}
             <Text variant="caption" color="text.secondary" sx={{px: 2.5, py: 1}}>
                 {caption}
+                {closeMatches ? ' — close matches, not exact' : ''}
             </Text>
 
             <List disablePadding sx={{flex: '1 1 auto', overflowY: 'auto'}}>

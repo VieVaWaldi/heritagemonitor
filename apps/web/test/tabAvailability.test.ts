@@ -7,6 +7,7 @@ import {
     organisationHiddenTabs,
     organisationNetworkHiddenTabs,
     projectHiddenTabs,
+    queryNetworkHiddenTabs,
     resolveTab,
     visibleTabs,
     workHiddenTabs,
@@ -59,6 +60,16 @@ test('organisation network: the centre\'s Projects tab by the centre\'s own proj
     assert.deepEqual(organisationNetworkHiddenTabs({project_count: 0}), ['projects'])
     assert.deepEqual(organisationNetworkHiddenTabs({project_count: 30}), [])
     assert.deepEqual(organisationNetworkHiddenTabs(null), [])
+})
+
+test('query network clusters: Projects by the cluster\'s assigned projects, Bridges by the network having any hinge', () => {
+    assert.deepEqual(queryNetworkHiddenTabs({clusterProjects: 0, hinges: 2, hingeProjects: 0}), ['projects'])
+    assert.deepEqual(queryNetworkHiddenTabs({clusterProjects: 5, hinges: 0, hingeProjects: 0}), ['bridges'])
+    assert.deepEqual(queryNetworkHiddenTabs({clusterProjects: 5, hinges: 0, hingeProjects: 3}), [])
+    assert.deepEqual(queryNetworkHiddenTabs({clusterProjects: 0, hinges: 0, hingeProjects: 0}), ['projects', 'bridges'])
+    // no cluster selected yet (nothing found / still loading): nothing hides
+    assert.deepEqual(queryNetworkHiddenTabs({clusterProjects: null, hinges: 1, hingeProjects: 1}), [])
+    assert.deepEqual(queryNetworkHiddenTabs(null), [])
 })
 
 test('the overview (first tab) is never hidden, and order is kept', () => {

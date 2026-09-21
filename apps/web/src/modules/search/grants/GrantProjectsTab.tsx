@@ -40,6 +40,7 @@ export function GrantProjectsTab({projects, page, onPageChange, loading, onSelec
         <RelatedList
             caption={`${formatResultCount(projects)} projects, largest budget first`}
             filterCaption={filterCaption}
+            closeMatches={projects.mode === 'fuzzy'}
             rows={projects.hits.map(toRow)}
             page={page}
             pageCount={projects.pageCount}

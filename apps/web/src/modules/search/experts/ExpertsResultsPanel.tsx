@@ -381,6 +381,7 @@ export function ExpertsResultsPanel() {
                                 <RelatedList
                                     caption={`${formatResultCount(projectsTab.data)} of this organisation's projects match your search`}
                                     rows={projectRows}
+                                    closeMatches={projectsTab.data.mode === 'fuzzy'}
                                     page={projectsTab.page}
                                     pageCount={projectsTab.data.pageCount}
                                     onPageChange={projectsTab.setPage}
@@ -419,6 +420,7 @@ export function ExpertsResultsPanel() {
                                             : `${formatResultCount(worksTab.data)} works, most cited first (all of them, not only the matching ones)`
                                     }
                                     rows={workRows}
+                                    closeMatches={worksTab.data.mode === 'fuzzy'}
                                     page={worksTab.page}
                                     pageCount={worksTab.data.pageCount}
                                     onPageChange={worksTab.setPage}

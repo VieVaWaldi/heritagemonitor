@@ -42,6 +42,7 @@ export function RelatedWorksTab({works, page, onPageChange, loading, onSelectWor
         <RelatedList
             caption={`${formatResultCount(works)} works, most cited first`}
             filterCaption={filterCaption}
+            closeMatches={works.mode === 'fuzzy'}
             rows={rows}
             page={page}
             pageCount={works.pageCount}

@@ -20,6 +20,14 @@ export function orgNetworkBody(centreId: string, filters: ProjectFilters, max: n
     })
 }
 
+/**
+ * What each scanned project contributes, all doc values (verified in the
+ * projects mapping: keyword/integer/double, none of them `index: false`):
+ * its organisations (pairs), first the topic, the year, the budget and the
+ * funder (the cluster overview). The project id is the hit's `_id`.
+ */
+export const QUERY_NETWORK_DOCVALUE_FIELDS = ['org_ids', 'coordinator_ids', 'topic_id', 'year', 'funded_amount_eur', 'funder']
+
 /** Projects scanned for the query network — the top of the ranking, not all matches. */
 export const QUERY_NETWORK_SCAN = 2000
 
@@ -29,7 +37,7 @@ export const QUERY_NETWORK_SCAN = 2000
  *
  * `_source: false` and `docvalue_fields` are the whole point: fetching
  * 2,000 full project documents (summaries included) took 24-30 s on a cold
- * cache, reading two doc-value columns takes a few seconds cold and well
+ * cache, reading a handful of doc-value columns takes a few seconds cold and well
  * under 200 ms warm. NEVER add `_source` here.
  *
  * Ranked by relevance for a text query; a blank query has no relevance, so
@@ -49,6 +57,6 @@ export function queryNetworkBody(options: {
     return {
         ...projectsBody({q, filters, mode, size, from, sort: q.trim() ? 'relevance' : 'budget', suggest, timeout}),
         _source: false,
-        docvalue_fields: ['org_ids', 'coordinator_ids'],
+        docvalue_fields: QUERY_NETWORK_DOCVALUE_FIELDS,
     }
 }

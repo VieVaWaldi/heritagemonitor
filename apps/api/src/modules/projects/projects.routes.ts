@@ -82,6 +82,8 @@ const projectSearchQueryProperties = {
     orgAll: stringArrayProp,
     minority: stringArrayProp,
     only: stringArrayProp,
+    // Strict search only — no typo rerun; see baseSearchRequestSchema.
+    strict: {type: 'string', enum: ['true']},
 } as const
 
 export async function projectsRoutes(fastify: FastifyInstance) {

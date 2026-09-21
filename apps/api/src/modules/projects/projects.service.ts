@@ -30,6 +30,7 @@ import {
     readDefaultPage,
     writeDefaultPage,
 } from '../../common/search/defaultPageCache.js'
+import {typoFallbackAllowed} from '../../common/search/typoPolicy.js'
 import {AppError} from '../../plugins/errors.js'
 import {topicNames, topicOf} from '../../reference/topics.js'
 import * as opensearchRepository from './opensearch.repository.js'
@@ -146,7 +147,7 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
         filters: toFilters(request),
         // A blank query has nothing to misspell, and its strict result set is
         // already the whole corpus — a fallback could only make it slower.
-        typoTolerant: q.trim().length > 0,
+        typoTolerant: typoFallbackAllowed(q, request.strict),
     })
 
     const facetDistribution = toFacetDistribution(result.aggregations)

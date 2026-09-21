@@ -106,6 +106,8 @@ export function topEdges(pairs: readonly Pair[], maxEdges: number): Pair[] {
 }
 
 export interface QueryNetworkPayload {
+    /** Institution key -> node index: how per-project organisations find their node. */
+    nodeIndexByKey: Map<string, number>
     nodes: NetworkNode[]
     edges: Array<{a: number; b: number; w: number}>
     edgesFound: number
@@ -154,10 +156,81 @@ export function buildQueryNetwork(options: {
     })
 
     return {
+        nodeIndexByKey: indexOf,
         nodes,
         edges: kept.map((pair) => ({a: indexOf.get(pair.a)!, b: indexOf.get(pair.b)!, w: pair.weight})),
         edgesFound: counts.pairs.length,
         capped: counts.pairs.length > kept.length,
         withoutGeo: nodes.filter((node) => node.lat === null).length,
     }
+}
+
+// --- per-project columns (the cluster view) ---------------------------------
+
+/** One scanned project as the search returns it: `_id` and the doc values. */
+export interface ScannedProjectFields {
+    id: string
+    orgIds: readonly string[]
+    topic?: string
+    year?: number
+    amount?: number
+    funder?: string
+}
+
+export interface ProjectColumns {
+    ids: string[]
+    orgs: number[][]
+    topic: number[]
+    year: number[]
+    amount: number[]
+    funder: number[]
+    topics: string[]
+    funders: string[]
+}
+
+/**
+ * The scanned projects that touch a drawn organisation, as compact columns in
+ * ranking order. A project's organisations become NODE INDEXES (through the
+ * same institution fold the pairs used, so a duplicate record lands on its
+ * node); a project none of whose organisations is drawn is left out — the
+ * cluster view cannot place it. Topic and funder go through small dictionaries
+ * because 2,000 projects repeat a few dozen of each.
+ */
+export function buildProjectColumns(options: {
+    projects: readonly ScannedProjectFields[]
+    organisations: ReadonlyMap<string, NetworkOrganisation>
+    /** Institution key -> node index, from buildQueryNetwork. */
+    nodeIndexByKey: ReadonlyMap<string, number>
+}): ProjectColumns {
+    const {projects, organisations, nodeIndexByKey} = options
+    const columns: ProjectColumns = {ids: [], orgs: [], topic: [], year: [], amount: [], funder: [], topics: [], funders: []}
+    const topicIndex = new Map<string, number>()
+    const funderIndex = new Map<string, number>()
+    const intern = (dictionary: string[], index: Map<string, number>, value: string | undefined): number => {
+        if (!value) return -1
+        const existing = index.get(value)
+        if (existing !== undefined) return existing
+        dictionary.push(value)
+        index.set(value, dictionary.length - 1)
+        return dictionary.length - 1
+    }
+
+    for (const project of projects) {
+        const nodes: number[] = []
+        for (const id of project.orgIds.slice(0, MAX_ORGS_PER_PROJECT)) {
+            const organisation = organisations.get(id)
+            if (!organisation) continue
+            const node = nodeIndexByKey.get(organisation.nameKey ?? `id:${organisation.id}`)
+            if (node !== undefined && !nodes.includes(node)) nodes.push(node)
+        }
+        if (nodes.length === 0) continue
+
+        columns.ids.push(project.id)
+        columns.orgs.push(nodes)
+        columns.topic.push(intern(columns.topics, topicIndex, project.topic))
+        columns.year.push(project.year && project.year > 0 ? project.year : 0)
+        columns.amount.push(project.amount && project.amount > 0 ? Math.round(project.amount) : 0)
+        columns.funder.push(intern(columns.funders, funderIndex, project.funder))
+    }
+    return columns
 }

@@ -389,6 +389,7 @@ export function MinoritiesResultsPanel() {
                                 <RelatedList
                                     caption={`${formatResultCount(projectsTab.data)} projects mention this group${ofTotalSuffix(projectsTab.data.estimatedTotalHits, detail.project_count, isTabNarrowed('minorities:projects', params))} — ${MINORITY_COUNT_DISCLAIMER}`}
                                     filterCaption={projectsRelated.caption}
+                                    closeMatches={projectsTab.data.mode === 'fuzzy'}
                                     rows={projectRows}
                                     page={projectsTab.page}
                                     pageCount={projectsTab.data.pageCount}
@@ -408,6 +409,7 @@ export function MinoritiesResultsPanel() {
                                 <RelatedList
                                     caption={`${formatResultCount(worksTab.data)} works${ofTotalSuffix(worksTab.data.estimatedTotalHits, detail.work_count, isTabNarrowed('minorities:works', params))}, tagged via their linked project`}
                                     filterCaption={worksRelated.caption}
+                                    closeMatches={worksTab.data.mode === 'fuzzy'}
                                     rows={workRows}
                                     page={worksTab.page}
                                     pageCount={worksTab.data.pageCount}

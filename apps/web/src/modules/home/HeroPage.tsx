@@ -97,6 +97,12 @@ export function HeroPage() {
                 placeholder={placeholder}
                 entityOptions={entityOptions}
                 entitySelectorInteractive={entitySelectorInteractive}
+                // The Search use case's picker is the same text variant the /search
+                // navbar uses, at the right end of the bar where the circle sat;
+                // the other use cases keep their static icon.
+                entitySelectorVariant="label"
+                entitySelectorPlacement="right"
+                entityLabelColor={selectedUseCase.color}
                 selectedEntity={selectedEntity}
                 onEntityChange={setSelectedEntity}
                 suggestions={suggestions}

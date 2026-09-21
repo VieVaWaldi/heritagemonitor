@@ -16,6 +16,7 @@ import {
     readDefaultPage,
     writeDefaultPage,
 } from '../../common/search/defaultPageCache.js'
+import {typoFallbackAllowed} from '../../common/search/typoPolicy.js'
 import {AppError} from '../../plugins/errors.js'
 import {getOrganisationsByIds} from '../organisations/organisations.service.js'
 import {getProjectsByIds} from '../projects/projects.service.js'
@@ -83,7 +84,7 @@ export async function searchWorks(request: WorkSearchRequest): Promise<WorkSearc
         page,
         sort: resolveSort(q, request.sort),
         filters: toFilters(request),
-        typoTolerant: q.trim().length > 0,
+        typoTolerant: typoFallbackAllowed(q, request.strict),
     })
 
     const response: WorkSearchResponse = {
@@ -145,10 +146,11 @@ export async function getWorkOrganisations(id: string, page: number): Promise<Wo
 export async function searchWorksFor(
     link: {project?: string; organisation?: string},
     page: number,
-    narrow: {q?: string; c?: WorkSearchRequest['c']} = {},
+    narrow: {q?: string; c?: WorkSearchRequest['c']; strict?: WorkSearchRequest['strict']} = {},
 ): Promise<WorkSearchResponse> {
     return searchWorks({
         page,
+        ...(narrow.strict ? {strict: narrow.strict} : {}),
         // With a text query, relevance first (citations remain the tie-break);
         // without one, most cited.
         sort: narrow.q?.trim() ? 'relevance' : 'citations',

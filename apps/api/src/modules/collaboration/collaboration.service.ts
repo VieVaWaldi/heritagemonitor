@@ -14,7 +14,7 @@ import {InMemoryCache} from '../../plugins/cache.js'
 import {AppError} from '../../plugins/errors.js'
 import {getOrganisation, getOrganisations, isOrganisationTableReady} from '../../reference/organisationTable.js'
 import {buildOrganisationNetwork, type NetworkOrganisation} from './network.js'
-import {buildQueryNetwork, countPairs, MAX_ORGS_PER_PROJECT, type ScannedProject} from './queryNetwork.js'
+import {buildProjectColumns, buildQueryNetwork, countPairs, MAX_ORGS_PER_PROJECT, type ScannedProject} from './queryNetwork.js'
 import * as opensearchRepository from './opensearch.repository.js'
 
 // Service layer: who collaborates with one organisation. One aggregation for
@@ -113,6 +113,9 @@ export async function getQueryNetwork(request: QueryNetworkRequest): Promise<Que
         return {
             nodes: [],
             edges: [],
+            projects: {ids: [], orgs: [], topic: [], year: [], amount: [], funder: []},
+            topics: [],
+            funders: [],
             meta: {projectsScanned: 0, totalMatches: 0, totalCapped: false, approxTotal: null, edgesFound: 0, capped: false, withoutGeo: 0, mode: 'strict', didYouMean: [], complete: false},
         }
     }
@@ -135,10 +138,25 @@ export async function getQueryNetwork(request: QueryNetworkRequest): Promise<Que
 
     const counts = countPairs(projects, organisations, QUERY_NETWORK_PROJECTS_SCANNED)
     const payload = buildQueryNetwork({counts, organisations, maxEdges})
+    const columns = buildProjectColumns({
+        projects: scan.hits.map((hit) => ({
+            id: hit.id,
+            orgIds: idsOf(hit.fields.org_ids),
+            topic: idsOf(hit.fields.topic_id)[0],
+            year: Number(hit.fields.year?.[0]),
+            amount: Number(hit.fields.funded_amount_eur?.[0]),
+            funder: idsOf(hit.fields.funder)[0],
+        })),
+        organisations,
+        nodeIndexByKey: payload.nodeIndexByKey,
+    })
 
     const response: QueryNetworkResponse = {
         nodes: payload.nodes,
         edges: payload.edges,
+        projects: {ids: columns.ids, orgs: columns.orgs, topic: columns.topic, year: columns.year, amount: columns.amount, funder: columns.funder},
+        topics: columns.topics,
+        funders: columns.funders,
         meta: {
             projectsScanned: projects.length,
             totalMatches: scan.total,

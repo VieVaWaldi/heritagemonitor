@@ -19,6 +19,10 @@ import {institutionIconUrl, ORG_ICON_MAX_PIXELS, ORG_ICON_MIN_PIXELS, ORG_ICON_S
 const MIN_ARC_WIDTH = 1
 const MAX_ARC_WIDTH = 6
 const SELECTED_ARC_WIDTH = 6
+/** An emphasized arc is this many times as wide as its weight says. */
+const EMPHASIZED_WIDTH_FACTOR = 1.8
+/** An emphasized icon is this many times as big, floor and ceiling included. */
+const EMPHASIZED_ICON_FACTOR = 1.5
 /** Everything else recedes to this alpha while an arc is selected. */
 const DIMMED_ALPHA = 60
 /** From this many links, a node is drawn as a hub (secondary colour). */
@@ -33,6 +37,12 @@ export interface ArcNetworkLink {
     target: [number, number]
     /** Drives arc width, relative to the largest weight in the set. */
     weight: number
+    /** Overrides the layer's two arc colours for this arc (e.g. its cluster's colour). */
+    color?: [number, number, number]
+    /** Part of what is NOT selected: drawn faded. */
+    dimmed?: boolean
+    /** Part of what is selected: full opacity and a heavier line. */
+    emphasized?: boolean
 }
 
 /** One endpoint, de-duplicated across the links that touch it. */
@@ -41,6 +51,12 @@ export interface ArcNetworkNode {
     geolocation: [number, number]
     /** Distinct partners — decides whether this node reads as a hub. */
     linkCount: number
+    /** Overrides the hub/plain icon colour (a `#rrggbb` hex), e.g. the node's cluster colour. */
+    colorHex?: string
+    /** Not part of the selection: drawn faded. */
+    dimmed?: boolean
+    /** Part of the selection: full opacity and a larger icon. */
+    emphasized?: boolean
 }
 
 export interface ArcNetworkLayerProps {
@@ -74,14 +90,18 @@ export class ArcNetworkLayer extends CompositeLayer<ArcNetworkLayerProps> {
             data,
             getSourcePosition: (d) => d.source,
             getTargetPosition: (d) => d.target,
-            getSourceColor: [...primaryColor, baseAlpha],
-            getTargetColor: [...secondaryColor, baseAlpha],
-            getWidth: (d) => MIN_ARC_WIDTH + (d.weight / maxWeight) * (MAX_ARC_WIDTH - MIN_ARC_WIDTH),
+            getSourceColor: (d) => [...(d.color ?? primaryColor), d.dimmed ? DIMMED_ALPHA : baseAlpha],
+            getTargetColor: (d) => [...(d.color ?? secondaryColor), d.dimmed ? DIMMED_ALPHA : baseAlpha],
+            getWidth: (d) => (MIN_ARC_WIDTH + (d.weight / maxWeight) * (MAX_ARC_WIDTH - MIN_ARC_WIDTH)) * (d.emphasized ? EMPHASIZED_WIDTH_FACTOR : 1),
             widthMinPixels: MIN_ARC_WIDTH,
             greatCircle: true,
             pickable: true,
             onHover,
             onClick,
+            updateTriggers: {
+                getSourceColor: [baseAlpha, primaryColorHex, data],
+                getTargetColor: [baseAlpha, secondaryColorHex, data],
+            },
         })
 
         // Its own layer so it draws above the other arcs, not somewhere inside them.
@@ -98,26 +118,32 @@ export class ArcNetworkLayer extends CompositeLayer<ArcNetworkLayerProps> {
             pickable: false,
         })
 
-        const iconLayer = new IconLayer<ArcNetworkNode>({
-            id: `${id}-icons`,
-            data: nodes,
-            pickable: true,
-            getPosition: (d) => d.geolocation,
-            getIcon: (d) => ({
-                url: institutionIconUrl(d.linkCount >= HUB_LINK_COUNT_THRESHOLD ? secondaryColorHex : primaryColorHex),
-                width: 64,
-                height: 64,
-                anchorY: 64,
-            }),
-            getSize: ORG_ICON_SIZE_METERS,
-            sizeUnits: 'meters',
-            sizeMinPixels: ORG_ICON_MIN_PIXELS,
-            sizeMaxPixels: ORG_ICON_MAX_PIXELS,
-            onHover,
-            onClick,
-            updateTriggers: {getIcon: [secondaryColorHex, primaryColorHex]},
-        })
+        // Two icon layers: the emphasized organisations get a larger floor and
+        // ceiling as well, which a per-object size alone could not give them.
+        const iconLayer = (suffix: string, data: ArcNetworkNode[], factor: number) =>
+            new IconLayer<ArcNetworkNode>({
+                id: `${id}-icons${suffix}`,
+                data,
+                pickable: true,
+                getPosition: (d) => d.geolocation,
+                getIcon: (d) => ({
+                    url: institutionIconUrl(d.colorHex ?? (d.linkCount >= HUB_LINK_COUNT_THRESHOLD ? secondaryColorHex : primaryColorHex)),
+                    width: 64,
+                    height: 64,
+                    anchorY: 64,
+                }),
+                getColor: (d) => [255, 255, 255, d.dimmed ? DIMMED_ALPHA : 255],
+                getSize: ORG_ICON_SIZE_METERS * factor,
+                sizeUnits: 'meters',
+                sizeMinPixels: ORG_ICON_MIN_PIXELS * factor,
+                sizeMaxPixels: ORG_ICON_MAX_PIXELS * factor,
+                onHover,
+                onClick,
+                updateTriggers: {getIcon: [secondaryColorHex, primaryColorHex, nodes], getColor: [nodes]},
+            })
+        const plainIcons = iconLayer('', nodes.filter((node) => !node.emphasized), 1)
+        const emphasizedIcons = iconLayer('-emphasized', nodes.filter((node) => node.emphasized), EMPHASIZED_ICON_FACTOR)
 
-        return [arcLayer, selectedArcLayer, iconLayer]
+        return [arcLayer, selectedArcLayer, plainIcons, emphasizedIcons]
     }
 }

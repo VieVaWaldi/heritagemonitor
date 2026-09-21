@@ -38,6 +38,9 @@ export function useFundingOrganisationProjects(organisationId: string | null, en
     search.delete('page')
     if (organisationId) search.set('org', organisationId)
     search.set('page', String(page))
+    // The strict search only: this list belongs to the ranking's count for this
+    // organisation (see relatedPaths.STRICT).
+    search.set('strict', 'true')
     const queryString = search.toString()
 
     // Tagged with the organisation it belongs to, so one institution's

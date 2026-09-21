@@ -26,6 +26,7 @@ const ALLOWED_VALUES: Partial<Record<SearchParamName, readonly string[]>> = {
 const FORMATS: Partial<Record<SearchParamName, string>> = {
     [SEARCH_PARAM.years]: '2019-2024',
     [SEARCH_PARAM.maxEdges]: 'a number from 10 to 300',
+    [SEARCH_PARAM.selection]: 'on the query network: a cluster number',
     [SEARCH_PARAM.view]: 'lat,lng,zoom (4 decimals)',
     [SEARCH_PARAM.page]: 'a number from 1',
     [SEARCH_PARAM.topic]: 'numeric topic id, repeat the param for several',
@@ -82,8 +83,8 @@ const ROUTES: ReadonlyArray<{route: string; what: string; examples: readonly str
     },
     {
         route: '/search/collaboration/queryNetwork',
-        what: 'who collaborates within the projects a text query matches (force graph, or arcs with layer=arcs)',
-        examples: ['/search/collaboration/queryNetwork?q=archaeology&c=dch', '/search/collaboration/queryNetwork?q=virtual%20reality&maxEdges=150&layer=arcs'],
+        what: 'research communities (clusters) around a text query and who bridges them; sel=<cluster number>',
+        examples: ['/search/collaboration/queryNetwork?q=archaeology&c=dch&maxEdges=150&layer=arcs'],
     },
 ]
 

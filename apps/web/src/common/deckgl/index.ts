@@ -24,6 +24,8 @@ export type {
 } from './mapTypes'
 
 export {NETWORK_MAP_CAMERA} from './mapCameras'
+export {fitGeoBounds} from './mapFit'
+export type {GeoFit} from './mapFit'
 export {hexToRgb, lerpRgb} from './colors'
 export {formatCount, formatDateRange, formatFunding} from './format'
 
@@ -41,8 +43,8 @@ export {OrganisationCard} from './explorer/OrganisationCard'
 export {ProjectList} from './explorer/ProjectList'
 
 export {ForceGraphCanvas} from './ForceGraphCanvas'
-export type {ForceGraphCanvasProps, ForceGraphEdge, ForceGraphNode} from './ForceGraphCanvas'
-export {collideRadius, FORCE_TICKS, fitOrthographicView, layoutForceGraph, nodeRadius} from './forceLayout'
+export type {ForceGraphBlob, ForceGraphCanvasProps, ForceGraphEdge, ForceGraphNode} from './ForceGraphCanvas'
+export {blobOf, collideRadius, FORCE_TICKS, fitOrthographicView, layoutForceGraph, nodeRadius} from './forceLayout'
 export type {ForceInputLink, ForceInputNode, ForceLayoutResult} from './forceLayout'
 export {communityColor, createSeededRng, detectCommunities} from './communities'
 export type {CommunityLink} from './communities'

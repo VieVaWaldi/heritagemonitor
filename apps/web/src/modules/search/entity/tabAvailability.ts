@@ -107,8 +107,20 @@ export function organisationNetworkHiddenTabs(centre: {project_count?: number | 
     return none(centre.project_count) ? ['projects'] : []
 }
 
-// Funding and the query network hide nothing, on purpose. Funding's tabs (the
-// map, the organisation overview, the programmes browser) are not lists of the
-// selected document. The query network's lists ARE the search (its matching
-// projects) or the selected pair: their emptiness comes from q and the
-// filters, which is exactly the case where the tab must stay for its caption.
+/**
+ * Query network (cluster view): a cluster's Projects tab by the number of
+ * projects assigned to it (0 = none of the scanned projects belong to it), the
+ * global Bridges tab when the network has no hinge organisation and no bridge
+ * project at all. Organisations never hides (a cluster has at least two
+ * members); Overview and Graph are always there.
+ */
+export function queryNetworkHiddenTabs(state: {clusterProjects: number | null; hinges: number; hingeProjects: number} | null): string[] {
+    if (!state) return []
+    return [
+        ...(state.clusterProjects === 0 ? ['projects'] : []),
+        ...(state.hinges === 0 && state.hingeProjects === 0 ? ['bridges'] : []),
+    ]
+}
+
+// Funding hides nothing, on purpose: its tabs (the map, the organisation
+// overview, the programmes browser) are not lists of the selected document.

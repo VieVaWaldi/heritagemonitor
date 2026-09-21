@@ -16,12 +16,11 @@ export function institutionIconUrl(color: string): string {
 }
 
 /**
- * How big the organisation icon is on every map that draws it. The size is
- * in metres between the two pixel bounds, so it grows as you zoom in; the
- * FLOOR is what you see zoomed far out, where it used to shrink to a speck
- * (20 px). Twice the original on both bounds: the floor for far zoom-out, the
- * ceiling so zooming in still enlarges it.
+ * How big the organisation icon is on every map that draws it. The size is in
+ * metres between the two pixel bounds, so it grows as you zoom in; the FLOOR
+ * is what you see zoomed far out. (Was doubled to 40/128 for a while and
+ * judged too big; back to 20/64.)
  */
 export const ORG_ICON_SIZE_METERS = 800
-export const ORG_ICON_MIN_PIXELS = 40
-export const ORG_ICON_MAX_PIXELS = 128
+export const ORG_ICON_MIN_PIXELS = 20
+export const ORG_ICON_MAX_PIXELS = 64
