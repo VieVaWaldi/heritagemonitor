@@ -49,6 +49,11 @@ export type {
 export {useUrlState} from './useUrlState'
 export type {UrlHistoryMode, UrlState, UrlUpdateOptions} from './useUrlState'
 
+export {BreadcrumbRecorder} from './BreadcrumbRecorder'
+export {describeLinkVocabulary, normalizeAppLink} from './linkVocabulary'
+export {currentTrail} from './breadcrumbStore'
+export {describeTrail, formatStep, pushStep, stepQuery} from './breadcrumbTrail'
+export type {BreadcrumbStep} from './breadcrumbTrail'
 export {useUrlCorpus} from './useUrlCorpus'
 export {useUrlDetailPage} from './useUrlDetailPage'
 export {useUrlEntity} from './useUrlEntity'

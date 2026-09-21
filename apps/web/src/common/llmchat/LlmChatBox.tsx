@@ -22,10 +22,12 @@ import {
 import {useSelectedCorpusReader, USE_CASES} from '@/common/catalog'
 import {useActiveUseCase} from '@/common/hooks/useActiveUseCase'
 import {Text} from '@/common/text'
+import {normalizeAppLink} from '@/common/url'
 import {classifyChatLink} from './chatLinks'
 import {createLlmChatAdapter} from './adapter'
 import {ChatEventIndicator} from './ChatEventIndicator'
 import {LlmChatHeaderRight} from './LlmChatHeader'
+import {currentTrail, describeLinkVocabulary, describeTrail} from '@/common/url'
 import {usePageChatContextReader} from './PageChatContext'
 
 export interface LlmChatBoxProps {
@@ -170,13 +172,36 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // identity is stable (see usePageChatContextReader), so this still only
     // constructs the adapter once despite depending on it.
     const getPageContext = usePageChatContextReader()
+    // Where this visitor has already been. Recorded by the same hook that
+    // posts to /v1/breadcrumbs, kept in a ref so the adapter (created once per
+    // session) reads the CURRENT trail on every send rather than the one that
+    // existed when the chat opened.
+
+    const getContextWithTrail = useCallback(() => {
+        const context = getPageContext()
+        // Module-level store, read at send time — see common/url/breadcrumbStore.
+        const trail = currentTrail()
+        // The link guide goes in EVERY message: Lucy writes app links in most
+        // answers, and one wrong param name produces a link that looks right
+        // and silently does nothing (see linkVocabulary).
+        const lines = [...context.lines, ...describeLinkVocabulary()]
+        if (trail.length < 2) return {...context, lines}
+        return {
+            ...context,
+            lines: [
+                ...lines,
+                'Pages this visitor has already looked at, oldest first. Use them to work out what they are really after — someone who went from a topic search to a funding stream to one organisation is probably building a picture of who funds that subject, and you should offer that rather than answer only the literal question.',
+                ...describeTrail(trail),
+            ],
+        }
+    }, [getPageContext])
     const getSelectedCorpus = useSelectedCorpusReader()
     // Drives the `streamingIndicator` slot override below — see adapter.ts's
     // watchChatEvents for where this gets called.
     const [eventMessage, setEventMessage] = useState<string | null>(null)
     const adapter = useMemo(
-        () => createLlmChatAdapter(getPageContext, getSelectedCorpus, setEventMessage),
-        [getPageContext, getSelectedCorpus, setEventMessage],
+        () => createLlmChatAdapter(getContextWithTrail, getSelectedCorpus, setEventMessage),
+        [getContextWithTrail, getSelectedCorpus, setEventMessage],
     )
 
     // Swaps ChatBox's own animated-dots streamingIndicator for
@@ -297,7 +322,13 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
             const target = classifyChatLink(anchor.getAttribute('href'), window.location.origin)
             if (target.kind === 'internal') {
                 event.preventDefault()
-                router.push(target.href)
+                // Seatbelt: repair a link Lucy got slightly wrong (`?corpus=dch`
+                // -> `?c=dch`) before following it, and write the corrected URL
+                // back onto the anchor so the link the user sees, copies and
+                // hovers is the one that actually works.
+                const href = normalizeAppLink(target.href)
+                anchor.setAttribute('href', href)
+                router.push(href)
                 return
             }
             if (target.kind === 'external') {

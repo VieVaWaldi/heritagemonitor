@@ -2,4 +2,5 @@
 // added to this folder. This is the single source drizzle.config.ts and
 // the runtime client both read from.
 
+export * from './breadcrumbs.js'
 export * from './health.js'

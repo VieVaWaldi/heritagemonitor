@@ -17,7 +17,9 @@ const EMPTY: GrantOrganisationsResponse = {organisations: [], complete: true}
  * loading and the names could not be resolved — a few seconds after a deploy,
  * and worth saying rather than showing an empty list as if there were none.
  */
-export function useGrantOrganisations(grantId: string | null, corpus: string | undefined, enabled: boolean) {
+export function useGrantOrganisations(grantId: string | null, corpus: string | undefined, enabled: boolean, search = '') {
+    // Keyed by id AND the forwarded filters — see the other related hooks.
+    const fetchKey = `${grantId ?? ''}|${search}|${corpus ?? ''}`
     const [fetched, setFetched] = useState<{grantId: string; data: GrantOrganisationsResponse} | null>(null)
     const [loading, startTransition] = useTransition()
 
@@ -25,25 +27,27 @@ export function useGrantOrganisations(grantId: string | null, corpus: string | u
         if (!enabled || !grantId) return
 
         const controller = new AbortController()
-        const search = corpus ? `?c=${encodeURIComponent(corpus)}` : ''
+        const query = new URLSearchParams(search)
+        if (corpus) query.set('c', corpus)
+        const suffix = query.toString() ? `?${query.toString()}` : ''
 
         startTransition(async () => {
             try {
                 const data = await apiGet(
-                    `/v1/grants/${encodeURIComponent(grantId)}/organisations${search}`,
+                    `/v1/grants/${encodeURIComponent(grantId)}/organisations${suffix}`,
                     grantOrganisationsResponseSchema,
                     {signal: controller.signal},
                 )
-                setFetched({grantId, data})
+                setFetched({grantId: fetchKey, data})
             } catch {
                 // Superseded by a newer request, or a transient failure.
             }
         })
 
         return () => controller.abort()
-    }, [grantId, corpus, enabled])
+    }, [grantId, corpus, enabled, search, fetchKey])
 
-    const result = enabled && grantId && fetched?.grantId === grantId ? fetched.data : EMPTY
+    const result = enabled && grantId && fetched?.grantId === fetchKey ? fetched.data : EMPTY
 
     return {organisations: result.organisations, complete: result.complete, loading}
 }

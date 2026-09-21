@@ -3,6 +3,8 @@ import {test} from 'node:test'
 // Imported straight from source: the codecs are deliberately free of React,
 // next/navigation and `@/` path aliases, so Node's own TypeScript support can
 // run them as-is. The hooks around them are the part that needs a browser.
+import {describeLinkVocabulary, normalizeAppLink} from '../src/common/url/linkVocabulary.ts'
+import {formatStep, pushStep, stepQuery} from '../src/common/url/breadcrumbTrail.ts'
 import {hexZoomFactor} from '../src/common/deckgl/layers/hexScale.ts'
 import {RELATED_RELATIONS, relatedFilterCaption, relatedParams} from '../src/modules/search/entity/relatedParams.ts'
 import {
@@ -12,6 +14,7 @@ import {
     patchClearsDetailPage,
     patchClearsSelection,
     patchInvalidatesPage,
+    SEARCH_PARAM,
     readId,
     readList,
     readOneOf,
@@ -291,18 +294,44 @@ test('the works toggle is a tab-level param that never touches the page query', 
 
 // --- tab-list parameter carrying (modules/search/entity/relatedParams) -------
 
-test('a projects tab carries the page project filters but not a name query', () => {
+test('a projects tab carries the page project filters', () => {
     const params = new URLSearchParams('q=Sami&c=dch&funder=EC&topic=10001&page=3')
     const carried = relatedParams('minorities:projects', params)
 
     assert.equal(carried.get('c'), 'dch')
     assert.equal(carried.get('funder'), 'EC')
     assert.equal(carried.get('topic'), '10001')
-    // q on the minorities page searches GROUP names; sending it to the
-    // projects index would ask for projects whose text says "Sami".
-    assert.equal(carried.get('q'), null)
     // `page` belongs to the outer list, not to this one (it has `dpage`).
     assert.equal(carried.get('page'), null)
+})
+
+test('REGRESSION: relations whose parent matches THROUGH projects carry q', () => {
+    // These drifted: the grants and minorities searches became two-step (they
+    // find a stream or a group through the projects it funded / is about), but
+    // their tabs still claimed q "searches funding-stream names" and showed
+    // every project of the selected stream. Searching "virtual reality" and
+    // opening a stream must show that stream's VR projects.
+    const params = new URLSearchParams('q=virtual reality&c=dch')
+    for (const relation of ['grants:projects', 'grants:organisations', 'minorities:projects']) {
+        assert.equal(relatedParams(relation, params).get('q'), 'virtual reality', relation)
+    }
+})
+
+test('a pure NAME search still does not carry into a projects list', () => {
+    // ORG_FIELDS is legalName/shortName/alternativeNames only, so sending it
+    // to the projects index asks for projects whose text says "Fraunhofer".
+    const params = new URLSearchParams('q=Fraunhofer&c=dch')
+    assert.equal(relatedParams('organisations:projects', params).get('q'), null)
+    assert.equal(relatedParams('organisations:works', params).get('q'), null)
+    // A group may equally have matched by name, and its works are only linked
+    // through a project.
+    assert.equal(relatedParams('minorities:works', params).get('q'), null)
+})
+
+test('the caption says WHAT the search text narrowed, not just that it did', () => {
+    const caption = relatedFilterCaption('grants:projects', new URLSearchParams('q=virtual reality&c=dch'))
+    assert.match(caption, /your search text \(projects of this stream that match it\)/)
+    assert.doesNotMatch(caption, /not applied/)
 })
 
 test('experts and funding DO carry q — there it is already a project search', () => {
@@ -326,15 +355,15 @@ test('repeated values all carry, and blanks are dropped', () => {
 })
 
 test('the caption states what carried and why the query did not', () => {
-    const caption = relatedFilterCaption('minorities:projects', new URLSearchParams('q=Sami&c=dch&funder=EC'))
+    const caption = relatedFilterCaption('organisations:projects', new URLSearchParams('q=Fraunhofer&c=dch&funder=EC'))
     assert.match(caption, /Filtered by:/)
     assert.match(caption, /EC/)
-    assert.match(caption, /not applied: it searches group names, not projects/)
+    assert.match(caption, /not applied: it searches organisation names, not the text of projects/)
 })
 
 test('the caption mentions a param only when it is actually set', () => {
     // No q on the page: nothing to explain away.
-    assert.doesNotMatch(relatedFilterCaption('minorities:projects', new URLSearchParams('c=dch')), /not applied/)
+    assert.doesNotMatch(relatedFilterCaption('organisations:projects', new URLSearchParams('c=dch')), /not applied/)
     // No filters at all: no "Filtered by" clause either.
     assert.equal(relatedFilterCaption('projects:organisations', new URLSearchParams()), '')
 })
@@ -366,4 +395,98 @@ test('the zoom factor is clamped at both ends', () => {
     // nothing a few levels in.
     assert.ok(hexZoomFactor(0) <= 3.5)
     assert.ok(hexZoomFactor(22) >= 0.12)
+})
+
+// --- breadcrumb trail rules (common/url/breadcrumbTrail) --------------------
+
+test('consecutive identical steps collapse into one', () => {
+    // The app rewrites its own URL often (a debounced map pan lands on the
+    // same state repeatedly); ten copies of one page tells Lucy nothing.
+    let trail = pushStep([], {path: '/search', query: 'e=grants'})
+    trail = pushStep(trail, {path: '/search', query: 'e=grants'})
+    trail = pushStep(trail, {path: '/search', query: 'e=grants'})
+    assert.equal(trail.length, 1)
+})
+
+test('a non-consecutive repeat is kept — returning to a page is the signal', () => {
+    let trail = pushStep([], {path: '/search', query: 'e=grants'})
+    trail = pushStep(trail, {path: '/search/funding', query: ''})
+    trail = pushStep(trail, {path: '/search', query: 'e=grants'})
+    assert.equal(trail.length, 3)
+})
+
+test('the trail never grows past ten and keeps the newest', () => {
+    let trail: {path: string; query: string}[] = []
+    for (let i = 0; i < 25; i += 1) trail = pushStep(trail, {path: `/p${i}`, query: ''})
+    assert.equal(trail.length, 10)
+    assert.equal(trail[trail.length - 1].path, '/p24')
+    assert.equal(trail[0].path, '/p15')
+})
+
+test('a step is formatted as the link the user actually visited', () => {
+    assert.equal(formatStep({path: '/search', query: 'e=grants&q=vr'}), '/search?e=grants&q=vr')
+    assert.equal(formatStep({path: '/health', query: ''}), '/health')
+})
+
+test('the query string is part of a step identity, not ignored', () => {
+    // Same path, different search: two different pages as far as Lucy cares.
+    const trail = pushStep(pushStep([], {path: '/search', query: 'q=a'}), {path: '/search', query: 'q=b'})
+    assert.equal(trail.length, 2)
+})
+
+test('the map camera never produces a breadcrumb of its own', () => {
+    // `view` is written with replace, continuously, while panning. Without
+    // stripping it one drag across Europe fills the whole trail with the same
+    // page at slightly different coordinates.
+    assert.equal(stepQuery('c=dch&view=48.0000,8.0000,4.0000'), 'c=dch')
+    assert.equal(stepQuery('view=48.0000,8.0000,4.0000'), '')
+    // Everything else is a discrete choice and stays.
+    assert.equal(stepQuery('e=grants&q=vr&tab=map'), 'e=grants&q=vr&tab=map')
+})
+
+// --- Lucy's link vocabulary (common/url/linkVocabulary) ---------------------
+
+test('REGRESSION: every real param is described, so none can be guessed', () => {
+    // Lucy wrote `/search?corpus=dch` because she had no vocabulary. The guide
+    // is generated from SEARCH_PARAM so it cannot drift; this test is what
+    // stops a new param being added without an entry.
+    const described = describeLinkVocabulary().join(' ')
+    for (const name of Object.values(SEARCH_PARAM)) {
+        assert.match(described, new RegExp(`(^|[ |])${name} =`), `${name} is missing from the link vocabulary`)
+    }
+})
+
+test('the vocabulary stays inside its share of the context budget', () => {
+    // It rides in every single message, so it is budgeted like a section.
+    const size = describeLinkVocabulary().join('\n').length
+    assert.ok(size < 3_000, `link vocabulary is ${size} chars, too big to send every turn`)
+})
+
+test('normalizeAppLink repairs the exact bug that was reported', () => {
+    assert.equal(normalizeAppLink('/search?corpus=dch'), '/search?c=dch')
+})
+
+test('normalizeAppLink maps the other plausible guesses', () => {
+    assert.equal(normalizeAppLink('/search?entity=grants&query=vr'), '/search?e=grants&q=vr')
+    assert.equal(normalizeAppLink('/search?search=heritage'), '/search?q=heritage')
+})
+
+test('normalizeAppLink lowercases enum values but leaves free text alone', () => {
+    assert.equal(normalizeAppLink('/search?c=DCH'), '/search?c=dch')
+    // A query is not an enum: casing is the user's.
+    assert.equal(normalizeAppLink('/search?q=Roma'), '/search?q=Roma')
+})
+
+test('normalizeAppLink drops params the app does not have', () => {
+    // Carrying a hallucinated param would only make a bad link look legitimate.
+    assert.equal(normalizeAppLink('/search?c=dch&sparkles=yes'), '/search?c=dch')
+})
+
+test('normalizeAppLink leaves the path, the hash and param-free links alone', () => {
+    assert.equal(normalizeAppLink('/search/funding'), '/search/funding')
+    assert.equal(normalizeAppLink('/search?c=dch#results'), '/search?c=dch#results')
+})
+
+test('normalizeAppLink keeps repeated params', () => {
+    assert.equal(normalizeAppLink('/search?funder=EC&funder=NIH'), '/search?funder=EC&funder=NIH')
 })

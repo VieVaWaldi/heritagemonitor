@@ -2,6 +2,8 @@ import {CORPUS_KEYS} from '@heritagemonitor/shared'
 import cors from '@fastify/cors'
 import Fastify, {LogController} from 'fastify'
 import {registerDefaultPageWarmUp, registerWarmUp, runWarmUp} from './common/search/warmUp.js'
+import {breadcrumbsRoutes} from "./modules/breadcrumbs/breadcrumbs.routes.js";
+import {startBreadcrumbSweep} from "./modules/breadcrumbs/breadcrumbs.service.js";
 import {demoRoutes} from "./modules/demo/demo.routes.js";
 import {expertsRoutes} from "./modules/experts/experts.routes.js";
 import {fundingRoutes} from "./modules/funding/funding.routes.js";
@@ -63,6 +65,7 @@ fastify.register(async (v1) => {
     v1.register(grantsRoutes)
     v1.register(fundingRoutes)
     v1.register(demoRoutes)
+    v1.register(breadcrumbsRoutes)
 }, {prefix: '/v1'})
 
 // The blank default page of each searchable entity, per corpus (plan F0-12).
@@ -93,6 +96,9 @@ const start = async () => {
     // requests from the moment it listens. Until the table is loaded, callers
     // fall back to fetching from the index; until the cache is warm, the first
     // visitor pays for their own page. Neither can fail the process.
+    // Housekeeping, not a request path: ages out breadcrumbs hourly.
+    startBreadcrumbSweep((message) => fastify.log.warn(message))
+
     void startOrganisationTableLoad((message) => fastify.log.info(message))
         .then(() => runWarmUp({info: (m) => fastify.log.info(m), warn: (m) => fastify.log.warn(m)}))
         .catch((error: unknown) => fastify.log.warn(`start-up warm-up failed: ${String(error)}`))

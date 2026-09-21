@@ -118,6 +118,7 @@ export function GrantsResultsPanel() {
         selectedId,
         corpus,
         organisationsTabOpen,
+        organisationsRelated.search,
     )
 
     const labelUrlValue = useCallback(

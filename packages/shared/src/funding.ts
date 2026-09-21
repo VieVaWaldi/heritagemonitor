@@ -69,6 +69,12 @@ export type FundingOrganisation = z.infer<typeof fundingOrganisationSchema>
  * memory over at most 500 rows, not by a second aggregation.
  */
 export const FUNDING_FACET_FIELDS = [
+    // Project-level: these narrow the aggregation itself, and their counts are
+    // PROJECTS. They come from the same OpenSearch request as the ranking.
+    {field: 'funder', param: 'funder', label: 'Funder', size: 25, searchable: false},
+    {field: 'programme', param: 'programme', label: 'Programme', size: 25, searchable: false},
+    // Organisation-level: these narrow the ranked ROWS, and their counts are
+    // ORGANISATIONS. See FUNDING_ROW_FILTER_NOTE.
     {field: 'region', param: 'region', label: 'Region', size: 12, searchable: false},
     {field: 'country', param: 'country', label: 'Country', size: 30, searchable: false},
     {field: 'orgType', param: 'orgType', label: 'Type', size: 12, searchable: false},
@@ -155,5 +161,5 @@ export const fundingRequestSchema = z.object({
  * overall top 500, not the top 500 of that country.
  */
 export const FUNDING_ROW_FILTER_NOTE =
-    'Region, country, type and “has coordinates” filter the best-funded 500 organisations of the current search, not the whole index — so they show that group within the overall top 500.'
+    'Funder and programme narrow the projects behind the ranking, and their counts are projects. Region, country, type and “has coordinates” filter the best-funded 500 organisations of the current search rather than the whole index, and their counts are organisations.'
 export type FundingRequest = z.infer<typeof fundingRequestSchema>

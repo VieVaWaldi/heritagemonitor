@@ -173,8 +173,18 @@ export async function getGrantFacetValues(
  * better to say so than to fire a second 20-document fetch at a cold cluster
  * that is already busy loading the table.
  */
-export async function getGrantOrganisations(id: string, corpus: GrantSearchRequest['c']): Promise<GrantOrganisationsResponse> {
-    const ranked = await topProjectOrganisations({stream: [id], c: corpus}, GRANT_ORGANISATION_LIMIT)
+export async function getGrantOrganisations(
+    id: string,
+    corpus: GrantSearchRequest['c'],
+    /**
+     * The page's search text. The grants search finds a stream through the
+     * projects it funded, so "who received this money" has to mean the
+     * organisations on the MATCHING projects — otherwise the tab answers a
+     * different question from the one the list was built on.
+     */
+    q?: string,
+): Promise<GrantOrganisationsResponse> {
+    const ranked = await topProjectOrganisations({stream: [id], c: corpus, ...(q ? {q} : {})}, GRANT_ORGANISATION_LIMIT)
     if (!isOrganisationTableReady()) return {organisations: [], complete: false}
 
     const byId = new Map(getOrganisations(ranked.map((entry) => entry.id)).map((row) => [row.id, row]))

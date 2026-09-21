@@ -13,6 +13,7 @@ const TABS = [
     {href: '/health/requestTime', label: 'Request Time'},
     {href: '/health/requestCount', label: 'Request Count'},
     {href: '/health/liveRequests', label: 'Live Requests'},
+    {href: '/health/breadcrumbs', label: 'Breadcrumbs'},
 ]
 
 // Scoped to the /health route tree (rendered from app/health/layout.tsx)

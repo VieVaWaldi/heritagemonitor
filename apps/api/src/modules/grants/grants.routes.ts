@@ -27,6 +27,7 @@ interface SuggestQuery {
 
 interface OrganisationsQuery {
     c?: 'science' | 'dch'
+    q?: string
 }
 
 type FacetValuesQuery = GrantSearchRequest & {facet?: string; facetQ?: string; size?: number}
@@ -93,10 +94,11 @@ export async function grantsRoutes(fastify: FastifyInstance) {
         {
             schema: {
                 params: idParams,
-                querystring: {type: 'object', properties: {c: {type: 'string', enum: [...CORPUS_KEYS]}}},
+                querystring: {type: 'object', properties: {c: {type: 'string', enum: [...CORPUS_KEYS]}, q: {type: 'string'}}},
             },
         },
-        async (request): Promise<GrantOrganisationsResponse> => getGrantOrganisations(request.params.id, request.query.c),
+        async (request): Promise<GrantOrganisationsResponse> =>
+            getGrantOrganisations(request.params.id, request.query.c, request.query.q),
     )
 
     // No `/grants/:id/projects`: a stream's projects are a plain

@@ -29,7 +29,13 @@ interface FundingBucket {
  * money" is a different question from "who was on the most projects", and the
  * page asks the first. `size: 0` — the projects themselves are never wanted.
  */
-export async function topFundedOrganisations(q: string, filters: query.ProjectFilters): Promise<FundedOrganisationBucket[]> {
+export interface FundedOrganisationsResult {
+    organisations: FundedOrganisationBucket[]
+    /** Project-level facet counts, from the SAME request — no extra round trip. */
+    projectFacets: Record<string, Record<string, number>>
+}
+
+export async function topFundedOrganisations(q: string, filters: query.ProjectFilters): Promise<FundedOrganisationsResult> {
     const {body} = await client.search({
         index: indices.projectsIndexName,
         body: query.projectsBody({
@@ -47,14 +53,33 @@ export async function topFundedOrganisations(q: string, filters: query.ProjectFi
                     },
                     aggs: {funding: {sum: {field: 'funded_eur_per_org'}}},
                 },
+                // Ride the same request: funder and programme narrow the
+                // PROJECTS going into the ranking, so their counts come from
+                // this query rather than from the ranked rows.
+                funder: query.termsAgg('funder', 25),
+                programme: query.termsAgg('programme', 25),
             },
         }),
     })
 
-    const buckets = (body.aggregations as unknown as {orgs?: {buckets?: FundingBucket[]}} | undefined)?.orgs?.buckets ?? []
-    return buckets.map((bucket) => ({
-        id: String(bucket.key_as_string ?? bucket.key),
-        fundingEur: bucket.funding?.value ?? 0,
-        projectCount: bucket.doc_count,
-    }))
+    const aggregations = body.aggregations as unknown as
+        | ({orgs?: {buckets?: FundingBucket[]}} & Record<string, query.TermsAggregationResult>)
+        | undefined
+    const buckets = aggregations?.orgs?.buckets ?? []
+
+    const projectFacets: Record<string, Record<string, number>> = {}
+    for (const field of ['funder', 'programme']) {
+        projectFacets[field] = Object.fromEntries(
+            (aggregations?.[field]?.buckets ?? []).map((bucket) => [String(bucket.key_as_string ?? bucket.key), bucket.doc_count]),
+        )
+    }
+
+    return {
+        organisations: buckets.map((bucket) => ({
+            id: String(bucket.key_as_string ?? bucket.key),
+            fundingEur: bucket.funding?.value ?? 0,
+            projectCount: bucket.doc_count,
+        })),
+        projectFacets,
+    }
 }

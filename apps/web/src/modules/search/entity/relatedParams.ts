@@ -12,13 +12,29 @@ import {SEARCH_PARAM} from '../../../common/url/codecs.ts'
 // list is filtered to Horizon Europe and 2019-2025, the projects tab showing
 // that organisation's 1990s national grants is confusing.
 //
-// But carrying EVERY param is just as wrong, and in one specific way that bit
-// us: `q` means different things on different pages. On the minorities,
-// organisations and grants pages `q` searches the NAME of the listed entity
-// ("Sami", "Fraunhofer", "ERASMUS+"); passing it to a projects list would ask
-// the projects index for projects whose text matches an organisation's name
-// and return nothing. On the experts and funding pages `q` is already a
-// subject search over projects, so there it must carry.
+// But carrying EVERY param is just as wrong, and `q` is the hard case: it
+// means different things on different pages.
+//
+// The test is NOT "which entity is listed" but "how did the parent search
+// match". Three groups:
+//
+//  1. `q` reaches the parent THROUGH ITS PROJECTS — experts, funding, grants
+//     (two-step since the grants search learned to find streams via
+//     `funding_stream_ids`, see query/grants.ts) and minorities (two-step via
+//     the project probe). A stream listed for "virtual reality" was listed
+//     BECAUSE it funded VR projects, so its Projects tab must show those, not
+//     all 1,402 of them. Here `q` carries.
+//  2. `q` is a pure NAME search — organisations (legalName/shortName/
+//     alternativeNames only). Sending an institution's name to the projects
+//     index asks for projects whose text says "Fraunhofer" and returns
+//     roughly nothing. Here it does not carry.
+//  3. The target cannot answer it — a work's own text has nothing to do with
+//     the organisations that produced it. Here it does not carry either.
+//
+// Group 1 is the one that drifted: these relations were written before the
+// grants and minorities searches became project-aware, so they claimed `q`
+// "searches funding-stream names" long after that stopped being the whole
+// truth.
 //
 // So the rule is per relation and written down once, here, with the reason for
 // every omission — a list that silently ignores half the page is a bug report
@@ -69,41 +85,39 @@ export const RELATED_RELATIONS: Readonly<Record<string, RelatedRelation>> = {
     },
 
     // q is an organisation NAME search here.
+    // Group 2: ORG_FIELDS is names only, so this really is a name search.
     'organisations:projects': {
         carry: [...ALWAYS, ...PROJECT_FILTER_PARAMS],
-        omit: {[SEARCH_PARAM.query]: 'it searches organisation names, not projects'},
+        omit: {[SEARCH_PARAM.query]: 'it searches organisation names, not the text of projects'},
     },
     'organisations:works': {
         carry: [...ALWAYS],
         omit: {[SEARCH_PARAM.query]: 'it searches organisation names, not works'},
     },
 
-    // q is a group NAME search here; its topic filter is about the projects,
-    // so it carries into a projects list.
-    'minorities:projects': {
-        carry: [...ALWAYS, ...PROJECT_FILTER_PARAMS],
-        omit: {[SEARCH_PARAM.query]: 'it searches group names, not projects'},
-    },
+    // The minorities search is two-step (query/minorities.ts probes the
+    // projects index), so a group listed for a research subject was listed
+    // because of its projects — group 1.
+    'minorities:projects': {carry: [...ALWAYS, SEARCH_PARAM.query, ...PROJECT_FILTER_PARAMS], omit: {}},
+    // Works are linked to a group only through a project, and the group may
+    // equally have matched by NAME; filtering its works by "Sami" would empty
+    // the list for a reason the user cannot see.
     'minorities:works': {
         carry: [...ALWAYS],
-        omit: {[SEARCH_PARAM.query]: 'it searches group names, not works'},
+        omit: {[SEARCH_PARAM.query]: 'it may have matched this group’s name rather than the text of its works'},
     },
     'minorities:organisations': {
         carry: [...ALWAYS],
-        omit: {[SEARCH_PARAM.query]: 'it searches group names, not organisations'},
+        omit: {[SEARCH_PARAM.query]: 'it may have matched this group’s name rather than anything about these organisations'},
     },
 
-    // q is a stream NAME/description search here.
-    'grants:projects': {
-        carry: [...ALWAYS, ...PROJECT_FILTER_PARAMS],
-        omit: {[SEARCH_PARAM.query]: 'it searches funding-stream names, not projects'},
-    },
-    'grants:organisations': {
-        carry: [...ALWAYS],
-        omit: {[SEARCH_PARAM.query]: 'it searches funding-stream names, not organisations'},
-    },
+    // Group 1. The grants search finds a stream either by its own description
+    // or by the projects it funded, so both tabs narrow to the matching
+    // projects — the organisations tab aggregates over exactly that set.
+    'grants:projects': {carry: [...ALWAYS, SEARCH_PARAM.query, ...PROJECT_FILTER_PARAMS], omit: {}},
+    'grants:organisations': {carry: [...ALWAYS, SEARCH_PARAM.query], omit: {}},
 
-    // q IS a subject search over projects on both of these.
+    // Group 1, and always were.
     'experts:projects': {carry: [...ALWAYS, SEARCH_PARAM.query, ...PROJECT_FILTER_PARAMS], omit: {}},
     'experts:works': {carry: [...ALWAYS, SEARCH_PARAM.query], omit: {}},
     'funding:projects': {carry: [...ALWAYS, SEARCH_PARAM.query, ...PROJECT_FILTER_PARAMS, SEARCH_PARAM.stream], omit: {}},
@@ -137,6 +151,20 @@ export function relatedParams(relation: string, params: URLSearchParams): URLSea
     return next
 }
 
+/**
+ * What carrying `q` means for each list, in the user's terms. Without this the
+ * caption says "Filtered by: Search text", which is true and useless.
+ */
+const QUERY_MEANING: Readonly<Record<string, string>> = {
+    'grants:projects': 'projects of this stream that match it',
+    'grants:organisations': 'organisations on this stream’s matching projects',
+    'minorities:projects': 'projects about this group that match it',
+    'experts:projects': 'projects of this organisation that match it',
+    'experts:works': 'works of this organisation that match it',
+    'funding:projects': 'projects of this organisation that match it',
+    'projects:works': 'works of this project that match it',
+}
+
 export interface RelatedCaptionOptions {
     /** Turns a raw value into something readable — a topic id into its name. */
     labelValue?: (param: string, value: string) => string
@@ -162,6 +190,11 @@ export function relatedFilterCaption(relation: string, params: URLSearchParams, 
         .flatMap((name) => {
             const values = params.getAll(name).filter((value) => value !== '')
             if (values.length === 0) return []
+            // The query needs spelling out: "Search text virtual reality" does
+            // not tell anyone WHAT was narrowed by it.
+            if (name === SEARCH_PARAM.query) {
+                return [`your search text (${QUERY_MEANING[relation] ?? 'entries matching it'})`]
+            }
             return [`${labelParam(name)} ${values.map((value) => labelValue(name, value)).join(', ')}`]
         })
         .join('; ')

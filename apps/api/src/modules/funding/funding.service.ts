@@ -51,6 +51,8 @@ export interface FundingRanking {
     organisations: RankedOrganisation[]
     /** Rows before the organisation-level filters — what the facet counts are over. */
     unfiltered: RankedOrganisation[]
+    /** Project-level facet counts (funder, programme) from the ranking query. */
+    projectFacets: Record<string, Record<string, number>>
     capped: boolean
     complete: boolean
 }
@@ -90,11 +92,14 @@ function toFacetDistribution(rows: RankedOrganisation[]): Record<string, Record<
  *     second-place records can outweigh a first.
  */
 async function rank(request: FundingRequest): Promise<FundingRanking> {
-    const buckets = await opensearchRepository.topFundedOrganisations(request.q ?? '', toFilters(request))
+    const {organisations: buckets, projectFacets} = await opensearchRepository.topFundedOrganisations(
+        request.q ?? '',
+        toFilters(request),
+    )
 
     // Without the table there are no names and no coordinates, so there is no
     // honest answer to give — better to say so than to render ids.
-    if (!isOrganisationTableReady()) return {organisations: [], unfiltered: [], capped: false, complete: false}
+    if (!isOrganisationTableReady()) return {organisations: [], unfiltered: [], projectFacets, capped: false, complete: false}
 
     const rows = new Map(getOrganisations(buckets.map((bucket) => bucket.id)).map((row) => [row.id, row]))
 
@@ -160,7 +165,7 @@ async function rank(request: FundingRequest): Promise<FundingRanking> {
         return true
     })
 
-    return {organisations, unfiltered, capped: buckets.length >= FUNDING_TOP_ORGANISATIONS, complete: true}
+    return {organisations, unfiltered, projectFacets, capped: buckets.length >= FUNDING_TOP_ORGANISATIONS, complete: true}
 }
 
 function toDto(organisation: RankedOrganisation): FundingOrganisation {
@@ -182,7 +187,7 @@ export async function getFundingOrganisations(request: FundingRequest): Promise<
         if (cached) return cached
     }
 
-    const {organisations, unfiltered, capped, complete} = await rank(request)
+    const {organisations, unfiltered, projectFacets, capped, complete} = await rank(request)
 
     const from = (page - 1) * SEARCH_PAGE_SIZE
     if (from > 0 && from >= organisations.length) {
@@ -191,7 +196,7 @@ export async function getFundingOrganisations(request: FundingRequest): Promise<
 
     const response: FundingOrganisationsResponse = {
         hits: organisations.slice(from, from + SEARCH_PAGE_SIZE).map(toDto),
-        facetDistribution: toFacetDistribution(unfiltered),
+        facetDistribution: {...projectFacets, ...toFacetDistribution(unfiltered)},
         estimatedTotalHits: organisations.length,
         page,
         pageCount: Math.max(1, pageCountOf(organisations.length)),

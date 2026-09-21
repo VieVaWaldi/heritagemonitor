@@ -8,6 +8,8 @@ import {isMode, THEME_MODE_COOKIE} from '@/common/theme/themeMode'
 import {ebGaramond, inter} from '@/common/theme/fonts'
 import {CorpusProvider} from '@/common/catalog'
 import {PageChatContextProvider} from '@/common/llmchat/PageChatContext'
+import {Suspense} from 'react'
+import {BreadcrumbRecorder} from '@/common/url'
 import {LlmChatRuntimeProvider} from '@/common/llmchat/LlmChatRuntime'
 
 export const metadata: Metadata = {
@@ -36,6 +38,14 @@ export default async function RootLayout({children}: Readonly<{children: React.R
                                         chat instance inside never unmounts on
                                         client-side navigation — see
                                         LlmChatRuntime.tsx. */}
+                                    {/* Records every page opened, for Lucy's
+                                        context and /health/breadcrumbs. Reads
+                                        useSearchParams, so it needs its own
+                                        boundary or the whole app loses static
+                                        rendering. */}
+                                    <Suspense fallback={null}>
+                                        <BreadcrumbRecorder />
+                                    </Suspense>
                                     <LlmChatRuntimeProvider>{children}</LlmChatRuntimeProvider>
                                 </PageChatContextProvider>
                             </CorpusProvider>
