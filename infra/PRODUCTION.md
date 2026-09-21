@@ -95,12 +95,12 @@ Dev (`docker-compose.yml`) stays `-Xms1g -Xmx1g`, sized for a laptop. Prod
 (`docker-compose.prod.yml`) uses:
 
 ```
-OPENSEARCH_JAVA_OPTS=-Xms12g -Xmx12g
-mem_limit: 24g          # the container's own cgroup limit, NOT the JVM heap flag
+OPENSEARCH_JAVA_OPTS=-Xms10g -Xmx10g
+mem_limit: 23g          # the container's own cgroup limit, NOT the JVM heap flag
 ```
 
-**24g container limit for a 12g heap, not ~14g** — this number was originally guessed at 14g
-(heap + a little JVM overhead) and corrected after checking cgroup v2 semantics specifically:
+**23g container limit for a 10g heap, not ~12g** — this number was originally guessed at 14g
+(back when the heap was 12g: heap + a little JVM overhead) and corrected after checking cgroup v2 semantics specifically:
 under cgroup v2, page cache for files a container reads is charged against *that container's
 own* `memory.max`, not some free-floating host-wide pool the way it would be for a bare-metal
 process. A tightly-capped container gets none of the page-cache benefit that makes Lucene
@@ -113,6 +113,13 @@ purely an internal Docker-network hop anyway (Caddy/the Omni Proxy already handl
 external TLS). `packages/search/src/index.ts`'s client only adds `auth` when
 `OPENSEARCH_USERNAME`/`OPENSEARCH_PASSWORD` are actually set, so dev (no security) is
 unaffected.
+
+**Update 2026-09-21: heap 12g -> 10g, container 24g -> 23g, api 1g -> 1536m.** The VM smoke
+run peaked at 6.5 GiB heap used, so 10g is still comfortable, and the api now holds reference
+data in memory (topics, publishers, an org table of about 494k rows, blank-page caches), so it
+gets its RAM from OpenSearch (`mem_limit: 1536m`, `NODE_OPTIONS=--max-old-space-size=1152`).
+Host budget: caddy 128m + web 768m + api 1536m + postgres 512m + opensearch 23g is about
+25.9 GB of the 31 GB VM.
 
 
 ## WIP Shard plan for the real dataset — decided, not yet implemented
