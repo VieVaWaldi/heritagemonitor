@@ -6,7 +6,7 @@ import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
 import Tooltip from '@mui/material/Tooltip'
 import {useState} from 'react'
-import {Text} from '@/common/text'
+import {FieldLabel} from './FieldLabel'
 import {DualSlider} from './DualSlider'
 
 export interface YearFilterProps {
@@ -95,9 +95,7 @@ export function YearFilter({value, onChange, min, max, histogram}: YearFilterPro
     return (
         <Paper variant="outlined" sx={{p: 2}}>
             <Box sx={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 1}}>
-                <Text variant="overline" color="text.secondary" sx={{fontWeight: 600}}>
-                    Year
-                </Text>
+                <FieldLabel>Year</FieldLabel>
                 {previewRange && (
                     <Chip
                         label={`${previewRange.from}–${previewRange.to}`}

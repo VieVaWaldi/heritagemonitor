@@ -21,6 +21,7 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    canReset,
     describeUrlParams,
     readList,
     readText,
@@ -40,7 +41,9 @@ import {ResultsHeader} from '../entity/ResultsHeader'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {labelFacetValue, useEntityFacets} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {grantRelatedLists, relatedLazyContext} from '../entity/relatedContext'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {GrantOrganisationsTab} from './GrantOrganisationsTab'
 import {GrantOverviewTab} from './GrantOverviewTab'
@@ -101,7 +104,7 @@ export function GrantsResultsPanel() {
     const facets = useEntityFacets(GRANT_FACET_FIELDS, data.facetDistribution, data.facetLabels)
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('grants', grantDetailSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('grants', grantDetailSchema, rowIds)
 
     const projectsTabOpen = tab === 'projects'
     const organisationsTabOpen = tab === 'organisations'
@@ -141,7 +144,7 @@ export function GrantsResultsPanel() {
         values: filterValues,
         onFilterChange: (param, next) => setFilter(param as GrantFacetParam, next),
         onReset: resetFilters,
-        hasActiveFilters: activeCount > 0,
+        hasActiveFilters: canReset(activeCount > 0, params),
     }
 
     const openProject = useCallback(
@@ -179,8 +182,10 @@ export function GrantsResultsPanel() {
                 // No sources: the grants index carries no URL for a stream, so
                 // there is nothing Lucy could be allowed to fetch.
                 sources: [],
+                // The selected entity's related lists, fetched when a message is sent.
+                lazy: detail ? relatedLazyContext('funding stream', grantRelatedLists(detail.id, corpus, projectsRelated.search, organisationsRelated.search)) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, organisationsTabOpen, organisations],
+        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, organisationsTabOpen, organisations, projectsRelated.search, organisationsRelated.search],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -189,7 +194,9 @@ export function GrantsResultsPanel() {
             facets={<EntityFacetSidebar {...filterProps} />}
             filters={<EntityFilterBar {...filterProps} />}
             notice={
-                error ? (
+                <>
+                <SelectionDroppedNotice show={selectionDropped} />
+                {error ? (
                     <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
@@ -216,7 +223,8 @@ export function GrantsResultsPanel() {
                             </>
                         )}
                     </NoticeBar>
-                ) : undefined
+                ) : undefined}
+                </>
             }
             list={
                 <PaginatedList

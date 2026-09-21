@@ -10,6 +10,7 @@ import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import type {ReactNode} from 'react'
 import {Text} from '@/common/text'
+import {FieldLabel} from './FieldLabel'
 import type {FilterOption} from './FilterMenuButton'
 
 export interface FacetSectionProps {
@@ -20,6 +21,8 @@ export interface FacetSectionProps {
     options: FilterOption[]
     value: string[]
     onChange: (value: string[]) => void
+    /** One grey line under the list. */
+    hint?: string
 }
 
 const ROW_HEIGHT = 28
@@ -32,16 +35,14 @@ const MAX_VISIBLE_OPTIONS = 6
 // FacetSidebar can stack several without them fusing into a single tall
 // block. Rows reuse FilterMenuButton's checkbox styling, just always
 // visible instead of tucked behind a click.
-export function FacetSection({label, header, options, value, onChange}: FacetSectionProps) {
+export function FacetSection({label, header, options, value, onChange, hint}: FacetSectionProps) {
     function toggleOption(optionValue: string) {
         onChange(value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue])
     }
 
     return (
         <Paper variant="outlined" sx={{p: 2}}>
-            <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 0.5}}>
-                {label}
-            </Text>
+            <FieldLabel sx={{display: 'block', mb: 0.5}}>{label}</FieldLabel>
             {header && <Box sx={{mb: 1}}>{header}</Box>}
             <Box
                 sx={{
@@ -108,6 +109,11 @@ export function FacetSection({label, header, options, value, onChange}: FacetSec
                     )
                 })}
             </Box>
+            {hint && (
+                <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
+                    {hint}
+                </Text>
+            )}
         </Paper>
     )
 }

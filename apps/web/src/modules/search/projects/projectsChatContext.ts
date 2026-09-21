@@ -65,6 +65,18 @@ export function selectedProjectSection(project: ProjectDetail): PageContextSecti
     }
 }
 
+/** One line per organisation of a project — the fields the Organisations tab shows. */
+export function summarizeProjectOrganisation(organisation: ProjectOrganisation): string {
+    const parts = [
+        organisation.countryCode,
+        organisation.region,
+        organisation.rorTypes.filter((type) => type !== 'unknown').join(', ') || null,
+        organisation.project_count != null ? `${organisation.project_count} projects overall` : null,
+        organisation.isCoordinator ? 'COORDINATOR' : null,
+    ].filter(Boolean)
+    return `- ${organisation.legalName ?? organisation.legalShortName ?? organisation.id} (${parts.join(', ')})`
+}
+
 /**
  * The organisations tab, when it is the one on screen. One line per row, the
  * same fields the tab shows — so "who is working on this?" is answered from
@@ -73,16 +85,7 @@ export function selectedProjectSection(project: ProjectDetail): PageContextSecti
 export function projectOrganisationsSection(project: ProjectDetail, organisations: ProjectOrganisation[], total: number): PageContextSection {
     return {
         heading: `Organisations of ${projectHeadline(project)} (${total} in total, coordinators first, showing ${organisations.length}):`,
-        rows: organisations.map((organisation) => {
-            const parts = [
-                organisation.countryCode,
-                organisation.region,
-                organisation.rorTypes.filter((type) => type !== 'unknown').join(', ') || null,
-                organisation.project_count != null ? `${organisation.project_count} projects overall` : null,
-                organisation.isCoordinator ? 'COORDINATOR' : null,
-            ].filter(Boolean)
-            return `- ${organisation.legalName ?? organisation.legalShortName ?? organisation.id} (${parts.join(', ')})`
-        }),
+        rows: organisations.map(summarizeProjectOrganisation),
     }
 }
 

@@ -4,6 +4,7 @@ import {workSearchResponseSchema, type WorkSearchResponse} from '@heritagemonito
 import {useEffect, useState, useTransition} from 'react'
 import {apiGet} from '@/common/api/apiClient'
 import {useUrlDetailPage} from '@/common/url'
+import {relatedPaths} from './relatedPaths'
 
 const EMPTY: WorkSearchResponse = {
     hits: [],
@@ -40,7 +41,7 @@ export function useRelatedWorks(entity: 'projects' | 'organisations', id: string
         const controller = new AbortController()
         startTransition(async () => {
             try {
-                const data = await apiGet(`/v1/${entity}/${encodeURIComponent(id)}/works?page=${page}&${search}`, workSearchResponseSchema, {
+                const data = await apiGet(relatedPaths.works(entity, id, page, search), workSearchResponseSchema, {
                     signal: controller.signal,
                 })
                 setFetched({id: fetchKey!, data})

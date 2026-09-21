@@ -21,6 +21,7 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    canReset,
     describeUrlParams,
     readList,
     readText,
@@ -41,6 +42,8 @@ import {ResultsHeader} from '../entity/ResultsHeader'
 import {describeSearchState} from '../entity/searchState'
 import type {EntityFacet} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
+import {relatedLazyContext, workRelatedLists} from '../entity/relatedContext'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {WorkOverviewTab} from './WorkOverviewTab'
 import {WorkOrganisationsTab, WorkProjectsTab} from './WorkRelatedTabs'
@@ -120,7 +123,7 @@ export function WorksResultsPanel() {
 
     const {data, error} = useEntitySearch('works', workSearchResponseSchema, EMPTY_RESULTS)
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('works', workDetailSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('works', workDetailSchema, rowIds)
 
     const projectsTabOpen = tab === 'projects'
     const organisationsTabOpen = tab === 'organisations'
@@ -141,7 +144,7 @@ export function WorksResultsPanel() {
         return filter?.options.find((option) => option.value === value)?.label ?? value
     }, [])
 
-    const hasActiveFilters = activeCount > 0 || years !== null
+    const hasActiveFilters = canReset(activeCount > 0 || years !== null, params)
     // Everything the user narrowed with — query text included — in one patch.
     // The entity and the corpus stay: they are the lens, not a filter.
     const resetFilters = useCallback(
@@ -192,6 +195,8 @@ export function WorksResultsPanel() {
                     ...(detail ? [selectedWorkSection(detail)] : []),
                 ],
                 sources: workSources(detail, data.hits),
+                // The selected entity's related lists, fetched when a message is sent.
+                lazy: detail ? relatedLazyContext('work', workRelatedLists(detail.id)) : undefined,
             }),
         [data, query, corpus, sort, detail, params, labelUrlValue],
     )
@@ -202,7 +207,9 @@ export function WorksResultsPanel() {
             facets={<EntityFacetSidebar {...filterProps} />}
             filters={<EntityFilterBar {...filterProps} />}
             notice={
-                error ? (
+                <>
+                <SelectionDroppedNotice show={selectionDropped} />
+                {error ? (
                     <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
@@ -229,7 +236,8 @@ export function WorksResultsPanel() {
                             </>
                         )}
                     </NoticeBar>
-                ) : undefined
+                ) : undefined}
+                </>
             }
             list={
                 <PaginatedList

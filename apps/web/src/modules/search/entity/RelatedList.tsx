@@ -7,6 +7,7 @@ import ListItemButton from '@mui/material/ListItemButton'
 import Pagination from '@mui/material/Pagination'
 import type {ReactNode} from 'react'
 import {Text} from '@/common/text'
+import {NoticeBar} from '@/common/components'
 
 /** One row of a detail panel's related list, already reduced to what it shows. */
 export interface RelatedRow {
@@ -64,9 +65,9 @@ export function RelatedList({
     // Shown above the rows AND above the empty message: "why is this list
     // empty" is the question the caption exists to answer.
     const filterLine = filterCaption ? (
-        <Text variant="caption" color="text.secondary" sx={{display: 'block', px: 2.5, pt: 1}}>
-            {filterCaption}
-        </Text>
+        <Box sx={{px: 2, pt: 1}}>
+            <NoticeBar compact>{filterCaption}</NoticeBar>
+        </Box>
     ) : null
 
     if (rows.length === 0) {

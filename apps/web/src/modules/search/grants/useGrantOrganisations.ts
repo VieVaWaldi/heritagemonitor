@@ -3,6 +3,7 @@
 import {grantOrganisationsResponseSchema, type GrantOrganisationsResponse} from '@heritagemonitor/shared'
 import {useEffect, useState, useTransition} from 'react'
 import {apiGet} from '@/common/api/apiClient'
+import {relatedPaths} from '../entity/relatedPaths'
 
 const EMPTY: GrantOrganisationsResponse = {organisations: [], complete: true}
 
@@ -27,14 +28,11 @@ export function useGrantOrganisations(grantId: string | null, corpus: string | u
         if (!enabled || !grantId) return
 
         const controller = new AbortController()
-        const query = new URLSearchParams(search)
-        if (corpus) query.set('c', corpus)
-        const suffix = query.toString() ? `?${query.toString()}` : ''
 
         startTransition(async () => {
             try {
                 const data = await apiGet(
-                    `/v1/grants/${encodeURIComponent(grantId)}/organisations${suffix}`,
+                    relatedPaths.grantOrganisations(grantId, corpus, search),
                     grantOrganisationsResponseSchema,
                     {signal: controller.signal},
                 )

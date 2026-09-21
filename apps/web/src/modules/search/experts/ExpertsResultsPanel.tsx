@@ -30,6 +30,7 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    canReset,
     describeUrlParams,
     readText,
     SEARCH_PARAM,
@@ -51,7 +52,10 @@ import {TopicsFilterButton} from '../entity/TopicsFilterButton'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {expertRelatedLists, relatedLazyContext} from '../entity/relatedContext'
+import {relatedPaths} from '../entity/relatedPaths'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {useTopicNames} from '../entity/useTopicBrowser'
 import {OrganisationOverviewTab} from '../organisations/OrganisationOverviewTab'
@@ -120,7 +124,7 @@ export function ExpertsResultsPanel() {
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
     // An expert IS an organisation, so the detail panel reads the
     // organisations endpoint rather than a parallel experts one.
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
     const selectedRow = data.hits.find((hit) => hit.id === selectedId) ?? null
 
     // The matching projects, not all of this organisation's: the same query
@@ -128,7 +132,7 @@ export function ExpertsResultsPanel() {
     // I was looking for".
     const projectsTab = useRelatedSearch({
         key: selectedId,
-        path: (dpage) => `/v1/projects/search?${apiParams}&org=${encodeURIComponent(selectedId ?? '')}&page=${dpage}`,
+        path: (dpage) => relatedPaths.expertProjects(apiParams, selectedId ?? '', dpage),
         schema: projectSearchResponseSchema,
         empty: EMPTY_PROJECTS,
         enabled: tab === 'projects',
@@ -141,9 +145,7 @@ export function ExpertsResultsPanel() {
     const worksQuery = showAllWorks ? '' : query
     const worksTab = useRelatedSearch({
         key: selectedId ? `${selectedId}:${worksQuery}` : null,
-        path: (dpage) =>
-            `/v1/organisations/${encodeURIComponent(selectedId ?? '')}/works?page=${dpage}&c=${encodeURIComponent(corpus)}` +
-            (worksQuery ? `&q=${encodeURIComponent(worksQuery)}` : ''),
+        path: (dpage) => relatedPaths.expertWorks(selectedId ?? '', dpage, corpus, worksQuery),
         schema: workSearchResponseSchema,
         empty: EMPTY_WORKS,
         enabled: tab === 'works',
@@ -191,7 +193,7 @@ export function ExpertsResultsPanel() {
         values: filterValues,
         onFilterChange: (param, next) => setFilter(param as ProjectFacetParam, next),
         onReset: resetFilters,
-        hasActiveFilters: activeCount > 0 || years !== null,
+        hasActiveFilters: canReset(activeCount > 0 || years !== null, params),
         sidebarHeader: <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} histogram={yearHistogram} />,
         facetHeaders: {
             topic: <TopicsFilterButton entity="experts" countNoun="projects" variant="text" label="Browse all topics" />,
@@ -234,8 +236,10 @@ export function ExpertsResultsPanel() {
                     ...(detail ? [selectedExpertSection(detail, selectedRow?.matchedProjects ?? null)] : []),
                 ],
                 sources: expertSources(detail, data.hits),
+                // The selected entity's related lists, fetched when a message is sent.
+                lazy: detail ? relatedLazyContext('organisation (expert)', expertRelatedLists({apiParams, organisationId: detail.id, corpus, worksQuery})) : undefined,
             }),
-        [data, query, corpus, sort, detail, selectedRow, params, labelUrlValue],
+        [data, query, corpus, sort, detail, selectedRow, params, labelUrlValue, apiParams, worksQuery],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -259,7 +263,9 @@ export function ExpertsResultsPanel() {
             facets={<EntityFacetSidebar {...filterProps} />}
             filters={<EntityFilterBar {...filterProps} />}
             notice={
-                error ? (
+                <>
+                <SelectionDroppedNotice show={selectionDropped} />
+                {error ? (
                     <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : data.mode === 'fuzzy' ? (
                     <NoticeBar tone="note">
@@ -289,7 +295,8 @@ export function ExpertsResultsPanel() {
                         {data.estimatedTotalHits.toLocaleString('en-US')} that worked on matching projects. Narrow the search
                         to rank further down.
                     </NoticeBar>
-                ) : undefined
+                ) : undefined}
+                </>
             }
             list={
                 <PaginatedList

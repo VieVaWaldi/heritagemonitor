@@ -34,6 +34,7 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    canReset,
     describeUrlParams,
     readList,
     readText,
@@ -56,8 +57,11 @@ import {useTopicNames} from '../entity/useTopicBrowser'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {minorityRelatedLists, relatedLazyContext} from '../entity/relatedContext'
+import {relatedPaths} from '../entity/relatedPaths'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {MinorityOverviewTab} from './MinorityOverviewTab'
 import {MinorityResultRow} from './MinorityResultRow'
@@ -131,7 +135,7 @@ export function MinoritiesResultsPanel() {
     const facets = useEntityFacets(MINORITY_FACET_FIELDS, data.facetDistribution, data.facetLabels)
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.qid), [data.hits])
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('minorities', minorityDtoSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('minorities', minorityDtoSchema, rowIds)
     const indexedQids = useMemo(() => new Set(rowIds), [rowIds])
 
     // Every tab is the same request shape keyed to the selected group — see
@@ -146,21 +150,21 @@ export function MinoritiesResultsPanel() {
         // The forwarded filters are part of the list's identity: without them
         // in the key, narrowing a facet would leave the old rows on screen.
         key: qid && `${qid}|${projectsRelated.search}`,
-        path: (dpage) => `/v1/projects/search?minority=${encodeURIComponent(qid ?? '')}&page=${dpage}&${projectsRelated.search}`,
+        path: (dpage) => relatedPaths.minorityProjects(qid ?? '', dpage, projectsRelated.search),
         schema: projectSearchResponseSchema,
         empty: EMPTY_PROJECTS,
         enabled: tab === 'projects',
     })
     const worksTab = useRelatedSearch({
         key: qid && `${qid}|${worksRelated.search}`,
-        path: (dpage) => `/v1/works/search?minority=${encodeURIComponent(qid ?? '')}&page=${dpage}&${worksRelated.search}`,
+        path: (dpage) => relatedPaths.minorityWorks(qid ?? '', dpage, worksRelated.search),
         schema: workSearchResponseSchema,
         empty: EMPTY_WORKS,
         enabled: tab === 'works',
     })
     const organisationsTab = useRelatedSearch({
         key: qid && `${qid}|${organisationsRelated.search}`,
-        path: (dpage) => `/v1/minorities/${encodeURIComponent(qid ?? '')}/organisations?page=${dpage}&${organisationsRelated.search}`,
+        path: (dpage) => relatedPaths.minorityOrganisations(qid ?? '', dpage, organisationsRelated.search),
         schema: workOrganisationsResponseSchema,
         empty: EMPTY_ORGANISATIONS,
         enabled: tab === 'organisations',
@@ -207,7 +211,7 @@ export function MinoritiesResultsPanel() {
         values: filterValues,
         onFilterChange: (param, next) => setFilter(param as MinorityFacetParam, next),
         onReset: resetFilters,
-        hasActiveFilters: activeCount > 0 || hasSubgroups,
+        hasActiveFilters: canReset(activeCount > 0 || hasSubgroups, params),
         sidebarHeader: (
             <Paper variant="outlined" sx={{p: 2}}>
                 <FormControlLabel
@@ -269,8 +273,10 @@ export function MinoritiesResultsPanel() {
                         : []),
                 ],
                 sources: minoritySources(detail, data.hits),
+                // The selected entity's related lists, fetched when a message is sent.
+                lazy: detail ? relatedLazyContext('minority group', minorityRelatedLists(detail.qid, projectsRelated.search, worksRelated.search, organisationsRelated.search)) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, tab, topicsTab.data, fundersTab.data],
+        [data, query, corpus, sort, detail, params, labelUrlValue, tab, topicsTab.data, fundersTab.data, projectsRelated.search, worksRelated.search, organisationsRelated.search],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -294,7 +300,9 @@ export function MinoritiesResultsPanel() {
             facets={<EntityFacetSidebar {...filterProps} />}
             filters={<EntityFilterBar {...filterProps} />}
             notice={
-                error ? (
+                <>
+                <SelectionDroppedNotice show={selectionDropped} />
+                {error ? (
                     <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
@@ -321,7 +329,8 @@ export function MinoritiesResultsPanel() {
                             </>
                         )}
                     </NoticeBar>
-                ) : undefined
+                ) : undefined}
+                </>
             }
             list={
                 <PaginatedList

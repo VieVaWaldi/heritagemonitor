@@ -7,7 +7,7 @@ import type {ReactNode} from 'react'
 import type {EntityKey} from '@/common/catalog'
 import {FacetSection, FilterBar, FilterMenuButton} from '@/common/components'
 import {FacetValuesMenuButton} from './FacetValuesMenuButton'
-import {facetTitle} from './facetTitles'
+import {facetHint, facetTitle} from './facetTitles'
 import type {EntityFacet} from './useEntityFacets'
 
 export interface EntityFiltersProps {
@@ -71,6 +71,7 @@ export function EntityFacetSidebar({
                         key={facet.config.field}
                         label={facetTitle(pageKey, facet.config.param, facet.config.label)}
                         header={facetHeaders?.[facet.config.param]}
+                        hint={facetHint(facet.config.param)}
                         options={facet.options}
                         value={values[facet.config.param] ?? []}
                         onChange={(next) => onFilterChange(facet.config.param, next)}
@@ -128,6 +129,7 @@ export function EntityFilterBar({
                             value={values[facet.config.param] ?? []}
                             onChange={(next) => onFilterChange(facet.config.param, next)}
                             searchPlaceholder={`Search ${facet.config.label.toLowerCase()}...`}
+                            hint={facetHint(facet.config.param)}
                         />
                     ),
                 )}

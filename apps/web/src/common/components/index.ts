@@ -12,6 +12,9 @@ export {CorpusPanel} from './CorpusPanel'
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
 
+export {FieldLabel} from './FieldLabel'
+export type {FieldLabelProps} from './FieldLabel'
+
 export {FacetSection} from './FacetSection'
 export type {FacetSectionProps} from './FacetSection'
 

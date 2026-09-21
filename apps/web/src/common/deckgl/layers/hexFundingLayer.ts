@@ -1,32 +1,8 @@
 import type {PickingInfo} from '@deck.gl/core'
 import {H3HexagonLayer} from '@deck.gl/geo-layers'
 import {hexToRgb, lerpRgb} from '../colors'
-import {BASE_ZOOM, hexZoomFactor} from './hexScale'
+import {BASE_ZOOM, HEX_COVERAGE, hexZoomFactor, MAX_ELEVATION_METERS} from './hexScale'
 import type {HexBin} from './hexBins'
-
-/**
- * Tallest a hex can stand at the base zoom.
- *
- * Tuned TOGETHER with BASE_COVERAGE, not independently: height and width
- * compound into the apparent aspect ratio. Halving the footprint and raising
- * the height at the same time turned the map into a field of needles. This is
- * ~50% taller RELATIVE to the narrower column, which is the shape that was
- * wanted — the absolute metre value is lower than the old 250 km because the
- * column it belongs to is half as wide.
- */
-const MAX_ELEVATION_METERS = 190_000
-
-/**
- * How much of its H3 cell a hexagon fills. An H3 cell is a fixed patch of the
- * earth, so this is the only width control there is — at the old 0.92 the
- * hexes touched and the map read as a tiled surface rather than a set of
- * columns.
- *
- * TUNING: this and MAX_ELEVATION_METERS are the two knobs for the columns'
- * look, and they compound into the apparent aspect ratio. Lower = narrower;
- * below about 0.45 they read as needles that occlude each other.
- */
-const BASE_COVERAGE = 0.55
 
 // Sub-linear so a few huge hubs don't flatten every other hex to nothing.
 const SCALE_GAMMA = 0.5
@@ -40,8 +16,9 @@ export interface HexFundingLayerOptions {
     highlightColorHex: string
     selectedHex: string | null
     /**
-     * Current camera zoom. Drives both the footprint and the height, so the
-     * columns keep roughly the same on-screen size as the map moves. Defaults
+     * Current camera zoom. Drives the height (world metres, so the columns
+     * keep roughly the same on-screen height as the map moves); the footprint
+     * follows the H3 resolution the caller binned with. Defaults
      * to the zoom the geometry is tuned for.
      */
     zoom?: number
@@ -70,7 +47,7 @@ export function createHexFundingLayer({
         data,
         pickable: true,
         extruded: true,
-        coverage: Math.min(BASE_COVERAGE * factor, 0.9),
+        coverage: HEX_COVERAGE,
         elevationScale: factor,
         getHexagon: (d) => d.hex,
         getElevation: (d) => relative(d) * MAX_ELEVATION_METERS,

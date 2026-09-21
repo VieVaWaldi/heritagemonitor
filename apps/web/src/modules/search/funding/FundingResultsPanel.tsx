@@ -38,6 +38,7 @@ import {
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {useEntityFacets} from '../entity/useEntityFacets'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {FundingMapTab} from './FundingMapTab'
 import {FundingOrganisationRow} from './FundingOrganisationRow'
@@ -103,7 +104,7 @@ export function FundingResultsPanel() {
     // the first row) AND fetches the organisation's full record, which is
     // needed only for Lucy's fetchable sources — everything shown on screen is
     // already on the ranked row.
-    const {selectedId, detail, select} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
+    const {selectedId, detail, select, selectionDropped} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
     const selectedOrganisation = data.hits.find((hit) => hit.id === selectedId) ?? null
 
     const facets = useEntityFacets(FUNDING_FACET_FIELDS, data.facetDistribution, {})
@@ -221,6 +222,7 @@ export function FundingResultsPanel() {
 
             <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
             <EntityFilterBar {...filterProps} />
+            <SelectionDroppedNotice show={selectionDropped} />
             {error && <NoticeBar tone="warning">{error}</NoticeBar>}
             {!data.complete && (
                 <NoticeBar tone="note">

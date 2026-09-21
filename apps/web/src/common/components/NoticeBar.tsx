@@ -26,6 +26,8 @@ export interface NoticeBarProps {
     children: ReactNode
     /** Right-aligned action, e.g. a "Clear" button. */
     action?: ReactNode
+    /** Tighter padding and smaller text, for a strip inside a panel rather than above one. */
+    compact?: boolean
 }
 
 /**
@@ -33,7 +35,7 @@ export interface NoticeBarProps {
  * from palette tokens (`secondary.main`, `warning.main`) rather than fixed
  * colours, so it follows the theme into dark mode like everything else.
  */
-export function NoticeBar({tone = 'note', children, action}: NoticeBarProps) {
+export function NoticeBar({tone = 'note', children, action, compact = false}: NoticeBarProps) {
     const color = TONE_COLOR[tone]
 
     return (
@@ -44,7 +46,7 @@ export function NoticeBar({tone = 'note', children, action}: NoticeBarProps) {
                 alignItems: 'center',
                 gap: 1.5,
                 px: 2,
-                py: 1,
+                py: compact ? 0.5 : 1,
                 borderRadius: 1,
                 border: 1,
                 borderColor: alpha(theme.palette[color].main, 0.5),
@@ -52,7 +54,7 @@ export function NoticeBar({tone = 'note', children, action}: NoticeBarProps) {
                 flexShrink: 0,
             })}
         >
-            <Text variant="body2" sx={{flex: '1 1 auto', minWidth: 0, color: `${color}.dark`}}>
+            <Text variant={compact ? 'caption' : 'body2'} sx={{flex: '1 1 auto', minWidth: 0, color: `${color}.dark`}}>
                 {children}
             </Text>
             {action}

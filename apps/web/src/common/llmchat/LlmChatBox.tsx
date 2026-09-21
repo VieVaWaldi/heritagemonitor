@@ -29,6 +29,7 @@ import {ChatEventIndicator} from './ChatEventIndicator'
 import {LlmChatHeaderRight} from './LlmChatHeader'
 import {currentTrail, describeLinkVocabulary, describeTrail} from '@/common/url'
 import {usePageChatContextReader} from './PageChatContext'
+import {resolvePageContext} from './pageContext'
 
 export interface LlmChatBoxProps {
     sx?: SxProps<Theme>
@@ -39,6 +40,14 @@ export interface LlmChatBoxProps {
 }
 
 const CONVERSATION_ID = 'llmchat'
+
+// How long a send may wait for the selected entity's related lists.
+const RELATED_CONTEXT_TIMEOUT_MS = 4_000
+
+// Lucy's first message on the landing page. "showcase" is a word her system
+// prompt knows (see the api's SystemPrompt.md), so offering it here is a promise she keeps.
+const LANDING_WELCOME =
+    'Hey, I am Lucy. Ask me for a showcase if you want help. I know the HM and can see your selected data.'
 
 // Referentially stable — passed as ChatBox's `initialConversations`, which
 // (like `initialMessages` below) only matters on first mount. A literal
@@ -177,8 +186,13 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // session) reads the CURRENT trail on every send rather than the one that
     // existed when the chat opened.
 
-    const getContextWithTrail = useCallback(() => {
-        const context = getPageContext()
+    const getContextWithTrail = useCallback(async (signal: AbortSignal) => {
+        // The lazy related lists, bounded: a slow api must not hold up the
+        // message — on timeout Lucy just gets the eager context.
+        const context = await resolvePageContext(
+            getPageContext(),
+            AbortSignal.any([signal, AbortSignal.timeout(RELATED_CONTEXT_TIMEOUT_MS)]),
+        )
         // Module-level store, read at send time — see common/url/breadcrumbStore.
         const trail = currentTrail()
         // The link guide goes in EVERY message: Lucy writes app links in most
@@ -243,14 +257,16 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // `initialMessages` prop's content after ChatBox has already initialized
     // from it, which is exactly the "changing the default state of an
     // uncontrolled ChatProvider" case @mui/x-chat warns about.
-    const [pageName] = useState(() => {
+    const [welcomeText] = useState(() => {
         const useCase = USE_CASES.find((uc) => uc.key === useCaseKey)
-        if (!useCase) return 'landing page'
+        // No use case = the landing page (or an unmatched route): Lucy
+        // introduces herself and offers a showcase instead of naming the page.
+        if (!useCase) return LANDING_WELCOME
         const subUseCase = useCase.subUseCases?.find((sub) => sub.key === subUseCaseKey)
-        return subUseCase?.name ?? useCase.name
+        return `Welcome to HeritageMonitor, we are on ${subUseCase?.name ?? useCase.name}.`
     })
 
-    // Memoized for the same reason as INITIAL_CONVERSATIONS above — pageName
+    // Memoized for the same reason as INITIAL_CONVERSATIONS above — welcomeText
     // is frozen at mount (see above), so this now computes once and never
     // changes identity afterwards.
     const initialMessages = useMemo(
@@ -263,12 +279,12 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                 parts: [
                     {
                         type: 'text' as const,
-                        text: `Welcome to HeritageMonitor, we are on ${pageName}.`,
+                        text: welcomeText,
                     },
                 ],
             },
         ],
-        [pageName],
+        [welcomeText],
     )
 
     // undefined (not a no-op) when onClear isn't passed — e.g. the demo page

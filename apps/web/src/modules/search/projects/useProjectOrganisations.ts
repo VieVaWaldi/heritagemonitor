@@ -4,6 +4,7 @@ import {projectOrganisationsResponseSchema, type ProjectOrganisationsResponse} f
 import {useEffect, useState, useTransition} from 'react'
 import {apiGet} from '@/common/api/apiClient'
 import {useUrlDetailPage} from '@/common/url'
+import {relatedPaths} from '../entity/relatedPaths'
 
 const EMPTY: ProjectOrganisationsResponse = {hits: [], estimatedTotalHits: 0, page: 1, pageCount: 1}
 
@@ -35,7 +36,7 @@ export function useProjectOrganisations(projectId: string | null, enabled: boole
         startTransition(async () => {
             try {
                 const data = await apiGet(
-                    `/v1/projects/${encodeURIComponent(projectId)}/organisations?page=${page}`,
+                    relatedPaths.projectOrganisations(projectId, page),
                     projectOrganisationsResponseSchema,
                     {signal: controller.signal},
                 )

@@ -21,6 +21,7 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    canReset,
     describeUrlParams,
     readList,
     readText,
@@ -35,6 +36,7 @@ import {
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {RelatedWorksTab} from '../entity/RelatedWorksTab'
+import {organisationRelatedLists, relatedLazyContext} from '../entity/relatedContext'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
@@ -43,6 +45,7 @@ import {ResultsHeader} from '../entity/ResultsHeader'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {OrganisationOverviewTab} from './OrganisationOverviewTab'
 import {OrganisationProjectsTab} from './OrganisationProjectsTab'
@@ -99,7 +102,7 @@ export function OrganisationsResultsPanel() {
     const facets = useEntityFacets(ORGANISATION_FACET_FIELDS, data.facetDistribution, data.facetLabels)
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
 
     const projectsTabOpen = tab === 'projects'
     const worksTabOpen = tab === 'works'
@@ -141,7 +144,7 @@ export function OrganisationsResultsPanel() {
         values: filterValues,
         onFilterChange: (param, next) => setFilter(param as OrganisationFacetParam, next),
         onReset: resetFilters,
-        hasActiveFilters: activeCount > 0,
+        hasActiveFilters: canReset(activeCount > 0, params),
     }
 
     // A project row on the Projects tab leads to that project in the projects
@@ -181,8 +184,10 @@ export function OrganisationsResultsPanel() {
                         : []),
                 ],
                 sources: organisationSources(detail, data.hits),
+                // The selected entity's related lists, fetched when a message is sent.
+                lazy: detail ? relatedLazyContext('organisation', organisationRelatedLists(detail.id, projectsRelated.search, worksRelated.search)) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects],
+        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, projectsRelated.search, worksRelated.search],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -191,7 +196,9 @@ export function OrganisationsResultsPanel() {
             facets={<EntityFacetSidebar {...filterProps} />}
             filters={<EntityFilterBar {...filterProps} />}
             notice={
-                error ? (
+                <>
+                <SelectionDroppedNotice show={selectionDropped} />
+                {error ? (
                     <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
@@ -218,7 +225,8 @@ export function OrganisationsResultsPanel() {
                             </>
                         )}
                     </NoticeBar>
-                ) : undefined
+                ) : undefined}
+                </>
             }
             list={
                 <PaginatedList

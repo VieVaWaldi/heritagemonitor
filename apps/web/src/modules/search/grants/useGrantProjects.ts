@@ -4,6 +4,7 @@ import {projectSearchResponseSchema, type ProjectSearchResponse} from '@heritage
 import {useEffect, useState, useTransition} from 'react'
 import {apiGet} from '@/common/api/apiClient'
 import {useUrlDetailPage} from '@/common/url'
+import {relatedPaths} from '../entity/relatedPaths'
 
 const EMPTY: ProjectSearchResponse = {
     hits: [],
@@ -46,14 +47,10 @@ export function useGrantProjects(grantId: string | null, corpus: string | undefi
         const controller = new AbortController()
         // The page's own filters first, then this list's own two params — see
         // entity/relatedParams for what carries and why `q` does not.
-        const query = new URLSearchParams(search)
-        query.set('stream', grantId)
-        query.set('page', String(page))
-        if (corpus) query.set('c', corpus)
 
         startTransition(async () => {
             try {
-                const data = await apiGet(`/v1/projects/search?${query.toString()}`, projectSearchResponseSchema, {
+                const data = await apiGet(relatedPaths.grantProjects(grantId, corpus, page, search), projectSearchResponseSchema, {
                     signal: controller.signal,
                 })
                 setFetched({grantId: fetchKey, data})

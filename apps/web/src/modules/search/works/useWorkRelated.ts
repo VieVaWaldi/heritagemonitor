@@ -9,6 +9,7 @@ import {
 import {useEffect, useState, useTransition} from 'react'
 import {apiGet} from '@/common/api/apiClient'
 import {useUrlDetailPage} from '@/common/url'
+import {relatedPaths} from '../entity/relatedPaths'
 
 const EMPTY_PROJECTS: WorkProjectsResponse = {hits: [], estimatedTotalHits: 0, page: 1, pageCount: 1}
 const EMPTY_ORGANISATIONS: WorkOrganisationsResponse = {hits: [], estimatedTotalHits: 0, page: 1, pageCount: 1}
@@ -33,7 +34,7 @@ export function useWorkProjects(workId: string | null, enabled: boolean) {
         startTransition(async () => {
             try {
                 const data = await apiGet(
-                    `/v1/works/${encodeURIComponent(workId)}/projects?page=${page}`,
+                    relatedPaths.workProjects(workId, page),
                     workProjectsResponseSchema,
                     {signal: controller.signal},
                 )
@@ -64,7 +65,7 @@ export function useWorkOrganisations(workId: string | null, enabled: boolean) {
         startTransition(async () => {
             try {
                 const data = await apiGet(
-                    `/v1/works/${encodeURIComponent(workId)}/organisations?page=${page}`,
+                    relatedPaths.workOrganisations(workId, page),
                     workOrganisationsResponseSchema,
                     {signal: controller.signal},
                 )

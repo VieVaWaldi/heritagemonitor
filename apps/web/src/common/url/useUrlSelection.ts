@@ -25,7 +25,13 @@ export function useUrlSelection(fallbackId: string | null) {
     const selectedId = readId(params, SEARCH_PARAM.selection) ?? fallbackId
 
     const select = useCallback((id: string) => update({[SEARCH_PARAM.selection]: id}), [update])
-    const clearSelection = useCallback(() => update({[SEARCH_PARAM.selection]: null}), [update])
+    // `options` so a CORRECTION (the open row no longer matches the filters)
+    // can replace rather than push — it is not a choice the user made and must
+    // not become a back-button step.
+    const clearSelection = useCallback(
+        (options?: {history: 'push' | 'replace'}) => update({[SEARCH_PARAM.selection]: null}, options),
+        [update],
+    )
 
     return {selectedId, select, clearSelection}
 }

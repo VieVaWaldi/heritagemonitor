@@ -3,12 +3,14 @@
 import type {FundingMapResponse} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import type {PickingInfo} from '@deck.gl/core'
-import {useMemo, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import {
     createHexFundingLayer,
     DeckMapCanvas,
     formatFunding,
+    HEX_REBIN_DEBOUNCE_MS,
     hexBinsFromOrganisations,
+    hexResolutionForZoom,
     MapControls,
     useDeckMapViewState,
     useVisualizationColors,
@@ -46,7 +48,7 @@ function hexTooltip(info: PickingInfo): string | null {
 }
 
 /**
- * The funding map: one H3 hexagon per ~100 km area, its height and colour the
+ * The funding map: one H3 hexagon per area (finer as you zoom in), its height and colour the
  * summed funding of the organisations inside.
  *
  * Hexagons only — no column layer. At this scale (up to 500 points, most of
@@ -64,15 +66,26 @@ export function FundingMapTab({data, loading, selectedId, onSelect, initialView,
     // re-rendering the layer 60 times a second would rebuild its geometry.
     const [zoom, setZoom] = useState(initialView?.zoom ?? DEFAULT_VIEW_STATE.zoom)
 
-    // Binned once per payload, not per render: re-binning would rebuild the
-    // layer's geometry on every pan.
+    // Finer hexes the closer you zoom. The resolution is derived from the
+    // (already rounded) zoom, and only adopted after the zoom has settled: a
+    // pinch or wheel gesture passes through several resolutions and re-binning
+    // for each would rebuild the geometry mid-gesture. Setting the same value
+    // is a no-op, so panning at a steady zoom never re-bins.
+    const [resolution, setResolution] = useState(() => hexResolutionForZoom(zoom))
+    useEffect(() => {
+        const timer = setTimeout(() => setResolution(hexResolutionForZoom(zoom)), HEX_REBIN_DEBOUNCE_MS)
+        return () => clearTimeout(timer)
+    }, [zoom])
+
+    // Binned once per payload and resolution, not per render: re-binning would
+    // rebuild the layer's geometry on every pan.
     const {bins, binByOrganisationId} = useMemo(() => {
         const organisations = mapOrganisationsFrom(data.orgs)
-        const computed = hexBinsFromOrganisations(organisations)
+        const computed = hexBinsFromOrganisations(organisations, resolution)
         const index = new Map<string, HexBin>()
         for (const bin of computed) for (const organisation of bin.organisations) index.set(organisation.id, bin)
         return {bins: computed, binByOrganisationId: index}
-    }, [data.orgs])
+    }, [data.orgs, resolution])
 
     const layers = useMemo(
         () => [

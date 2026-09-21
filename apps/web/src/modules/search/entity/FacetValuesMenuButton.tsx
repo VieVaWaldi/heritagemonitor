@@ -5,6 +5,7 @@ import {useEffect, useState} from 'react'
 import {apiGet} from '@/common/api/apiClient'
 import type {EntityKey} from '@/common/catalog'
 import {FilterMenuButton, type FilterOption} from '@/common/components'
+import {facetHint} from './facetTitles'
 import {toApiSearchParams, useUrlState} from '@/common/url'
 
 const DEBOUNCE_MS = 200
@@ -101,6 +102,7 @@ export function FacetValuesMenuButton({
             onSearchTextChange={setText}
             loading={loading}
             searchPlaceholder={`Search ${label.toLowerCase()}...`}
+            hint={facetHint(facet)}
         />
     )
 }

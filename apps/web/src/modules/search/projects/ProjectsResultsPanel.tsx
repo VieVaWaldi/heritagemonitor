@@ -22,6 +22,7 @@ import {Text} from '@/common/text'
 import {
     buildEntityLink,
     buildResetPatch,
+    canReset,
     describeUrlParams,
     readList,
     readText,
@@ -40,6 +41,7 @@ import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {RelatedWorksTab} from '../entity/RelatedWorksTab'
 import {TopicsFilterButton} from '../entity/TopicsFilterButton'
 import {useTopicNames} from '../entity/useTopicBrowser'
+import {projectRelatedLists, relatedLazyContext} from '../entity/relatedContext'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
@@ -48,6 +50,7 @@ import {ResultsHeader} from '../entity/ResultsHeader'
 import {describeSearchState} from '../entity/searchState'
 import {useEntitySearch} from '../entity/useEntitySearch'
 import {YearFilter} from '@/common/components'
+import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {ProjectOrganisationsTab} from './ProjectOrganisationsTab'
 import {ProjectOverviewTab} from './ProjectOverviewTab'
@@ -130,7 +133,7 @@ export function ProjectsResultsPanel() {
     )
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('projects', projectDetailSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('projects', projectDetailSchema, rowIds)
 
     const organisationsTabOpen = tab === 'organisations'
     const worksTabOpen = tab === 'works'
@@ -148,7 +151,7 @@ export function ProjectsResultsPanel() {
         worksRelated.search,
     )
 
-    const hasActiveFilters = activeCount > 0 || years !== null
+    const hasActiveFilters = canReset(activeCount > 0 || years !== null, params)
     // Everything the user narrowed with — query text included — in one patch.
     // The entity and the corpus stay: they are the lens, not a filter.
     const resetFilters = useCallback(
@@ -228,8 +231,10 @@ export function ProjectsResultsPanel() {
                         : []),
                 ],
                 sources: projectSources(detail, data.hits, organisationsTabOpen ? organisations.hits : []),
+                // The selected entity's related lists, fetched when a message is sent.
+                lazy: detail ? relatedLazyContext('project', projectRelatedLists(detail.id, worksRelated.search)) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, organisationsTabOpen, organisations],
+        [data, query, corpus, sort, detail, params, labelUrlValue, organisationsTabOpen, organisations, worksRelated.search],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -238,7 +243,9 @@ export function ProjectsResultsPanel() {
             facets={<EntityFacetSidebar {...filterProps} />}
             filters={<EntityFilterBar {...filterProps} />}
             notice={
-                error ? (
+                <>
+                <SelectionDroppedNotice show={selectionDropped} />
+                {error ? (
                     <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
@@ -268,7 +275,8 @@ export function ProjectsResultsPanel() {
                             </>
                         )}
                     </NoticeBar>
-                ) : undefined
+                ) : undefined}
+                </>
             }
             list={
                 <PaginatedList

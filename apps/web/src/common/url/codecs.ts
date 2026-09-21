@@ -379,6 +379,16 @@ export function buildResetPatch(params: URLSearchParams, keep: readonly string[]
     return Object.fromEntries([...new Set(params.keys())].filter((name) => !kept.has(name)).map((name) => [name, null]))
 }
 
+/**
+ * Whether the reset button has anything to undo: an active filter, OR search
+ * text on its own. The text is cleared by reset (buildResetPatch), so a page
+ * with only a query and no facet is still resettable — checking the facets
+ * alone left the button greyed out while the search box held a value.
+ */
+export function canReset(filtersActive: boolean, params: URLSearchParams): boolean {
+    return filtersActive || (params.get(SEARCH_PARAM.query) ?? '').trim() !== ''
+}
+
 // --- describing the current state -------------------------------------------
 
 // What the current URL says, in words. Generated FROM the param vocabulary

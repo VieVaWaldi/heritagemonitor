@@ -49,3 +49,16 @@ export function facetTitle(pageKey: string, param: string, label: string): strin
     if (!config) return label
     return `${config.overrides?.[param] ?? config.subject}: ${label}`
 }
+
+/**
+ * A one-line explanation under a facet whose values need one, keyed by the
+ * facet's URL param. Only Programme has one: "HE" and "Horizon Europe
+ * Guarantee" look like the same thing and are not.
+ */
+const FACET_HINTS: Readonly<Record<string, string>> = {
+    programme: 'HE = Horizon Europe (EC). Horizon Europe Guarantee = UK funding for UK partners.',
+}
+
+export function facetHint(param: string): string | undefined {
+    return FACET_HINTS[param]
+}

@@ -37,6 +37,8 @@ export interface FilterMenuButtonProps {
      */
     onSearchTextChange?: (text: string) => void
     loading?: boolean
+    /** One grey line under the list, e.g. what an abbreviation in the options means. */
+    hint?: string
 }
 
 /** What the trigger says once something is picked: the values, not just a count. */
@@ -65,6 +67,7 @@ export function FilterMenuButton({
     searchPlaceholder,
     onSearchTextChange,
     loading,
+    hint,
 }: FilterMenuButtonProps) {
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
     const [searchText, setSearchText] = useState('')
@@ -210,6 +213,14 @@ export function FilterMenuButton({
                         )
                     })}
                 </Box>
+                {hint && (
+                    <>
+                        <Divider />
+                        <Text variant="caption" color="text.secondary" sx={{display: 'block', px: 2, py: 1}}>
+                            {hint}
+                        </Text>
+                    </>
+                )}
             </Popover>
         </>
     )

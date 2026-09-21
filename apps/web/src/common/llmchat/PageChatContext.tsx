@@ -32,6 +32,7 @@ const PageChatContext = createContext<PageChatContextValue | null>(null)
  */
 function sameContext(a: PageContext, b: PageContext): boolean {
     return (
+        a.lazy?.key === b.lazy?.key &&
         a.lines.length === b.lines.length &&
         a.sources.length === b.sources.length &&
         a.lines.every((line, index) => line === b.lines[index]) &&
