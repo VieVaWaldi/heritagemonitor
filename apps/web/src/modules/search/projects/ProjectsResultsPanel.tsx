@@ -21,6 +21,7 @@ import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
 import {
     buildEntityLink,
+    buildResetPatch,
     describeUrlParams,
     readList,
     readText,
@@ -37,6 +38,8 @@ import {
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {RelatedWorksTab} from '../entity/RelatedWorksTab'
+import {TopicsFilterButton} from '../entity/TopicsFilterButton'
+import {useTopicNames} from '../entity/useTopicBrowser'
 import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
@@ -111,13 +114,18 @@ export function ProjectsResultsPanel() {
 
     // Raw URL values are ids and keys; Lucy should read names. Only the params
     // whose values are not already their own label need translating.
+    // Lucy must read "Media Influence and Politics", not "13718". Facet
+    // buckets cover the topics currently on screen; the topic table covers the
+    // ones picked in the browser, which may not be in any bucket.
+    const topicName = useTopicNames()
     const labelUrlValue = useCallback(
         (param: string, value: string) => {
             if (param === SEARCH_PARAM.corpus) return CORPUSES.find((option) => option.key === value)?.fullName ?? value
+            if (param === 'topic' || param === 'subfield' || param === 'field') return topicName(param, value)
             const facet = facets.find((candidate) => candidate.config.param === param)
             return facet ? labelFacetValue(facet, value) : value
         },
-        [facets],
+        [facets, topicName],
     )
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
@@ -138,10 +146,12 @@ export function ProjectsResultsPanel() {
     )
 
     const hasActiveFilters = activeCount > 0 || years !== null
-    const resetFilters = useCallback(() => {
-        setYears(null)
-        for (const param of FILTER_PARAMS) setFilter(param, [])
-    }, [setFilter, setYears])
+    // Everything the user narrowed with — query text included — in one patch.
+    // The entity and the corpus stay: they are the lens, not a filter.
+    const resetFilters = useCallback(
+        () => update(buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus])),
+        [params, update],
+    )
 
     const filterProps: EntityFiltersProps = {
         entity: 'projects',
@@ -155,11 +165,19 @@ export function ProjectsResultsPanel() {
         sidebarHeader: (
             <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} histogram={yearHistogram} />
         ),
-        sidebarFooter: topicsAtCap ? (
-            <Text variant="caption" color="text.secondary" sx={{px: 1}}>
-                Maximum of {maxTopics} topics selected — clear one to choose another.
-            </Text>
-        ) : undefined,
+        // The sidebar facet is the quick list of the top topics; the browser
+        // is how you reach the other 4,000.
+        sidebarFooter: (
+            <>
+                <TopicsFilterButton entity="projects" countNoun="projects" variant="text" label="Browse all topics" />
+                {topicsAtCap && (
+                    <Text variant="caption" color="text.secondary" sx={{px: 1}}>
+                        Maximum of {maxTopics} topics selected — clear one to choose another.
+                    </Text>
+                )}
+            </>
+        ),
+        filterBarExtra: <TopicsFilterButton entity="projects" countNoun="projects" />,
     }
 
     // An organisation row on the Organisations tab leads to that organisation

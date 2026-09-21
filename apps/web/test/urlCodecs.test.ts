@@ -5,6 +5,7 @@ import {test} from 'node:test'
 // run them as-is. The hooks around them are the part that needs a browser.
 import {
     applyPatch,
+    buildResetPatch,
     buildSearchUrl,
     patchClearsDetailPage,
     patchClearsSelection,
@@ -214,4 +215,44 @@ test('filters are forwarded to the api verbatim, repeated params included', () =
         toApiSearchParams(params('q=heritage&funder=EC&funder=NIH&years=2019-2025&topic=10001&e=projects')),
         'funder=EC&funder=NIH&q=heritage&topic=10001&years=2019-2025',
     )
+})
+
+// --- reset -------------------------------------------------------------------
+
+test('reset clears the search text and every filter, and keeps the lens', () => {
+    // The entity and the corpus are what you are looking THROUGH; everything
+    // else is what you narrowed with, and "reset" undoes all of it — a reset
+    // that leaves `q` behind resets nothing the user can see.
+    const patch = buildResetPatch(
+        params('q=heritage&e=projects&c=dch&page=3&sort=budget&sel=42&funder=EC&years=2019-2025&topic=13718&tab=works&dpage=2'),
+        ['e', 'c'],
+    )
+    assert.deepEqual(patch, {
+        q: null,
+        page: null,
+        sort: null,
+        sel: null,
+        funder: null,
+        years: null,
+        topic: null,
+        tab: null,
+        dpage: null,
+    })
+    assert.equal('e' in patch, false)
+    assert.equal('c' in patch, false)
+})
+
+test('reset clears a param added later without anyone updating this code', () => {
+    // Built from the params actually present, not from a hand-written list.
+    assert.deepEqual(buildResetPatch(params('somethingNew=x&c=dch'), ['c']), {somethingNew: null})
+})
+
+test('reset of an already-clean url is an empty patch', () => {
+    assert.deepEqual(buildResetPatch(params('e=projects&c=dch'), ['e', 'c']), {})
+})
+
+test('applying the reset patch leaves exactly the kept params', () => {
+    const before = params('q=heritage&e=works&c=dch&oa=gold&page=4')
+    const after = applyPatch(before, buildResetPatch(before, ['e', 'c']))
+    assert.equal(after.toString(), 'e=works&c=dch')
 })

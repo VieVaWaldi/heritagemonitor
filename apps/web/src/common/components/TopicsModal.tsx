@@ -147,7 +147,7 @@ function TopicNodeRow({
                     checked={selected}
                     disabled={disabled}
                     onChange={() => onToggle(node.level, node.id)}
-                    inputProps={{'aria-label': `Select ${node.name}`}}
+                    slotProps={{input: {'aria-label': `Select ${node.name}`}}}
                     sx={{p: 0.5}}
                 />
 

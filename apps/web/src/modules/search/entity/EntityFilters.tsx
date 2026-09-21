@@ -19,8 +19,10 @@ export interface EntityFiltersProps {
     hasActiveFilters: boolean
     /** Rendered above the facet cards — e.g. the projects year control. */
     sidebarHeader?: ReactNode
-    /** Rendered below them — e.g. a "maximum topics reached" note. */
+    /** Rendered below them — e.g. a "browse all topics" button. */
     sidebarFooter?: ReactNode
+    /** Extra controls at the end of the filter bar, e.g. the topics browser. */
+    filterBarExtra?: ReactNode
 }
 
 /**
@@ -63,7 +65,15 @@ export function EntityFacetSidebar({facets, values, onFilterChange, sidebarHeade
  * is there, the bar is for seeing at a glance what is on — and the ones with
  * thousands of values are only here, with their search field.
  */
-export function EntityFilterBar({entity, facets, values, onFilterChange, onReset, hasActiveFilters}: EntityFiltersProps) {
+export function EntityFilterBar({
+    entity,
+    facets,
+    values,
+    onFilterChange,
+    onReset,
+    hasActiveFilters,
+    filterBarExtra,
+}: EntityFiltersProps) {
     return (
         <FilterBar>
             <Tooltip title="Reset all filters">
@@ -99,6 +109,8 @@ export function EntityFilterBar({entity, facets, values, onFilterChange, onReset
                         />
                     ),
                 )}
+
+            {filterBarExtra}
         </FilterBar>
     )
 }

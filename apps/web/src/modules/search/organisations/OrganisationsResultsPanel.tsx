@@ -20,6 +20,7 @@ import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
 import {
     buildEntityLink,
+    buildResetPatch,
     describeUrlParams,
     readList,
     readText,
@@ -120,9 +121,12 @@ export function OrganisationsResultsPanel() {
         [facets],
     )
 
-    const resetFilters = useCallback(() => {
-        for (const param of FILTER_PARAMS) setFilter(param, [])
-    }, [setFilter])
+    // Everything the user narrowed with — query text included — in one patch.
+    // The entity and the corpus stay: they are the lens, not a filter.
+    const resetFilters = useCallback(
+        () => update(buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus])),
+        [params, update],
+    )
 
     const filterProps: EntityFiltersProps = {
         entity: 'organisations',

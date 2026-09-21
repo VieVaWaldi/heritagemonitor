@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url'
 import type {ChatSource, LlmChatRequest} from '@heritagemonitor/shared'
 import {estimateTokens, trimMessagesToBudget} from './contextBudget.js'
 import {DEFAULT_MODEL, DEFAULT_MODEL_ID} from './models.js'
+import {resolveDoiHosts} from './doiResolver.js'
 import {streamChatCompletion, type OpenRouterMessage} from './openrouter.client.js'
 
 // Service layer: business/domain logic, agnostic of transport. See RULES.md
@@ -38,8 +39,17 @@ const SYSTEM_PROMPT = readFileSync(join(dirname(fileURLToPath(import.meta.url)),
 // openrouter:web_fetch actually supports (see openrouter.client.ts). Invalid
 // URLs can't reach here (llmChatRequestSchema validates each one at the
 // route boundary), so URL parsing here can't throw.
-function allowedDomainsFor(sourceUrls: ChatSource[]): string[] {
-    return [...new Set(sourceUrls.map((source) => new URL(source.url).hostname))]
+async function allowedDomainsFor(sourceUrls: ChatSource[]): Promise<string[]> {
+    const hosts = sourceUrls.map((source) => new URL(source.url).hostname)
+
+    // A doi.org URL is a redirector, not a host that serves anything, so
+    // allowlisting it alone makes that source unfetchable. The web already
+    // avoids publishing one unless it is a work's ONLY link (see shared's
+    // fetchableSources), so this resolves those few to the publisher host
+    // behind them. Best effort: on any failure the list is simply what it was.
+    const resolved = await resolveDoiHosts(sourceUrls.map((source) => source.url))
+
+    return [...new Set([...hosts, ...resolved])]
 }
 
 function buildMessages(request: LlmChatRequest, sourceUrls: ChatSource[]): OpenRouterMessage[] {
@@ -76,7 +86,8 @@ export async function* streamLlmChat(
         yield {type: 'text-start', id: textPartId}
 
         let finishReason: string | undefined
-        for await (const chunk of streamChatCompletion(DEFAULT_MODEL_ID, messages, allowedDomainsFor(sourceUrls), signal)) {
+        const allowedDomains = await allowedDomainsFor(sourceUrls)
+        for await (const chunk of streamChatCompletion(DEFAULT_MODEL_ID, messages, allowedDomains, signal)) {
             if (chunk.event) yield {type: 'event', message: chunk.event}
             if (chunk.delta) yield {type: 'text-delta', id: textPartId, delta: chunk.delta}
             if (chunk.finishReason) finishReason = chunk.finishReason

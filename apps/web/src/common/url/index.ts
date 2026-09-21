@@ -12,6 +12,7 @@ export {
     WEB_ONLY_PARAMS,
     applyPatch,
     buildEntityLink,
+    buildResetPatch,
     buildSearchUrl,
     describeUrlParams,
     patchClearsDetailPage,

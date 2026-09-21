@@ -260,6 +260,26 @@ export function topicSelectionPatch(selection: TopicSelection): UrlPatch {
     }
 }
 
+/**
+ * The patch behind "reset": everything the user narrowed with goes, and only
+ * the LENS they are looking through stays.
+ *
+ * Built by clearing every param actually present rather than from a list of
+ * filters, so a filter added later is reset without anyone remembering to add
+ * it here — the same reasoning as URL_PARAM_LABELS. `keep` is normally the
+ * entity and the corpus: which things you are looking at, and which half of
+ * the corpus, are not things "reset filters" should undo.
+ *
+ * `q` IS cleared: a reset that leaves the search text behind resets nothing
+ * the user can see. The search box follows, because its draft re-syncs from
+ * the URL whenever the change did not come from the box itself (see
+ * useUrlQueryDraft).
+ */
+export function buildResetPatch(params: URLSearchParams, keep: readonly string[]): UrlPatch {
+    const kept = new Set(keep)
+    return Object.fromEntries([...new Set(params.keys())].filter((name) => !kept.has(name)).map((name) => [name, null]))
+}
+
 // --- describing the current state -------------------------------------------
 
 // What the current URL says, in words. Generated FROM the param vocabulary

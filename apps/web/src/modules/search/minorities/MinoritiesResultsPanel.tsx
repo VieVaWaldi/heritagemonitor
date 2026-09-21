@@ -33,6 +33,7 @@ import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
 import {
     buildEntityLink,
+    buildResetPatch,
     describeUrlParams,
     readList,
     readText,
@@ -50,6 +51,8 @@ import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../e
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {RelatedList, type RelatedRow} from '../entity/RelatedList'
 import {ResultsHeader} from '../entity/ResultsHeader'
+import {TopicsFilterButton} from '../entity/TopicsFilterButton'
+import {useTopicNames} from '../entity/useTopicBrowser'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
@@ -169,18 +172,26 @@ export function MinoritiesResultsPanel() {
         enabled: tab === 'funding',
     })
 
+    // Lucy must read "Media Influence and Politics", not "13718". Facet
+    // buckets cover the topics currently on screen; the topic table covers the
+    // ones picked in the browser, which may not be in any bucket.
+    const topicName = useTopicNames()
     const labelUrlValue = useCallback(
         (param: string, value: string) => {
             if (param === SEARCH_PARAM.corpus) return CORPUSES.find((option) => option.key === value)?.fullName ?? value
+            if (param === 'topic' || param === 'subfield' || param === 'field') return topicName(param, value)
             const facet = facets.find((candidate) => candidate.config.param === param)
             return facet ? labelFacetValue(facet, value) : value
         },
-        [facets],
+        [facets, topicName],
     )
 
-    const resetFilters = useCallback(() => {
-        update({hasSubgroups: null, ...Object.fromEntries(FILTER_PARAMS.map((param) => [param, null]))})
-    }, [update])
+    // Everything the user narrowed with — query text included — in one patch.
+    // The entity and the corpus stay: they are the lens, not a filter.
+    const resetFilters = useCallback(
+        () => update(buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus])),
+        [params, update],
+    )
 
     const filterProps: EntityFiltersProps = {
         entity: 'minorities',
@@ -203,6 +214,10 @@ export function MinoritiesResultsPanel() {
                 />
             </Paper>
         ),
+        sidebarFooter: (
+            <TopicsFilterButton entity="minorities" countNoun="groups" variant="text" label="Browse all topics" />
+        ),
+        filterBarExtra: <TopicsFilterButton entity="minorities" countNoun="groups" />,
     }
 
     const openProject = useCallback(
