@@ -1,6 +1,14 @@
-import {CORPUS_KEYS, ORG_NETWORK_HARD_MAX, type OrganisationNetworkRequest, type OrganisationNetworkResponse} from '@heritagemonitor/shared'
+import {
+    CORPUS_KEYS,
+    ORG_NETWORK_HARD_MAX,
+    QUERY_NETWORK_HARD_MAX_EDGES,
+    type OrganisationNetworkRequest,
+    type OrganisationNetworkResponse,
+    type QueryNetworkRequest,
+    type QueryNetworkResponse,
+} from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
-import {getOrganisationNetwork} from './collaboration.service.js'
+import {getOrganisationNetwork, getQueryNetwork} from './collaboration.service.js'
 
 // Transport layer: HTTP concerns only. The querystring names are the web's URL
 // params, one for one (see apps/web/src/common/url).
@@ -28,5 +36,28 @@ export async function collaborationRoutes(fastify: FastifyInstance) {
             },
         },
         async (request): Promise<OrganisationNetworkResponse> => getOrganisationNetwork(request.params.id, request.query),
+    )
+
+    fastify.get<{Querystring: QueryNetworkRequest}>(
+        '/collaboration/query-network',
+        {
+            schema: {
+                querystring: {
+                    type: 'object',
+                    properties: {
+                        q: {type: 'string'},
+                        c: {type: 'string', enum: [...CORPUS_KEYS]},
+                        years: {type: 'string'},
+                        funder: stringArrayProp,
+                        programme: stringArrayProp,
+                        topic: stringArrayProp,
+                        subfield: stringArrayProp,
+                        field: stringArrayProp,
+                        maxEdges: {type: 'integer', minimum: 1, maximum: QUERY_NETWORK_HARD_MAX_EDGES},
+                    },
+                },
+            },
+        },
+        async (request): Promise<QueryNetworkResponse> => getQueryNetwork(request.query),
     )
 }

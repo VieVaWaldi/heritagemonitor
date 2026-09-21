@@ -32,7 +32,6 @@ import {
     useUrlQueryDraft,
     useUrlSort,
     useUrlState,
-    useUrlTab,
     useUrlYears,
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
@@ -45,6 +44,8 @@ import {useEntitySearch} from '../entity/useEntitySearch'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {relatedLazyContext, workRelatedLists} from '../entity/relatedContext'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
+import {workHiddenTabs, visibleTabs} from '../entity/tabAvailability'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {WorkOverviewTab} from './WorkOverviewTab'
 import {WorkOrganisationsTab, WorkProjectsTab} from './WorkRelatedTabs'
 import {WorkResultRow} from './WorkResultRow'
@@ -117,13 +118,17 @@ export function WorksResultsPanel() {
     const {corpus} = useUrlCorpus()
     const {sort, setSort} = useUrlSort<WorkSort>(SORT_VALUES)
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {values: filterValues, setFilter, activeCount} = useUrlFilters(FILTER_PARAMS)
     const {years, setYears, minYear, maxYear} = useUrlYears()
 
     const {data, error} = useEntitySearch('works', workSearchResponseSchema, EMPTY_RESULTS)
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
     const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('works', workDetailSchema, rowIds)
+    // Tabs whose list is empty for EVERY user of this document are not shown
+    // (see entity/tabAvailability); a list emptied by the page's filters keeps
+    // its tab so the caption can explain.
+    const hiddenTabs = useMemo(() => workHiddenTabs(detail), [detail])
+    const {tab, setTab, available} = useAvailableTab(TABS, hiddenTabs)
 
     const projectsTabOpen = tab === 'projects'
     const organisationsTabOpen = tab === 'organisations'
@@ -196,9 +201,9 @@ export function WorksResultsPanel() {
                 ],
                 sources: workSources(detail, data.hits),
                 // The selected entity's related lists, fetched when a message is sent.
-                lazy: detail ? relatedLazyContext('work', workRelatedLists(detail.id)) : undefined,
+                lazy: detail ? relatedLazyContext('work', workRelatedLists(detail.id), hiddenTabs) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue],
+        [data, query, corpus, sort, detail, params, labelUrlValue, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -262,7 +267,7 @@ export function WorksResultsPanel() {
                 <TabbedPanel
                     value={tab}
                     onChange={(next) => setTab(next as (typeof TABS)[number])}
-                    tabs={[
+                    tabs={visibleTabs([
                         {
                             value: 'overview',
                             label: 'Overview',
@@ -302,7 +307,7 @@ export function WorksResultsPanel() {
                                 <EmptyTabMessage message="Select a work to see its organisations." />
                             ),
                         },
-                    ]}
+                    ], available)}
                 />
             }
         />

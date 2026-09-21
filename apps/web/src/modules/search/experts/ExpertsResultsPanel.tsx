@@ -42,7 +42,6 @@ import {
     useUrlQueryDraft,
     useUrlSort,
     useUrlState,
-    useUrlTab,
     useUrlYears,
 } from '@/common/url'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
@@ -59,6 +58,8 @@ import {useRelatedSearch} from '../entity/useRelatedSearch'
 import {CoordinatorsToggle, readCoordinatorsOnly} from '../entity/CoordinatorsToggle'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
+import {organisationHiddenTabs, visibleTabs} from '../entity/tabAvailability'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {useTopicNames} from '../entity/useTopicBrowser'
 import {OrganisationOverviewTab} from '../organisations/OrganisationOverviewTab'
 import {ExpertResultRow} from './ExpertResultRow'
@@ -115,7 +116,6 @@ export function ExpertsResultsPanel() {
     const {corpus} = useUrlCorpus()
     const {sort, setSort} = useUrlSort<ExpertSort>(SORT_VALUES)
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {values: filterValues, setFilter, activeCount} = useUrlFilters<ProjectFacetParam>(FILTER_PARAMS)
     const {years, setYears, minYear, maxYear} = useUrlYears()
 
@@ -127,6 +127,11 @@ export function ExpertsResultsPanel() {
     // An expert IS an organisation, so the detail panel reads the
     // organisations endpoint rather than a parallel experts one.
     const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
+    // Tabs whose list is empty for EVERY user of this document are not shown
+    // (see entity/tabAvailability); a list emptied by the page's filters keeps
+    // its tab so the caption can explain.
+    const hiddenTabs = useMemo(() => organisationHiddenTabs(detail), [detail])
+    const {tab, setTab, available} = useAvailableTab(TABS, hiddenTabs)
     const selectedRow = data.hits.find((hit) => hit.id === selectedId) ?? null
 
     // The matching projects, not all of this organisation's: the same query
@@ -247,9 +252,9 @@ export function ExpertsResultsPanel() {
                 ],
                 sources: expertSources(detail, data.hits),
                 // The selected entity's related lists, fetched when a message is sent.
-                lazy: detail ? relatedLazyContext('organisation (expert)', expertRelatedLists({apiParams, organisationId: detail.id, corpus, worksQuery})) : undefined,
+                lazy: detail ? relatedLazyContext('organisation (expert)', expertRelatedLists({apiParams, organisationId: detail.id, corpus, worksQuery}), hiddenTabs) : undefined,
             }),
-        [data, query, corpus, sort, detail, selectedRow, params, labelUrlValue, apiParams, worksQuery],
+        [data, query, corpus, sort, detail, selectedRow, params, labelUrlValue, apiParams, worksQuery, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -333,7 +338,7 @@ export function ExpertsResultsPanel() {
                 <TabbedPanel
                     value={tab}
                     onChange={(next) => setTab(next as (typeof TABS)[number])}
-                    tabs={[
+                    tabs={visibleTabs([
                         {
                             value: 'overview',
                             label: 'Overview',
@@ -431,7 +436,7 @@ export function ExpertsResultsPanel() {
                                 <EmptyTabMessage message="Select an organisation to see its works." />
                             ),
                         },
-                    ]}
+                    ], available)}
                 />
             }
         />

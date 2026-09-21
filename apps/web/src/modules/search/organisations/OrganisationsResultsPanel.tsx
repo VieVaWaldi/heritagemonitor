@@ -32,7 +32,6 @@ import {
     useUrlQueryDraft,
     useUrlSort,
     useUrlState,
-    useUrlTab,
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {RelatedWorksTab} from '../entity/RelatedWorksTab'
@@ -48,6 +47,8 @@ import {useEntitySearch} from '../entity/useEntitySearch'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {organisationName} from './organisationFormat'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
+import {organisationHiddenTabs, visibleTabs} from '../entity/tabAvailability'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {OrganisationOverviewTab} from './OrganisationOverviewTab'
 import {OrganisationProjectsTab} from './OrganisationProjectsTab'
 import {OrganisationResultRow} from './OrganisationResultRow'
@@ -96,7 +97,6 @@ export function OrganisationsResultsPanel() {
     const {corpus} = useUrlCorpus()
     const {sort, setSort} = useUrlSort<OrganisationSort>(SORT_VALUES)
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {values: filterValues, setFilter, activeCount} = useUrlFilters<OrganisationFacetParam>(FILTER_PARAMS)
 
     const {data, error} = useEntitySearch('organisations', organisationSearchResponseSchema, EMPTY_RESULTS)
@@ -104,6 +104,11 @@ export function OrganisationsResultsPanel() {
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
     const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
+    // Tabs whose list is empty for EVERY user of this document are not shown
+    // (see entity/tabAvailability); a list emptied by the page's filters keeps
+    // its tab so the caption can explain.
+    const hiddenTabs = useMemo(() => organisationHiddenTabs(detail), [detail])
+    const {tab, setTab, available} = useAvailableTab(TABS, hiddenTabs)
 
     const projectsTabOpen = tab === 'projects'
     const worksTabOpen = tab === 'works'
@@ -186,9 +191,9 @@ export function OrganisationsResultsPanel() {
                 ],
                 sources: organisationSources(detail, data.hits),
                 // The selected entity's related lists, fetched when a message is sent.
-                lazy: detail ? relatedLazyContext('organisation', organisationRelatedLists(detail.id, projectsRelated.search, worksRelated.search)) : undefined,
+                lazy: detail ? relatedLazyContext('organisation', organisationRelatedLists(detail.id, projectsRelated.search, worksRelated.search), hiddenTabs) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, projectsRelated.search, worksRelated.search],
+        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, projectsRelated.search, worksRelated.search, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -255,7 +260,7 @@ export function OrganisationsResultsPanel() {
                 <TabbedPanel
                     value={tab}
                     onChange={(next) => setTab(next as (typeof TABS)[number])}
-                    tabs={[
+                    tabs={visibleTabs([
                         {
                             value: 'overview',
                             label: 'Overview',
@@ -298,7 +303,7 @@ export function OrganisationsResultsPanel() {
                                 <EmptyTabMessage message="Select an organisation to see its works." />
                             ),
                         },
-                    ]}
+                    ], available)}
                 />
             }
         />

@@ -45,7 +45,6 @@ import {
     useUrlQueryDraft,
     useUrlSort,
     useUrlState,
-    useUrlTab,
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
@@ -63,6 +62,8 @@ import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
+import {minorityHiddenTabs, visibleTabs} from '../entity/tabAvailability'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {MinorityOverviewTab} from './MinorityOverviewTab'
 import {MinorityResultRow} from './MinorityResultRow'
 import {MinoritySubgroupsTab} from './MinoritySubgroupsTab'
@@ -128,7 +129,6 @@ export function MinoritiesResultsPanel() {
     const {corpus} = useUrlCorpus()
     const {sort, setSort} = useUrlSort<MinoritySort>(SORT_VALUES)
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {values: filterValues, setFilter, activeCount} = useUrlFilters<MinorityFacetParam>(FILTER_PARAMS)
 
     const {data, error} = useEntitySearch('minorities', minoritySearchResponseSchema, EMPTY_RESULTS)
@@ -136,6 +136,11 @@ export function MinoritiesResultsPanel() {
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.qid), [data.hits])
     const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('minorities', minorityDtoSchema, rowIds)
+    // Tabs whose list is empty for EVERY user of this document are not shown
+    // (see entity/tabAvailability); a list emptied by the page's filters keeps
+    // its tab so the caption can explain.
+    const hiddenTabs = useMemo(() => minorityHiddenTabs(detail), [detail])
+    const {tab, setTab, available} = useAvailableTab(TABS, hiddenTabs)
     const indexedQids = useMemo(() => new Set(rowIds), [rowIds])
 
     // Every tab is the same request shape keyed to the selected group — see
@@ -274,9 +279,9 @@ export function MinoritiesResultsPanel() {
                 ],
                 sources: minoritySources(detail, data.hits),
                 // The selected entity's related lists, fetched when a message is sent.
-                lazy: detail ? relatedLazyContext('minority group', minorityRelatedLists(detail.qid, projectsRelated.search, worksRelated.search, organisationsRelated.search)) : undefined,
+                lazy: detail ? relatedLazyContext('minority group', minorityRelatedLists(detail.qid, projectsRelated.search, worksRelated.search, organisationsRelated.search), hiddenTabs) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, tab, topicsTab.data, fundersTab.data, projectsRelated.search, worksRelated.search, organisationsRelated.search],
+        [data, query, corpus, sort, detail, params, labelUrlValue, tab, topicsTab.data, fundersTab.data, projectsRelated.search, worksRelated.search, organisationsRelated.search, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -358,7 +363,7 @@ export function MinoritiesResultsPanel() {
                 <TabbedPanel
                     value={tab}
                     onChange={(next) => setTab(next as (typeof TABS)[number])}
-                    tabs={[
+                    tabs={visibleTabs([
                         {
                             value: 'overview',
                             label: 'Overview',
@@ -496,7 +501,7 @@ export function MinoritiesResultsPanel() {
                                 <EmptyTabMessage message="Select a group to see who funded its projects." />
                             ),
                         },
-                    ]}
+                    ], available)}
                 />
             }
         />

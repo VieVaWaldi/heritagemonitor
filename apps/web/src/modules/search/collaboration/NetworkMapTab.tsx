@@ -8,6 +8,7 @@ import {
     ArcNetworkLayer,
     DeckMapCanvas,
     MapControls,
+    NETWORK_MAP_CAMERA,
     useDeckMapViewState,
     useVisualizationColors,
     type ArcNetworkLink,
@@ -32,7 +33,7 @@ export interface NetworkMapTabProps {
 }
 
 /** Europe, where the corpus is concentrated — only until the centre is known. */
-const DEFAULT_VIEW_STATE = {longitude: 10, latitude: 48, zoom: 3.5, pitch: 0}
+const DEFAULT_VIEW_STATE = {longitude: 10, latitude: 48, zoom: 3.5, ...NETWORK_MAP_CAMERA}
 /** Zoom when the map frames a centre. */
 const CENTRE_ZOOM = 4
 

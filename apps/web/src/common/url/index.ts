@@ -12,6 +12,7 @@ export {
     buildFocusPatch,
     buildSuggestionLink,
     canReset,
+    readMaxEdges,
     SELECTION_CLEARING_PARAMS,
     SEARCH_PARAM,
     WEB_ONLY_PARAMS,
@@ -50,6 +51,8 @@ export type {
     UrlPatch,
 } from './codecs'
 
+export {useUrlLayer} from './useUrlLayer'
+export {useUrlMaxEdges} from './useUrlMaxEdges'
 export {useUrlState} from './useUrlState'
 export type {UrlHistoryMode, UrlState, UrlUpdateOptions} from './useUrlState'
 

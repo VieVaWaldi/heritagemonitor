@@ -1,9 +1,27 @@
 // Ported from digicher_webinterface's layers/icons.tsx — kept just the plain
 // SVG-data-URI generator (the canvas-rendered cluster badge isn't needed at
 // this dataset's scale, ~2000 points, see visualizations.ts).
-const INSTITUTION_ICON_PATH = 'M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z'
+//
+// The glyph is MUI's ApartmentIcon — the icon the app already uses for
+// organisations (common/catalog/entities.ts) — so a map marker and the
+// "Organisations" entity read as the same thing. deck.gl needs an image, not a
+// React component, hence the raw path (the `d` of @mui/icons-material's
+// Apartment, 24x24 viewBox) rasterised through an SVG data URI.
+const INSTITUTION_ICON_PATH =
+    'M17 11V3H7v4H3v14h8v-4h2v4h8V11zM7 19H5v-2h2zm0-4H5v-2h2zm0-4H5V9h2zm4 4H9v-2h2zm0-4H9V9h2zm0-4H9V5h2zm4 8h-2v-2h2zm0-4h-2V9h2zm0-4h-2V5h2zm4 12h-2v-2h2zm0-4h-2v-2h2z'
 
 export function institutionIconUrl(color: string): string {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64"><path fill="${color}" d="${INSTITUTION_ICON_PATH}"/></svg>`
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
+
+/**
+ * How big the organisation icon is on every map that draws it. The size is
+ * in metres between the two pixel bounds, so it grows as you zoom in; the
+ * FLOOR is what you see zoomed far out, where it used to shrink to a speck
+ * (20 px). Twice the original on both bounds: the floor for far zoom-out, the
+ * ceiling so zooming in still enlarges it.
+ */
+export const ORG_ICON_SIZE_METERS = 800
+export const ORG_ICON_MIN_PIXELS = 40
+export const ORG_ICON_MAX_PIXELS = 128

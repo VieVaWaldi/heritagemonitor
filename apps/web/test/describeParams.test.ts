@@ -51,8 +51,8 @@ test('values can be relabelled, e.g. a topic id into its name', () => {
 })
 
 test('an unknown param is reported under its own name rather than dropped', () => {
-    assert.deepEqual(describeUrlParams(new URLSearchParams('maxEdges=40')), [
-        {param: 'maxEdges', label: 'maxEdges', values: ['40']},
+    assert.deepEqual(describeUrlParams(new URLSearchParams('somethingElse=40')), [
+        {param: 'somethingElse', label: 'somethingElse', values: ['40']},
     ])
 })
 

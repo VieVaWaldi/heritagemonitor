@@ -68,3 +68,59 @@ export const organisationNetworkResponseSchema = z.object({
     }),
 })
 export type OrganisationNetworkResponse = z.infer<typeof organisationNetworkResponseSchema>
+
+// --- the query network -------------------------------------------------------
+//
+// Who collaborates within the projects a text search matched: pairs of
+// organisations counted over the top of the ranking, the strongest pairs kept.
+
+/** Edges returned unless the caller asks for fewer or more. */
+export const QUERY_NETWORK_DEFAULT_MAX_EDGES = 100
+export const QUERY_NETWORK_MIN_EDGES = 10
+/** The most edges a request may ask for — a hard server cap, the force layout gets slow beyond it. */
+export const QUERY_NETWORK_HARD_MAX_EDGES = 300
+/** Projects counted: the top of the ranking. The UI says "based on the top N matching projects". */
+export const QUERY_NETWORK_PROJECTS_SCANNED = 2000
+
+export const queryNetworkRequestSchema = z.object({
+    q: z.string().optional(),
+    c: corpusSchema.optional(),
+    years: z.string().optional(),
+    funder: z.array(z.string()).optional(),
+    programme: z.array(z.string()).optional(),
+    topic: z.array(z.string()).optional(),
+    subfield: z.array(z.string()).optional(),
+    field: z.array(z.string()).optional(),
+    maxEdges: z.coerce.number().int().min(1).max(QUERY_NETWORK_HARD_MAX_EDGES).optional(),
+})
+export type QueryNetworkRequest = z.infer<typeof queryNetworkRequestSchema>
+
+export const queryNetworkResponseSchema = z.object({
+    /**
+     * The endpoints of the kept edges, most connected first. `lat`/`lng` are
+     * null for the many organisations without coordinates: the force graph
+     * does not need them, the geographic view skips them.
+     */
+    nodes: z.array(networkNodeSchema),
+    /** Strongest first: shared projects, ties broken by the ranking of those projects. */
+    edges: z.array(networkEdgeSchema),
+    meta: z.object({
+        /** Projects actually counted (at most QUERY_NETWORK_PROJECTS_SCANNED). */
+        projectsScanned: z.number(),
+        /** Projects the query matched — a floor when `totalCapped`, the real magnitude in `approxTotal` when known. */
+        totalMatches: z.number(),
+        totalCapped: z.boolean(),
+        approxTotal: z.number().nullable(),
+        /** Collaborating pairs found before the cap. */
+        edgesFound: z.number(),
+        /** True when the edge cap dropped pairs. */
+        capped: z.boolean(),
+        /** Drawn nodes without coordinates: in the graph, not on the map. */
+        withoutGeo: z.number(),
+        mode: z.enum(['strict', 'fuzzy']),
+        didYouMean: z.array(z.string()),
+        /** False while the server's organisation table is still loading. */
+        complete: z.boolean(),
+    }),
+})
+export type QueryNetworkResponse = z.infer<typeof queryNetworkResponseSchema>

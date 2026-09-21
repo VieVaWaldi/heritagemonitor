@@ -26,6 +26,12 @@ const APPROX_COUNT_GRACE_MS = 250
 export interface SearchExecution<TDocument> {
     /** `_source` of each hit, in ranking order. */
     documents: TDocument[]
+    /**
+     * Every hit in ranking order with its `docvalue_fields`, for callers that
+     * ask for `_source: false` (the query network scans 2,000 projects and
+     * only wants two id lists from each).
+     */
+    hits: Array<{id: string; fields: Record<string, unknown[]>}>
     /** Exact up to 10,000; a floor beyond it — see `totalCapped`. */
     total: number
     totalCapped: boolean
@@ -74,7 +80,7 @@ export interface RunSearchOptions {
 interface SearchResponseBody<TDocument> {
     hits: {
         total: {value: number; relation?: string} | number
-        hits: Array<{_id: string; _source?: TDocument}>
+        hits: Array<{_id: string; _source?: TDocument; fields?: Record<string, unknown[]>}>
     }
     aggregations?: Record<string, query.TermsAggregationResult>
     suggest?: unknown
@@ -137,6 +143,7 @@ export async function runSearch<TDocument>({
 
     return {
         documents: response.hits.hits.map((hit) => hit._source).filter((document): document is TDocument => document != null),
+        hits: response.hits.hits.map((hit) => ({id: hit._id, fields: hit.fields ?? {}})),
         total: total.value,
         totalCapped: total.capped,
         approxTotal,

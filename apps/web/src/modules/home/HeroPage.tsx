@@ -66,7 +66,7 @@ export function HeroPage() {
     // A suggestion that carries an id lands on a list of only that document,
     // open, rather than on a text search for its name.
     function handleSuggestionSelect(suggestion: EntitySuggestion) {
-        if (suggestion.id && activeRoute) {
+        if (suggestion.id && activeRoute && suggestionFocus !== 'query') {
             // Only that document, selected (or the centre of the network) — see
             // buildSuggestionLink. Not a text search for its name, which would
             // list everything similar too.

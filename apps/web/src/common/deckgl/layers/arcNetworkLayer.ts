@@ -1,7 +1,7 @@
 import {CompositeLayer, type PickingInfo} from '@deck.gl/core'
 import {ArcLayer, IconLayer} from '@deck.gl/layers'
 import {hexToRgb} from '../colors'
-import {institutionIconUrl} from './icons'
+import {institutionIconUrl, ORG_ICON_MAX_PIXELS, ORG_ICON_MIN_PIXELS, ORG_ICON_SIZE_METERS} from './icons'
 
 // Arcs between places, plus one icon per place.
 //
@@ -23,6 +23,7 @@ const SELECTED_ARC_WIDTH = 6
 const DIMMED_ALPHA = 60
 /** From this many links, a node is drawn as a hub (secondary colour). */
 const HUB_LINK_COUNT_THRESHOLD = 2
+
 
 /** One arc: two endpoints and how strongly they are connected. */
 export interface ArcNetworkLink {
@@ -108,10 +109,10 @@ export class ArcNetworkLayer extends CompositeLayer<ArcNetworkLayerProps> {
                 height: 64,
                 anchorY: 64,
             }),
-            getSize: 400,
+            getSize: ORG_ICON_SIZE_METERS,
             sizeUnits: 'meters',
-            sizeMinPixels: 10,
-            sizeMaxPixels: 32,
+            sizeMinPixels: ORG_ICON_MIN_PIXELS,
+            sizeMaxPixels: ORG_ICON_MAX_PIXELS,
             onHover,
             onClick,
             updateTriggers: {getIcon: [secondaryColorHex, primaryColorHex]},

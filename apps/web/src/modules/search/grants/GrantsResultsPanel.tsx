@@ -32,7 +32,6 @@ import {
     useUrlQueryDraft,
     useUrlSort,
     useUrlState,
-    useUrlTab,
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
@@ -46,6 +45,8 @@ import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {grantTitle} from './grantFormat'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
+import {grantHiddenTabs, visibleTabs} from '../entity/tabAvailability'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {GrantOrganisationsTab} from './GrantOrganisationsTab'
 import {GrantOverviewTab} from './GrantOverviewTab'
 import {GrantProjectsTab} from './GrantProjectsTab'
@@ -98,7 +99,6 @@ export function GrantsResultsPanel() {
     const {corpus} = useUrlCorpus()
     const {sort, setSort} = useUrlSort<GrantSort>(SORT_VALUES)
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {values: filterValues, setFilter, activeCount} = useUrlFilters<GrantFacetParam>(FILTER_PARAMS)
 
     const {data, error} = useEntitySearch('grants', grantSearchResponseSchema, EMPTY_RESULTS)
@@ -106,6 +106,11 @@ export function GrantsResultsPanel() {
 
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
     const {selectedId, detail, loading: detailLoading, select, selectionDropped} = useSelectedEntity('grants', grantDetailSchema, rowIds)
+    // Tabs whose list is empty for EVERY user of this document are not shown
+    // (see entity/tabAvailability); a list emptied by the page's filters keeps
+    // its tab so the caption can explain.
+    const hiddenTabs = useMemo(() => grantHiddenTabs(detail), [detail])
+    const {tab, setTab, available} = useAvailableTab(TABS, hiddenTabs)
 
     const projectsTabOpen = tab === 'projects'
     const organisationsTabOpen = tab === 'organisations'
@@ -184,9 +189,9 @@ export function GrantsResultsPanel() {
                 // there is nothing Lucy could be allowed to fetch.
                 sources: [],
                 // The selected entity's related lists, fetched when a message is sent.
-                lazy: detail ? relatedLazyContext('funding stream', grantRelatedLists(detail.id, corpus, projectsRelated.search, organisationsRelated.search)) : undefined,
+                lazy: detail ? relatedLazyContext('funding stream', grantRelatedLists(detail.id, corpus, projectsRelated.search, organisationsRelated.search), hiddenTabs) : undefined,
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, organisationsTabOpen, organisations, projectsRelated.search, organisationsRelated.search],
+        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects, organisationsTabOpen, organisations, projectsRelated.search, organisationsRelated.search, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -251,7 +256,7 @@ export function GrantsResultsPanel() {
                 <TabbedPanel
                     value={tab}
                     onChange={(next) => setTab(next as (typeof TABS)[number])}
-                    tabs={[
+                    tabs={visibleTabs([
                         {
                             value: 'overview',
                             label: 'Overview',
@@ -292,7 +297,7 @@ export function GrantsResultsPanel() {
                                 <EmptyTabMessage message="Select a funding stream to see the organisations behind it." />
                             ),
                         },
-                    ]}
+                    ], available)}
                 />
             }
         />

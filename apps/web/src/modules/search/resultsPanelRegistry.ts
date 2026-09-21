@@ -1,5 +1,6 @@
 import type {ComponentType} from 'react'
 import {OrganisationNetworkPanel} from './collaboration/OrganisationNetworkPanel'
+import {QueryNetworkPanel} from './collaboration/QueryNetworkPanel'
 import {SearchEntityPanel} from './entity/SearchEntityPanel'
 import {ExpertsResultsPanel} from './experts/ExpertsResultsPanel'
 import {FundingResultsPanel} from './funding/FundingResultsPanel'
@@ -23,4 +24,5 @@ export const RESULTS_PANEL_BY_USE_CASE: Partial<Record<string, ComponentType>> =
     // A sub-use-case with its own panel is keyed `<use case>/<sub-use case>`
     // (UseCaseSearchPage looks that up first).
     'collaboration/organisationNetwork': OrganisationNetworkPanel,
+    'collaboration/queryNetwork': QueryNetworkPanel,
 }

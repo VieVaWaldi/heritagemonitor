@@ -138,6 +138,23 @@ export const RELATED_RELATIONS: Readonly<Record<string, RelatedRelation>> = {
         omit: {[SEARCH_PARAM.query]: 'the network is centred on one organisation, not a text search'},
     },
 
+    // The query network IS a text search over projects: q, the corpus and the
+    // project filters narrow the network and the project lists inside it (one
+    // string for all of them, so an edge's weight and its listed projects agree).
+    'collaboration:queryNetwork': {
+        carry: [
+            ...ALWAYS,
+            SEARCH_PARAM.query,
+            SEARCH_PARAM.years,
+            SEARCH_PARAM.funder,
+            SEARCH_PARAM.programme,
+            SEARCH_PARAM.topic,
+            SEARCH_PARAM.subfield,
+            SEARCH_PARAM.field,
+        ],
+        omit: {},
+    },
+
     'works:projects': {
         carry: [...ALWAYS],
         omit: {[SEARCH_PARAM.query]: 'it searches work text, not projects'},
@@ -179,6 +196,7 @@ const QUERY_MEANING: Readonly<Record<string, string>> = {
     'experts:works': 'works of this organisation that match it',
     'funding:projects': 'projects of this organisation that match it',
     'projects:works': 'works of this project that match it',
+    'collaboration:queryNetwork': 'projects that match it',
 }
 
 export interface RelatedCaptionOptions {

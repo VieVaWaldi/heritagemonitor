@@ -45,13 +45,13 @@ export function selectedPairLine(centre: NetworkNode, partner: NetworkNode): str
  * fetched when a message is sent (see resolvePageContext) — their links are
  * the sources Lucy may fetch, through the same direct-host rule as everywhere.
  */
-export function networkLazyContext(options: {centre: NetworkNode; partner: NetworkNode | null; filterQuery: string}): PageContextLazy {
-    const {centre, partner, filterQuery} = options
+export function networkLazyContext(options: {centre: NetworkNode; partner: NetworkNode | null; filterQuery: string; hiddenTabs?: readonly string[]}): PageContextLazy {
+    const {centre, partner, filterQuery, hiddenTabs} = options
     const lists: RelatedListSpec[] = [
         ...(partner && partner.id !== centre.id
-            ? [projectsOf(`Projects that link ${centre.name} and ${partner.name}`, sharedProjectsPath(centre.id, partner.ids, 1, filterQuery), projectSearchResponseSchema)]
+            ? [projectsOf(`Projects that link ${centre.name} and ${partner.name}`, sharedProjectsPath(centre.id, partner.ids, 1, filterQuery), projectSearchResponseSchema, 'detail')]
             : []),
         projectsOf(`Projects of ${centre.name}`, centreProjectsPath(centre.id, 1, filterQuery), projectSearchResponseSchema),
     ]
-    return relatedLazyContext('organisation network', lists)
+    return relatedLazyContext('organisation network', lists, hiddenTabs)
 }

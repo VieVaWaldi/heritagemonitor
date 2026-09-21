@@ -16,7 +16,7 @@ import {SEARCH_PARAM, URL_PARAM_LABELS, type SearchParamName} from './codecs.ts'
 const ALLOWED_VALUES: Partial<Record<SearchParamName, readonly string[]>> = {
     [SEARCH_PARAM.entity]: ['projects', 'works', 'organisations', 'grants'],
     [SEARCH_PARAM.corpus]: ['science', 'dch'],
-    [SEARCH_PARAM.layer]: ['hexes'],
+    [SEARCH_PARAM.layer]: ['network', 'arcs'],
     [SEARCH_PARAM.allWorks]: ['true'],
     [SEARCH_PARAM.hasGeo]: ['true'],
     [SEARCH_PARAM.coordinators]: ['true'],
@@ -25,6 +25,7 @@ const ALLOWED_VALUES: Partial<Record<SearchParamName, readonly string[]>> = {
 /** Formats that are not obvious from the name alone. */
 const FORMATS: Partial<Record<SearchParamName, string>> = {
     [SEARCH_PARAM.years]: '2019-2024',
+    [SEARCH_PARAM.maxEdges]: 'a number from 10 to 300',
     [SEARCH_PARAM.view]: 'lat,lng,zoom (4 decimals)',
     [SEARCH_PARAM.page]: 'a number from 1',
     [SEARCH_PARAM.topic]: 'numeric topic id, repeat the param for several',
@@ -78,6 +79,11 @@ const ROUTES: ReadonlyArray<{route: string; what: string; examples: readonly str
         route: '/search/collaboration/organisationNetwork',
         what: 'who works with whom, centred on an organisation',
         examples: ['/search/collaboration/organisationNetwork?center=<organisation id>&c=dch'],
+    },
+    {
+        route: '/search/collaboration/queryNetwork',
+        what: 'who collaborates within the projects a text query matches (force graph, or arcs with layer=arcs)',
+        examples: ['/search/collaboration/queryNetwork?q=archaeology&c=dch', '/search/collaboration/queryNetwork?q=virtual%20reality&maxEdges=150&layer=arcs'],
     },
 ]
 

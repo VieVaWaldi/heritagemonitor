@@ -1,5 +1,5 @@
 import {termsAgg} from './aggregations.js'
-import {projectsBody, type ProjectFilters} from './projects.js'
+import {projectsBody, type ProjectFilters, type TextMode} from './projects.js'
 
 /**
  * The partners of one organisation: every organisation on a project the
@@ -18,4 +18,37 @@ export function orgNetworkBody(centreId: string, filters: ProjectFilters, max: n
         filters: {...filters, orgAll: [...(filters.orgAll ?? []), centreId]},
         aggs: {partners: termsAgg('org_ids', max + 1, {order: {_count: 'desc'}})},
     })
+}
+
+/** Projects scanned for the query network — the top of the ranking, not all matches. */
+export const QUERY_NETWORK_SCAN = 2000
+
+/**
+ * The projects a query network is counted from: the top QUERY_NETWORK_SCAN
+ * matches, each carrying only its two organisation id lists.
+ *
+ * `_source: false` and `docvalue_fields` are the whole point: fetching
+ * 2,000 full project documents (summaries included) took 24-30 s on a cold
+ * cache, reading two doc-value columns takes a few seconds cold and well
+ * under 200 ms warm. NEVER add `_source` here.
+ *
+ * Ranked by relevance for a text query; a blank query has no relevance, so
+ * it ranks by budget (the projects that matter most first) — the same order
+ * the projects page uses for its blank list.
+ */
+export function queryNetworkBody(options: {
+    q: string
+    filters: ProjectFilters
+    mode?: TextMode
+    size?: number
+    from?: number
+    suggest?: boolean
+    timeout?: string
+}): Record<string, unknown> {
+    const {q, filters, mode, size = QUERY_NETWORK_SCAN, from = 0, suggest, timeout} = options
+    return {
+        ...projectsBody({q, filters, mode, size, from, sort: q.trim() ? 'relevance' : 'budget', suggest, timeout}),
+        _source: false,
+        docvalue_fields: ['org_ids', 'coordinator_ids'],
+    }
 }

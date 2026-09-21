@@ -23,7 +23,6 @@ import {
     useUrlPage,
     useUrlSelection,
     useUrlState,
-    useUrlTab,
     useUrlYears,
 } from '@/common/url'
 import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
@@ -31,6 +30,8 @@ import {FacetValuesMenuButton} from '../entity/FacetValuesMenuButton'
 import {RelatedList, type RelatedRow} from '../entity/RelatedList'
 import {TopicsFilterButton} from '../entity/TopicsFilterButton'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
+import {organisationNetworkHiddenTabs, visibleTabs} from '../entity/tabAvailability'
+import {useAvailableTab} from '../entity/useAvailableTab'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
 import {useTopicNames} from '../entity/useTopicBrowser'
 import {organisationSources, selectedOrganisationSection} from '../organisations/organisationsChatContext'
@@ -110,7 +111,6 @@ export function OrganisationNetworkPanel() {
     const {params, update} = useUrlState()
     const {corpus} = useUrlCorpus()
     const {page, setPage} = useUrlPage()
-    const {tab, setTab} = useUrlTab(TABS)
     const {initialView, onViewChange} = useUrlMapView()
     const {years, setYears, minYear, maxYear} = useUrlYears()
     const {values: filterValues, setFilter, activeCount} = useUrlFilters(FILTER_PARAMS)
@@ -134,6 +134,13 @@ export function OrganisationNetworkPanel() {
     const {selectedId: requestedId} = useUrlSelection(centreId)
     const selectedNode = findNode(network, requestedId) ?? centre
     const detail = useOrganisationDetail(selectedNode?.id ?? null)
+    // The centre's own record decides whether its Projects tab exists (see
+    // entity/tabAvailability). When the centre IS the selection it is the same
+    // record, so it is not fetched twice.
+    const selectedIsCentre = selectedNode !== null && selectedNode.id === centre?.id
+    const otherCentreDetail = useOrganisationDetail(selectedIsCentre ? null : (centre?.id ?? null))
+    const hiddenTabs = useMemo(() => organisationNetworkHiddenTabs(selectedIsCentre ? detail : otherCentreDetail), [selectedIsCentre, detail, otherCentreDetail])
+    const {tab, setTab, available} = useAvailableTab(TABS, hiddenTabs)
     const pairSelected = centre !== null && selectedNode !== null && selectedNode.id !== centre.id
 
     const related = useRelatedRequest('collaboration:projects')
@@ -221,9 +228,9 @@ export function OrganisationNetworkPanel() {
                           },
                       ],
                 sources: detail ? organisationSources(detail, []) : [],
-                lazy: centre ? networkLazyContext({centre, partner: selectedNode, filterQuery}) : undefined,
+                lazy: centre ? networkLazyContext({centre, partner: selectedNode, filterQuery, hiddenTabs}) : undefined,
             }),
-        [centre, network, corpus, params, labelUrlValue, pairSelected, selectedNode, detail, filterQuery],
+        [centre, network, corpus, params, labelUrlValue, pairSelected, selectedNode, detail, filterQuery, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -316,7 +323,7 @@ export function OrganisationNetworkPanel() {
                         <TabbedPanel
                             value={tab}
                             onChange={(next) => setTab(next as (typeof TABS)[number])}
-                            tabs={[
+                            tabs={visibleTabs([
                                 {
                                     value: 'map',
                                     label: 'Map',
@@ -377,7 +384,7 @@ export function OrganisationNetworkPanel() {
                                         <EmptyTabMessage message="Pick an organisation in the search bar to see its projects." />
                                     ),
                                 },
-                            ]}
+                            ], available)}
                         />
                     </Box>
                 </Box>

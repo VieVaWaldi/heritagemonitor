@@ -17,6 +17,8 @@ export interface SingleSliderProps {
     step?: number
     label?: string
     playIntervalMs?: number
+    /** Show the play/pause button that steps through the range. Only makes sense for something like years. */
+    playable?: boolean
 }
 
 export function SingleSlider({
@@ -27,6 +29,7 @@ export function SingleSlider({
     step = 1,
     label = 'Year',
     playIntervalMs = 1000,
+    playable = true,
 }: SingleSliderProps) {
     const [localValue, setLocalValue] = useState<number>(value)
     const [input, setInput] = useState<string>(String(value))
@@ -161,9 +164,11 @@ export function SingleSlider({
                         }}
                     />
                 </Box>
-                <IconButton onClick={togglePlay} size="small" color="primary">
-                    {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-                </IconButton>
+                {playable && (
+                    <IconButton onClick={togglePlay} size="small" color="primary">
+                        {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+                    </IconButton>
+                )}
             </Box>
         </Box>
     )

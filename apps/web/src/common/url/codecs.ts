@@ -65,8 +65,10 @@ export const SEARCH_PARAM = {
     orgAll: 'orgAll',
     /** Map camera: `lat,lng,zoom` at 4 decimals. See readMapView. */
     view: 'view',
-    /** Which map visualization is showing (`hexes`, ...). */
+    /** Which visualization is showing: `network` (force graph) or `arcs` (geographic) on the query network. */
     layer: 'layer',
+    /** Query network: how many of the strongest collaborations are kept (10-300). */
+    maxEdges: 'maxEdges',
     /** Topic-tree selections; three levels sharing one cap, see readTopicSelection. */
     topic: 'topic',
     subfield: 'subfield',
@@ -95,6 +97,9 @@ export const WEB_ONLY_PARAMS: readonly string[] = [
     // beside it.
     SEARCH_PARAM.view,
     SEARCH_PARAM.layer,
+    // How many edges the query network keeps is the network endpoint's own
+    // param; the projects endpoints never see it.
+    SEARCH_PARAM.maxEdges,
     // The organisation network's own centre; the projects endpoints never
     // see it (the network request is built from `center` explicitly).
     SEARCH_PARAM.center,
@@ -142,6 +147,17 @@ export function readOneOf<T extends string>(params: URLSearchParams, name: strin
 export function readOptionalOneOf<T extends string>(params: URLSearchParams, name: string, allowed: readonly T[]): T | null {
     const value = params.get(name)
     return allowed.includes(value as T) ? (value as T) : null
+}
+
+/**
+ * The query network's edge cap: an integer within [min, max], anything else
+ * falls back to the default. Clamped rather than rejected — a hand-edited
+ * `maxEdges=99999` is a request for "as many as allowed".
+ */
+export function readMaxEdges(params: URLSearchParams, bounds: {min: number; max: number; fallback: number}): number {
+    const raw = Number(params.get(SEARCH_PARAM.maxEdges))
+    if (!params.get(SEARCH_PARAM.maxEdges) || !Number.isFinite(raw)) return bounds.fallback
+    return Math.min(bounds.max, Math.max(bounds.min, Math.round(raw)))
 }
 
 /**
@@ -434,6 +450,7 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
     [SEARCH_PARAM.allWorks]: 'Showing all works (not only matching)',
     [SEARCH_PARAM.hasGeo]: 'Only organisations with coordinates',
+    [SEARCH_PARAM.maxEdges]: 'Query network: how many of the strongest collaborations are shown (10-300, default 100)',
     [SEARCH_PARAM.center]: 'Organisation in the middle of the collaboration network (its id; sel = the selected partner)',
     [SEARCH_PARAM.orgAll]: 'Only projects shared by ALL of these organisation ids',
     [SEARCH_PARAM.coordinators]: 'Only organisations coordinating the projects (EC projects only; ranks by coordinated projects)',
@@ -565,9 +582,12 @@ export function buildFocusPatch(params: URLSearchParams, id: string, focus: Sugg
 /**
  * What picking an autocomplete suggestion does on a route: `only` narrows the
  * list to that document (every entity list); `center` makes it the centre of
- * the organisation network. Declared per UseCase action (common/catalog).
+
+ * the organisation network; `query` searches the picked suggestion's text (the
+ * query network, whose page is a text search, not a list of one document).
+ * Declared per UseCase action (common/catalog).
  */
-export type SuggestionFocus = 'only' | 'center'
+export type SuggestionFocus = 'only' | 'center' | 'query'
 
 /** The link the landing page follows for a picked suggestion, on the action's route. */
 export function buildSuggestionLink({

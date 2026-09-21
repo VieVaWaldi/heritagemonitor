@@ -12,9 +12,10 @@ export interface UseCaseAction {
     /**
      * What picking an autocomplete suggestion does on this route. Default
      * `only`: the list is restricted to that one document. `center`: the
-     * document becomes the centre of the organisation network.
+     * document becomes the centre of the organisation network. `query`: the
+     * suggestion's text is searched (the query network is a text search).
      */
-    suggestionFocus?: 'only' | 'center'
+    suggestionFocus?: 'only' | 'center' | 'query'
 }
 
 export interface SubUseCase {
@@ -150,11 +151,13 @@ export const USE_CASES: UseCase[] = [
             {
                 key: 'queryNetwork',
                 name: 'Network of a query',
-                examples: ['Leiden University'],
+                examples: ['digital archaeology', 'virtual reality heritage'],
                 action: {
                     entity: 'projects',
                     route: '/search/collaboration/queryNetwork',
+                    suggestionFocus: 'query',
                 },
+                hasResultsPanel: true,
             },
         ],
     },

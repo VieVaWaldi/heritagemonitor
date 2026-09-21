@@ -47,6 +47,8 @@ interface LoadedList {
 }
 
 export interface RelatedListSpec {
+    /** The detail-panel tab this list belongs to: a hidden tab's list is skipped (see tabAvailability). */
+    tab: string
     /** e.g. "Works of this project". */
     title: string
     path: string
@@ -67,12 +69,15 @@ function hitsList<T>(options: {
     title: string
     path: string
     noun: string
+    /** Overrides the tab the list belongs to (default: the plural of `noun`). */
+    tab?: string
     schema: {parse(data: unknown): HitsResponse<T>}
     summarize: (row: T) => string
     /** The best fetchable link of a row, with the label shown in brackets. */
     source: (row: T) => {label: string; url: string} | null
 }): RelatedListSpec {
     return {
+        tab: options.tab ?? `${options.noun.toLowerCase()}s`,
         title: options.title,
         path: options.path,
         load: async (signal) => {
@@ -92,8 +97,9 @@ function hitsList<T>(options: {
 
 // --- the three row kinds ----------------------------------------------------
 
-export const projectsOf = (title: string, path: string, schema: {parse(data: unknown): HitsResponse<ProjectRow>}) =>
+export const projectsOf = (title: string, path: string, schema: {parse(data: unknown): HitsResponse<ProjectRow>}, tab?: string) =>
     hitsList<ProjectRow>({
+        tab,
         title,
         path,
         noun: 'Project',
@@ -169,6 +175,7 @@ export function grantRelatedLists(grantId: string, corpus: string | undefined, p
     return [
         projectsOf('Projects funded by this stream', relatedPaths.grantProjects(grantId, corpus, 1, projectsSearch), projectSearchResponseSchema),
         {
+            tab: 'organisations',
             title: 'Organisations most involved in this stream (the EUR figure is each organisation\'s lifetime total, not this stream\'s)',
             path: organisationsPath,
             load: async (signal) => {
@@ -220,7 +227,10 @@ function preface(entityNoun: string): PageContextSection {
  * `key` is the list of requests, so it changes exactly when a different
  * request would be made (another row, another filter, another corpus).
  */
-export function relatedLazyContext(entityNoun: string, lists: RelatedListSpec[]): PageContextLazy {
+export function relatedLazyContext(entityNoun: string, allLists: RelatedListSpec[], hiddenTabs: readonly string[] = []): PageContextLazy {
+    // A tab that is hidden for this document has no list to show — and nothing
+    // to fetch: Lucy is not told about lists the user cannot see.
+    const lists = allLists.filter((list) => !hiddenTabs.includes(list.tab))
     return {
         key: lists.map((list) => list.path).join('|'),
         load: async (signal) => {
