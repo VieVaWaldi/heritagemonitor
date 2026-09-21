@@ -1,32 +1,37 @@
 'use client'
 
-import {useMemo, useState} from 'react'
+import {useCallback, useMemo, useState} from 'react'
 import type {CollaborationEdge} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
-import FormControl from '@mui/material/FormControl'
-import MenuItem from '@mui/material/MenuItem'
-import Paper from '@mui/material/Paper'
-import Select, {type SelectChangeEvent} from '@mui/material/Select'
-import Typography from '@mui/material/Typography'
 import {useTheme} from '@mui/material/styles'
-import {DeckMapCanvas, MapControls, useDeckMapViewState} from '@/common/deckgl'
-import {collaborationTooltip} from './deckgl/collaborationTooltip'
+import {NAVBAR_HEIGHT, PaginatedList, TabbedPanel} from '@/common/components'
+import {useDeckMapViewState} from '@/common/deckgl'
+import {Text} from '@/common/text'
+import {DeckGlMapTab} from './deckgl/DeckGlMapTab'
+import {ExplorerRow} from './deckgl/ExplorerRow'
 import {useCollaborationEdges} from './deckgl/useCollaborationEdges'
 import {DEFAULT_VISUALIZATION_ID, VISUALIZATIONS} from './deckgl/visualizations'
 
+const PAGE_SIZE = 10
+
 // Default view: centered over continental Europe, where the sampled
 // collaboration edges are concentrated (see the extraction that produced
-// apps/web/public/demo/collaboration-edges.json).
-const DEFAULT_VIEW_STATE = {longitude: 8, latitude: 48, zoom: 4}
+// apps/web/public/demo/collaboration-edges.json). Tilted so hexagon height reads.
+const DEFAULT_VIEW_STATE = {longitude: 8, latitude: 48, zoom: 4, pitch: 30}
 
-// Stable reference (not `[]` inline below) so the layers useMemo doesn't
+// Stable reference (not `[]` inline below) so the model useMemo doesn't
 // recompute every render while edgesState is still loading.
 const EMPTY_EDGES: CollaborationEdge[] = []
 
+// Search-style layout: a paginated list of the items the map draws on the
+// left, a tabbed panel (map / selected item) on the right. The list, the map
+// and the detail tab all share one selectedId.
 export function DeckGlMapDemoPage() {
     const theme = useTheme()
     const edgesState = useCollaborationEdges()
     const [visualizationId, setVisualizationId] = useState(DEFAULT_VISUALIZATION_ID)
+    const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [page, setPage] = useState(1)
     const viewState = useDeckMapViewState(DEFAULT_VIEW_STATE)
 
     const colors = useMemo(
@@ -34,62 +39,105 @@ export function DeckGlMapDemoPage() {
             primary: theme.palette.primary.main,
             primaryLight: theme.palette.primary.light,
             secondary: theme.palette.secondary.main,
+            highlight: theme.palette.warning.main,
         }),
         [theme],
     )
 
     const edges = edgesState.state === 'ok' ? edgesState.edges : EMPTY_EDGES
     const visualization = VISUALIZATIONS.find((v) => v.id === visualizationId) ?? VISUALIZATIONS[0]
+    const model = useMemo(() => visualization.prepare(edges), [visualization, edges])
 
-    const layers = useMemo(() => visualization.createLayers(edges, colors, {}), [visualization, edges, colors])
+    // Selecting from the map also jumps the list to the item's page.
+    const select = useCallback(
+        (id: string) => {
+            setSelectedId(id)
+            const index = model.items.findIndex((item) => item.id === id)
+            if (index >= 0) setPage(Math.floor(index / PAGE_SIZE) + 1)
+        },
+        [model],
+    )
 
-    function handleVisualizationChange(event: SelectChangeEvent) {
-        setVisualizationId(event.target.value)
+    const layers = useMemo(
+        () => model.createLayers(colors, {selectedId, onSelect: select}),
+        [model, colors, selectedId, select],
+    )
+
+    function handleVisualizationChange(id: string) {
+        setVisualizationId(id)
+        setSelectedId(null)
+        setPage(1)
     }
 
+    const selectedItem = model.items.find((item) => item.id === selectedId)
+    const pageCount = Math.max(1, Math.ceil(model.items.length / PAGE_SIZE))
+    const pageItems = model.items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
     return (
-        <Box sx={{display: 'flex', flexDirection: 'column', gap: 2, p: 2}}>
-            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2}}>
-                <Typography variant="h6">Collaboration network</Typography>
-                <FormControl size="small" sx={{minWidth: 220}}>
-                    <Select value={visualizationId} onChange={handleVisualizationChange}>
-                        {VISUALIZATIONS.map((option) => (
-                            <MenuItem key={option.id} value={option.id}>
-                                {option.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-            </Box>
-
-            <Typography variant="body2" color="text.secondary">
-                {visualization.description}
-            </Typography>
-
-            <Paper variant="outlined" sx={{position: 'relative', height: 600, overflow: 'hidden'}}>
-                <DeckMapCanvas
-                    id="demo-collaboration-network"
-                    layers={layers}
-                    initialViewState={viewState.initialViewState}
-                    commandedViewState={viewState.commandedViewState}
-                    onViewStateChange={viewState.onViewStateChange}
-                    isGlobe={viewState.isGlobe}
-                    getTooltip={collaborationTooltip}
-                    loading={edgesState.state === 'loading'}
-                    error={edgesState.state === 'error' ? new Error(edgesState.message) : null}
-                />
-
-                <Box sx={{position: 'absolute', bottom: 16, right: 16}}>
-                    <MapControls
-                        onReset={viewState.reset}
-                        onZoomIn={() => viewState.zoomBy(1)}
-                        onZoomOut={() => viewState.zoomBy(-1)}
-                        onGeolocate={viewState.geolocate}
-                        isGlobe={viewState.isGlobe}
-                        onToggleGlobe={viewState.toggleGlobe}
+        <Box sx={{p: 4}}>
+            <Box
+                sx={{
+                    width: '90%',
+                    mx: 'auto',
+                    height: `calc(100dvh - ${NAVBAR_HEIGHT}px - 64px)`,
+                    display: 'flex',
+                    gap: 3,
+                }}
+            >
+                <Box sx={{flex: '1 1 0', minWidth: 0}}>
+                    <PaginatedList
+                        header={
+                            <Text variant="body2" color="text.secondary">
+                                {model.items.length} {visualization.itemNoun}
+                            </Text>
+                        }
+                        items={pageItems}
+                        getItemKey={(item) => item.id}
+                        renderItem={(item) => <ExplorerRow item={item} selected={item.id === selectedId} onSelect={select} />}
+                        page={page}
+                        pageCount={pageCount}
+                        onPageChange={setPage}
                     />
                 </Box>
-            </Paper>
+
+                <Box sx={{flex: '2 1 0', minWidth: 0}}>
+                    <TabbedPanel
+                        tabs={[
+                            {
+                                value: 'map',
+                                label: 'Map',
+                                fill: true,
+                                keepMounted: true,
+                                content: (
+                                    <DeckGlMapTab
+                                        visualizations={VISUALIZATIONS}
+                                        visualization={visualization}
+                                        onVisualizationChange={handleVisualizationChange}
+                                        layers={layers}
+                                        viewState={viewState}
+                                        edgesState={edgesState}
+                                    />
+                                ),
+                            },
+                            {
+                                value: 'details',
+                                label: 'Details',
+                                content: (
+                                    <Box sx={{p: 2.5}}>
+                                        {selectedItem ? (
+                                            selectedItem.renderDetail(select)
+                                        ) : (
+                                            <Text variant="body2" color="text.secondary">
+                                                {visualization.emptyDetailHint}
+                                            </Text>
+                                        )}
+                                    </Box>
+                                ),
+                            },
+                        ]}
+                    />
+                </Box>
+            </Box>
         </Box>
     )
 }
