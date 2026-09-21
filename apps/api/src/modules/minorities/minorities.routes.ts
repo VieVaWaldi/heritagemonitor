@@ -1,4 +1,4 @@
-import type {MinorityDto, MinoritySearchRequest, MinoritySearchResponse, MinoritySuggestResponse} from '@heritagemonitor/shared'
+import type {EntitySuggestResponse, MinorityDto, MinoritySearchRequest, MinoritySearchResponse} from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
 import {getMinorityById, searchMinorities, suggestMinorities} from './minorities.service.js'
 
@@ -59,7 +59,7 @@ export async function minoritiesRoutes(fastify: FastifyInstance) {
     fastify.get<{Querystring: SuggestQuery}>(
         '/minorities/suggest',
         {schema: {querystring: {type: 'object', properties: {q: {type: 'string'}}}}},
-        async (request): Promise<MinoritySuggestResponse> => {
+        async (request): Promise<EntitySuggestResponse> => {
             return suggestMinorities(request.query.q ?? '')
         },
     )

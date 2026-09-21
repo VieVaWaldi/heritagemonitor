@@ -1,4 +1,4 @@
-import {projectLinks, type ProjectDetail, type ProjectRow} from '@heritagemonitor/shared'
+import {httpUrlOrNull, projectLinks, type ProjectDetail, type ProjectOrganisation, type ProjectRow} from '@heritagemonitor/shared'
 import {SELECTED_ENTITY_CHARS, type PageContextSection, type PageContextSource} from '@/common/llmchat/pageContext'
 import {formatCount, formatFunderProgramme, formatFunding, formatYear, projectHeadline} from './projectFormat'
 
@@ -58,13 +58,38 @@ export function selectedProjectSection(project: ProjectDetail): PageContextSecti
 }
 
 /**
+ * The organisations tab, when it is the one on screen. One line per row, the
+ * same fields the tab shows — so "who is working on this?" is answered from
+ * what the user can see, not from a second guess at the data.
+ */
+export function projectOrganisationsSection(project: ProjectDetail, organisations: ProjectOrganisation[], total: number): PageContextSection {
+    return {
+        heading: `Organisations of ${projectHeadline(project)} (${total} in total, coordinators first, showing ${organisations.length}):`,
+        rows: organisations.map((organisation) => {
+            const parts = [
+                organisation.countryCode,
+                organisation.region,
+                organisation.rorTypes.filter((type) => type !== 'unknown').join(', ') || null,
+                organisation.project_count != null ? `${organisation.project_count} projects overall` : null,
+                organisation.isCoordinator ? 'COORDINATOR' : null,
+            ].filter(Boolean)
+            return `- ${organisation.legalName ?? organisation.legalShortName ?? organisation.id} (${parts.join(', ')})`
+        }),
+    }
+}
+
+/**
  * The URLs Lucy may fetch, in the order the plan fixes: the selected
  * project's links first (she is most likely to be asked about that one), then
  * one link per listed row. Same `projectLinks` the overview renders, so she
  * can never be offered a link the user cannot see — and PDFs are never
  * inlined here, she fetches them herself.
  */
-export function projectSources(selected: ProjectDetail | null, rows: ProjectRow[]): PageContextSource[] {
+export function projectSources(
+    selected: ProjectDetail | null,
+    rows: ProjectRow[],
+    organisations: ProjectOrganisation[] = [],
+): PageContextSource[] {
     const sources: PageContextSource[] = []
     const seen = new Set<string>()
 
@@ -79,6 +104,13 @@ export function projectSources(selected: ProjectDetail | null, rows: ProjectRow[
     if (selected) {
         for (const link of projectLinks(selected)) add(`${projectHeadline(selected)} (${link.label})`, link.url)
     }
+    // Then the organisations on screen, when their tab is open: their own
+    // websites are what "tell me about these partners" needs.
+    for (const organisation of organisations) {
+        const website = httpUrlOrNull(organisation.websiteUrl)
+        if (website) add(`${organisation.legalName ?? organisation.id} (website)`, website)
+    }
+
     // Then the best single link per listed row, so "summarise these projects"
     // has something to fetch for each of them. First link wins: projectLinks
     // returns them in descending usefulness (DOI, CORDIS, OpenAIRE, website).

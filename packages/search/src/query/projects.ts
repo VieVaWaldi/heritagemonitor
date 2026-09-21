@@ -1,8 +1,10 @@
 import {corpusFilter, type Corpus} from './corpus.js'
 import {TOTAL_CAP} from './pagination.js'
 import {PROJECT_FIELDS, sqs} from './syntax.js'
+import {fuzzyQuery, suggestBlock, TYPO_POLICY} from './typo.js'
 
-// Port of export/queries.py's `project_filters` / `projects_body`. Pure
+// Port of export/queries.py's `project_filters` / `projects_body` /
+// `project_autocomplete_body`. Pure
 // functions returning OpenSearch bodies — no client, no I/O, so they can be
 // unit-tested and reused by any caller (search route, facets, experts agg,
 // networks, funding).
@@ -87,6 +89,19 @@ const SORT_CLAUSES: Record<ProjectSort, unknown[] | undefined> = {
     budget: [{funded_amount_eur: {order: 'desc', missing: '_last'}}, '_score'],
 }
 
+/**
+ * How the free text is matched. `strict` is the `simple_query_string` the user
+ * actually typed; `fuzzy` is the typo-tolerant rerun the api falls back to
+ * when strict found almost nothing (see ./typo.ts).
+ */
+export type TextMode = 'strict' | 'fuzzy'
+
+export function projectTextQuery(q: string, mode: TextMode): QueryClause {
+    return mode === 'fuzzy'
+        ? fuzzyQuery(q, PROJECT_FIELDS, TYPO_POLICY.projects.maxExpansions)
+        : sqs(q, PROJECT_FIELDS)
+}
+
 export interface ProjectsBodyOptions {
     q?: string
     size: number
@@ -96,16 +111,69 @@ export interface ProjectsBodyOptions {
     aggs?: Record<string, unknown>
     /** `_source` filtering: a page of 20 rows never fetches 20 full summaries. */
     source?: readonly string[]
+    /** Defaults to `strict`. */
+    mode?: TextMode
+    /** Adds the "did you mean" term suggester (only worth asking for on the fuzzy rerun). */
+    suggest?: boolean
+    /** Body timeout, so a slow fuzzy rerun returns partial results instead of hanging. */
+    timeout?: string
 }
 
-export function projectsBody({q = '', size, from, sort, filters, aggs, source}: ProjectsBodyOptions): Record<string, unknown> {
+export function projectsBody({
+    q = '',
+    size,
+    from,
+    sort,
+    filters,
+    aggs,
+    source,
+    mode = 'strict',
+    suggest = false,
+    timeout,
+}: ProjectsBodyOptions): Record<string, unknown> {
     return {
         track_total_hits: TOTAL_CAP,
         size,
         from,
-        query: {bool: {must: sqs(q, PROJECT_FIELDS), filter: projectFilters(filters)}},
+        query: {bool: {must: projectTextQuery(q, mode), filter: projectFilters(filters)}},
         ...(sort && SORT_CLAUSES[sort] ? {sort: SORT_CLAUSES[sort]} : {}),
         ...(aggs ? {aggs} : {}),
         ...(source ? {_source: [...source]} : {}),
+        ...(suggest ? {suggest: suggestBlock(q, TYPO_POLICY.projects.suggestField)} : {}),
+        ...(timeout ? {timeout} : {}),
+    }
+}
+
+/**
+ * The same matching with nothing attached — for `_count`, which answers "how
+ * many really match" once `track_total_hits` has stopped counting at 10,000.
+ * No aggregations, no sort, no fetch: only the matching itself costs anything.
+ */
+export function projectsCountBody({
+    q = '',
+    filters,
+    mode = 'strict',
+}: {q?: string; filters?: ProjectFilters; mode?: TextMode}): Record<string, unknown> {
+    return {query: {bool: {must: projectTextQuery(q, mode), filter: projectFilters(filters)}}}
+}
+
+/**
+ * Type-ahead over acronyms and titles. Port of
+ * `queries.project_autocomplete_body`: `bool_prefix` across the
+ * `search_as_you_type` shingle fields with the acronym boosted — someone who
+ * types "ODYC" wants that project, and there are far fewer acronyms than
+ * titles to confuse it with.
+ */
+export function projectAutocompleteBody(prefix: string, size = 8): Record<string, unknown> {
+    return {
+        size,
+        _source: ['id', 'acronym', 'title', 'year', 'funder'],
+        query: {
+            multi_match: {
+                query: prefix,
+                type: 'bool_prefix',
+                fields: ['acronym.sayt^3', 'acronym.sayt._2gram^3', 'title.sayt', 'title.sayt._2gram', 'title.sayt._3gram'],
+            },
+        },
     }
 }

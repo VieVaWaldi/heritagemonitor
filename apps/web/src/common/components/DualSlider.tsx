@@ -14,7 +14,14 @@ export interface DualSliderProps {
     min: number
     max: number
     value: [number, number]
+    /** Fires continuously while dragging — for live preview, not for committing. */
     onChange: (value: [number, number]) => void
+    /**
+     * Fires once the drag ends (MUI's `onChangeCommitted`), so a caller that
+     * writes somewhere expensive — the URL, an api request — can do it once
+     * per gesture instead of once per pixel. Defaults to `onChange`.
+     */
+    onChangeCommitted?: (value: [number, number]) => void
     step?: number
     fromLabel?: string
     toLabel?: string
@@ -26,6 +33,7 @@ export function DualSlider({
     max,
     value,
     onChange,
+    onChangeCommitted,
     step = 1,
     fromLabel = 'From',
     toLabel = 'To',
@@ -173,6 +181,7 @@ export function DualSlider({
             <Slider
                 value={localValue}
                 onChange={handleSliderChange}
+                onChangeCommitted={(_event, newValue) => onChangeCommitted?.(newValue as [number, number])}
                 min={min}
                 max={max}
                 step={step}

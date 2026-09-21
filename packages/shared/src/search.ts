@@ -66,6 +66,13 @@ export function searchResponseSchema<THit extends z.ZodType>(hitSchema: THit) {
         facetLabels: facetLabelsSchema,
         totalCapped: z.boolean(),
         /**
+         * The real number of matches when `totalCapped`, from a separate
+         * `_count` the api runs alongside the search. Null when it was not
+         * needed or did not come back in time — the UI then says "10,000+"
+         * rather than guessing.
+         */
+        approxTotal: z.number().nullable(),
+        /**
          * `fuzzy` means the strict query found almost nothing and the api
          * re-ran it with typo tolerance — the UI has to say so, because the
          * results are then answers to a question the user did not quite ask.

@@ -136,8 +136,8 @@ export function ComponentsDemoPage() {
                             placeholder="Search with suggestions..."
                             suggestions={SEARCH_SUGGESTIONS.filter((suggestion) =>
                                 suggestion.toLowerCase().includes(autosuggestValue.toLowerCase()),
-                            )}
-                            onSuggestionSelect={setAutosuggestValue}
+                            ).map((suggestion) => ({label: suggestion}))}
+                            onSuggestionSelect={(suggestion) => setAutosuggestValue(suggestion.label)}
                         />
                     </Box>
                 </Stack>

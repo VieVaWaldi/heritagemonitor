@@ -124,7 +124,7 @@ export const minoritySearchResponseSchema = z.object({
 })
 export type MinoritySearchResponse = z.infer<typeof minoritySearchResponseSchema>
 
-export const minoritySuggestResponseSchema = z.object({
-    suggestions: z.array(z.string()),
-})
-export type MinoritySuggestResponse = z.infer<typeof minoritySuggestResponseSchema>
+// Suggestions use the shared entitySuggestResponseSchema (see ./search.ts):
+// every entity's type-ahead answers the same shape, so apps/web has one
+// useEntitySuggestions hook rather than one per entity. A minority's `id` is
+// its qid, which is what lets a picked suggestion open that group directly.

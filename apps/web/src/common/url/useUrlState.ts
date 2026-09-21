@@ -2,7 +2,7 @@
 
 import {usePathname, useRouter, useSearchParams} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
-import {applyPatch, patchInvalidatesPage, SEARCH_PARAM, type UrlPatch} from './codecs'
+import {applyPatch, patchClearsDetailPage, patchClearsSelection, patchInvalidatesPage, SEARCH_PARAM, type UrlPatch} from './codecs'
 
 /**
  * How an update affects the browser's history.
@@ -57,7 +57,17 @@ export function useUrlState(): UrlState {
             const pending = pendingWrite
             const usable = pending !== null && pending.pathname === pathname && pending.basedOn === current
             const base = usable ? pending.params : new URLSearchParams(current)
-            const effective = patchInvalidatesPage(patch) ? {...patch, [SEARCH_PARAM.page]: null} : patch
+            // Three coupled resets, decided here rather than at each call
+            // site so no caller can forget one: a patch that changes what
+            // matches goes back to page 1, a patch that changes the page or
+            // the result set drops the open row (unless it picks one itself),
+            // and either of those drops the detail panel's own page.
+            const effective = {
+                ...patch,
+                ...(patchInvalidatesPage(patch) ? {[SEARCH_PARAM.page]: null} : {}),
+                ...(patchClearsSelection(patch) ? {[SEARCH_PARAM.selection]: null} : {}),
+                ...(patchClearsDetailPage(patch) ? {[SEARCH_PARAM.detailPage]: null} : {}),
+            }
             const next = applyPatch(base, effective)
 
             pendingWrite = {pathname, basedOn: current, params: next}

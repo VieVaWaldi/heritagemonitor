@@ -1,8 +1,10 @@
 'use client'
 
+import type {EntitySuggestion} from '@heritagemonitor/shared'
+import {useCallback} from 'react'
 import {ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
-import {useMinoritySuggestions} from '@/common/hooks/useMinoritySuggestions'
-import {useUrlEntity, useUrlQueryDraft} from '@/common/url'
+import {useEntitySuggestions} from '@/common/hooks/useEntitySuggestions'
+import {SEARCH_PARAM, useUrlEntity, useUrlQueryDraft} from '@/common/url'
 
 const DEFAULT_ENTITY: EntityKey = 'projects'
 
@@ -38,7 +40,18 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         ? ENTITIES
         : [{key: selectedEntity, label: useCase.name, icon: useCase.icon, color: useCase.color}]
 
-    const suggestions = useMinoritySuggestions(Boolean(useCase.hasAutoSuggestions), draft)
+    // Which entity has a type-ahead is a capability of that entity's api, not
+    // a flag on the use case — see useEntitySuggestions.
+    const suggestions = useEntitySuggestions(selectedEntity, draft)
+
+    // Picking a suggestion submits its text AND opens that exact document
+    // when the suggestion carries an id, in one update so the new `sel`
+    // survives the query change (see useUrlState's selection rules).
+    const handleSuggestionSelect = useCallback(
+        (suggestion: EntitySuggestion) =>
+            submit(suggestion.label, suggestion.id ? {[SEARCH_PARAM.selection]: suggestion.id} : undefined),
+        [submit],
+    )
 
     return {
         useCase,
@@ -52,8 +65,6 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         entitySelectorInteractive,
         handleSearchSubmit: submit,
         suggestions,
-        // Picking a suggestion is a submit, not typing: it should land in the
-        // history like any other search the user meant.
-        handleSuggestionSelect: submit,
+        handleSuggestionSelect,
     }
 }

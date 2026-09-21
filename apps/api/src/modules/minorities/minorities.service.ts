@@ -4,7 +4,7 @@ import {
     type MinorityDto,
     type MinorityFacetDistribution,
     type MinoritySearchResponse,
-    type MinoritySuggestResponse,
+    type EntitySuggestResponse,
 } from '@heritagemonitor/shared'
 import {AppError} from '../../plugins/errors.js'
 import * as opensearchRepository from './opensearch.repository.js'
@@ -114,19 +114,20 @@ export async function searchMinorities(
 // its own prefix-only query (see opensearch.repository.ts) rather than
 // search()'s ranked one, keeping suggestions to "names that actually
 // prefix-match", not groups that only matched via a shared country or
-// religion.
-export async function suggestMinorities(q: string): Promise<MinoritySuggestResponse> {
+// religion. The response is the shared suggestion shape (see
+// entitySuggestResponseSchema): the qid travels with the name so picking a
+// suggestion can open that group, not just fill the search box.
+export async function suggestMinorities(q: string): Promise<EntitySuggestResponse> {
     if (!q.trim()) return {suggestions: []}
 
     const docs = await opensearchRepository.suggest(q, SUGGEST_LIMIT)
 
-    const suggestions: string[] = []
+    const suggestions: EntitySuggestResponse['suggestions'] = []
     const seen = new Set<string>()
     for (const doc of docs) {
-        if (!seen.has(doc.group_name_en)) {
-            seen.add(doc.group_name_en)
-            suggestions.push(doc.group_name_en)
-        }
+        if (seen.has(doc.group_name_en)) continue
+        seen.add(doc.group_name_en)
+        suggestions.push({id: doc.qid, label: doc.group_name_en})
     }
 
     return {suggestions}

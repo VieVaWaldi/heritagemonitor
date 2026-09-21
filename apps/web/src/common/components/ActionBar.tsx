@@ -1,5 +1,6 @@
 'use client'
 
+import type {EntitySuggestion} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {SearchBar} from './SearchBar'
@@ -21,8 +22,8 @@ export interface ActionBarProps<EntityKey extends string = string> {
     entitySelectorInteractive?: boolean
     /** Forwarded straight to the inner SearchBar — see its own docs. Omit
      * for a plain bar with no autocomplete dropdown. */
-    suggestions?: string[]
-    onSuggestionSelect?: (value: string) => void
+    suggestions?: EntitySuggestion[]
+    onSuggestionSelect?: (suggestion: EntitySuggestion) => void
 }
 
 // SearchBar (a full pill) plus a circular icon-only EntitySelector floating

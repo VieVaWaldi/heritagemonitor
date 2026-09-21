@@ -1,6 +1,13 @@
-import {CORPUS_KEYS, type ProjectDetail, type ProjectSearchRequest, type ProjectSearchResponse} from '@heritagemonitor/shared'
+import {
+    CORPUS_KEYS,
+    type EntitySuggestResponse,
+    type ProjectDetail,
+    type ProjectOrganisationsResponse,
+    type ProjectSearchRequest,
+    type ProjectSearchResponse,
+} from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
-import {getProjectById, searchProjects} from './projects.service.js'
+import {getProjectById, getProjectOrganisations, searchProjects, suggestProjects} from './projects.service.js'
 
 // Transport layer: HTTP concerns only, no business logic. See
 // apps/api/RULES.md rule 9 (plain functions over controller classes) and
@@ -14,10 +21,23 @@ interface ByIdParams {
     id: string
 }
 
-// Ajv's `coerceTypes` (on by default in Fastify) turns a single `?only=123`
-// into `["123"]`, so callers never have to special-case one value vs. the
-// repeated `?only=1&only=2` form.
+interface SuggestQuery {
+    q?: string
+}
+
+interface PagedQuery {
+    page?: number
+}
+
+// Ajv's `coerceTypes` (on by default in Fastify) turns a single `?funder=EC`
+// into `["EC"]`, so callers never have to special-case one value vs. the
+// repeated `?funder=EC&funder=NIH` form.
 const stringArrayProp = {type: 'array', items: {type: 'string'}} as const
+
+// No maximum on `page`: the last reachable page is a fact of the index's
+// result window, so the 400 for a page past it comes from
+// common/search/runSearch.ts with a message that says so.
+const pageProp = {type: 'integer', minimum: 1, default: 1} as const
 
 export async function projectsRoutes(fastify: FastifyInstance) {
     // ProjectSearchRequest (from @heritagemonitor/shared) is the TS type for
@@ -33,12 +53,19 @@ export async function projectsRoutes(fastify: FastifyInstance) {
                     properties: {
                         q: {type: 'string'},
                         c: {type: 'string', enum: [...CORPUS_KEYS]},
-                        // No maximum here: the last reachable page is a fact of
-                        // the index's result window, so the 400 for a page past
-                        // it comes from common/search/runSearch.ts with a
-                        // message that says so.
-                        page: {type: 'integer', minimum: 1, default: 1},
+                        page: pageProp,
                         sort: {type: 'string', enum: ['relevance', 'budget']},
+                        // `2019-2025`. A malformed value drops the year filter
+                        // (see the service) rather than failing the page.
+                        years: {type: 'string'},
+                        theme: stringArrayProp,
+                        pillar: stringArrayProp,
+                        funder: stringArrayProp,
+                        programme: stringArrayProp,
+                        region: stringArrayProp,
+                        topic: stringArrayProp,
+                        subfield: stringArrayProp,
+                        field: stringArrayProp,
                         only: stringArrayProp,
                     },
                 },
@@ -47,9 +74,29 @@ export async function projectsRoutes(fastify: FastifyInstance) {
         async (request): Promise<ProjectSearchResponse> => searchProjects(request.query),
     )
 
+    // Before `/projects/:id` — Fastify's router prefers the static segment, but
+    // keeping them in this order makes that independent of the router.
+    fastify.get<{Querystring: SuggestQuery}>(
+        '/projects/suggest',
+        {schema: {querystring: {type: 'object', properties: {q: {type: 'string'}}}}},
+        async (request): Promise<EntitySuggestResponse> => suggestProjects(request.query.q ?? ''),
+    )
+
     fastify.get<{Params: ByIdParams}>(
         '/projects/:id',
         {schema: {params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']}}},
         async (request): Promise<ProjectDetail> => getProjectById(request.params.id),
+    )
+
+    fastify.get<{Params: ByIdParams; Querystring: PagedQuery}>(
+        '/projects/:id/organisations',
+        {
+            schema: {
+                params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
+                querystring: {type: 'object', properties: {page: pageProp}},
+            },
+        },
+        async (request): Promise<ProjectOrganisationsResponse> =>
+            getProjectOrganisations(request.params.id, request.query.page ?? 1),
     )
 }

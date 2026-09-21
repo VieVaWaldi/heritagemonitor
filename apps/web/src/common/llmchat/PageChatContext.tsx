@@ -1,14 +1,6 @@
 'use client'
 
-import {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
-    type ReactNode,
-} from 'react'
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode} from 'react'
 import type {PageContext} from './pageContext'
 
 const EMPTY_CONTEXT: PageContext = {lines: [], sources: []}
@@ -26,18 +18,43 @@ const PageChatContext = createContext<PageChatContextValue | null>(null)
 // entirely up to whichever producer publishes it (see
 // usePageChatContextPublisher), this provider doesn't know or care what
 // domain it's from.
+/**
+ * Two contexts with the same content are the same context. Compared by value,
+ * not by identity, because this store sits at the root of the app: a producer
+ * whose useMemo slips (one unmemoized object in its dependency list is enough)
+ * would otherwise publish a new-but-identical context on every render, and
+ * each publish re-renders the whole tree, which re-renders the producer —
+ * an unbounded loop that takes the page down. Storing an equal value is a
+ * no-op here, so the worst such a slip can cost is a wasted comparison.
+ *
+ * The content is small and bounded by design (see pageContext.ts: 20 rows per
+ * section, 30 sources, 15,000 characters total).
+ */
+function sameContext(a: PageContext, b: PageContext): boolean {
+    return (
+        a.lines.length === b.lines.length &&
+        a.sources.length === b.sources.length &&
+        a.lines.every((line, index) => line === b.lines[index]) &&
+        a.sources.every((source, index) => source.url === b.sources[index].url && source.label === b.sources[index].label)
+    )
+}
+
 export function PageChatContextProvider({children}: {children: ReactNode}) {
     const [pageContext, setPageContextState] = useState<PageContext>(EMPTY_CONTEXT)
     const setPageContext = useCallback(
-        (next: PageContext | null) => setPageContextState(next ?? EMPTY_CONTEXT),
+        (next: PageContext | null) =>
+            setPageContextState((current) => {
+                const value = next ?? EMPTY_CONTEXT
+                // Returning the CURRENT object makes React bail out of the
+                // re-render entirely — see sameContext above.
+                return sameContext(current, value) ? current : value
+            }),
         [],
     )
 
-    return (
-        <PageChatContext.Provider value={{pageContext, setPageContext}}>
-            {children}
-        </PageChatContext.Provider>
-    )
+    const value = useMemo(() => ({pageContext, setPageContext}), [pageContext, setPageContext])
+
+    return <PageChatContext.Provider value={value}>{children}</PageChatContext.Provider>
 }
 
 function usePageChatContext(): PageChatContextValue {
@@ -55,10 +72,17 @@ function usePageChatContext(): PageChatContextValue {
 // call, no other wiring needed.
 export function usePageChatContextPublisher(context: PageContext | null): void {
     const {setPageContext} = usePageChatContext()
+
     useEffect(() => {
         setPageContext(context)
-        return () => setPageContext(null)
     }, [context, setPageContext])
+
+    // Clearing belongs to UNMOUNT only. Folding it into the effect above
+    // would run it on every content change too (cleanup before re-run), so
+    // each update would publish an empty context for one render — two
+    // re-renders of the whole tree, and a blink of "Lucy knows nothing"
+    // for anything reading the value at the wrong moment.
+    useEffect(() => () => setPageContext(null), [setPageContext])
 }
 
 // Consumer-facing: a *stable* accessor for the current context, for the one

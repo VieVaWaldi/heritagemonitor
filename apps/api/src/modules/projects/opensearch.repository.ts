@@ -1,5 +1,5 @@
-import {getDocument, indices, query} from '@heritagemonitor/search'
-import {PROJECT_FACET_FIELDS, SEARCH_PAGE_SIZE} from '@heritagemonitor/shared'
+import {client, getDocument, indices, mgetDocuments, query} from '@heritagemonitor/search'
+import {PROJECT_FACET_FIELDS, PROJECT_YEAR_HISTOGRAM, SEARCH_PAGE_SIZE, type SearchMode} from '@heritagemonitor/shared'
 import {runSearch, type SearchExecution} from '../../common/search/runSearch.js'
 
 // Repository layer: raw OpenSearch access only, no business logic (which sort
@@ -59,6 +59,38 @@ export interface ProjectRawDoc {
     funding_stream_ids?: string[]
 }
 
+/** The `organisations` index document, limited to what a project's tab shows. */
+export interface OrganisationRawDoc {
+    id: string
+    legalName?: string
+    legalShortName?: string
+    countryCode?: string
+    region?: string
+    rorTypes?: string[]
+    rorId?: string
+    websiteUrl?: string
+    /** Only ~18% of project-connected organisations have one; fetched to say which. */
+    geo?: unknown
+    project_count?: number
+    work_count?: number
+    total_funding_eur?: number
+}
+
+const ORGANISATION_SOURCE = [
+    'id',
+    'legalName',
+    'legalShortName',
+    'countryCode',
+    'region',
+    'rorTypes',
+    'rorId',
+    'websiteUrl',
+    'geo',
+    'project_count',
+    'work_count',
+    'total_funding_eur',
+] as const
+
 // What a result row shows (see ProjectRow in @heritagemonitor/shared). Fetching
 // only these keeps a page of 20 from pulling 20 full summaries out of the
 // stored fields — the per-hit fetch is the measured cost on the VM's HDD.
@@ -83,11 +115,17 @@ const ROW_SOURCE = [
     'websiteUrl',
 ] as const
 
-// One aggregation per faceted field, all in the same request as the page
-// itself — never a second round trip. `termsAgg` sets an explicit shard_size
-// (see its own doc comment on why the default makes counts approximate).
+/**
+ * One aggregation per faceted field plus the year histogram, all in the same
+ * request as the page itself — never a second round trip. `termsAgg` sets an
+ * explicit shard_size (see its own doc comment on why the default makes counts
+ * approximate).
+ */
 function facetAggs(): Record<string, unknown> {
-    return Object.fromEntries(PROJECT_FACET_FIELDS.map((facet) => [facet.field, query.termsAgg(facet.field, facet.size)]))
+    return {
+        ...Object.fromEntries(PROJECT_FACET_FIELDS.map((facet) => [facet.field, query.termsAgg(facet.field, facet.size)])),
+        [PROJECT_YEAR_HISTOGRAM]: query.histogramAgg('year', 1),
+    }
 }
 
 export interface ProjectSearchParams {
@@ -95,27 +133,63 @@ export interface ProjectSearchParams {
     page: number
     sort: query.ProjectSort
     filters: query.ProjectFilters
+    /** Typo tolerance is only offered for a non-blank query — see the service. */
+    typoTolerant: boolean
 }
 
 export async function search(params: ProjectSearchParams): Promise<SearchExecution<ProjectRawDoc>> {
+    const {threshold, timeout} = query.TYPO_POLICY.projects
+    const common = {q: params.q, sort: params.sort, filters: params.filters, aggs: facetAggs(), source: ROW_SOURCE}
+
     return runSearch<ProjectRawDoc>({
         index: indices.projectsIndexName,
         page: params.page,
         size: SEARCH_PAGE_SIZE,
-        body: (window) =>
-            query.projectsBody({
-                q: params.q,
-                from: window.from,
-                size: window.size,
-                sort: params.sort,
-                filters: params.filters,
-                aggs: facetAggs(),
-                source: ROW_SOURCE,
-            }),
+        body: (window) => query.projectsBody({...common, from: window.from, size: window.size}),
+        ...(params.typoTolerant
+            ? {
+                  fallback: {
+                      threshold,
+                      body: (window: query.PageWindow) =>
+                          query.projectsBody({
+                              ...common,
+                              from: window.from,
+                              size: window.size,
+                              mode: 'fuzzy',
+                              suggest: true,
+                              timeout,
+                          }),
+                  },
+              }
+            : {}),
+        countBody: (mode: SearchMode) => query.projectsCountBody({q: params.q, filters: params.filters, mode}),
     })
 }
 
 /** The whole document for the detail panel, or null when the id does not exist. */
 export async function getById(id: string): Promise<ProjectRawDoc | null> {
     return getDocument<ProjectRawDoc>(indices.projectsIndexName, id)
+}
+
+/** Full documents for one page of a project's `org_ids`, in the order given. */
+export async function getOrganisations(ids: string[]): Promise<OrganisationRawDoc[]> {
+    return mgetDocuments<OrganisationRawDoc>(indices.organisationsIndexName, ids, ORGANISATION_SOURCE)
+}
+
+export interface ProjectSuggestionDoc {
+    id: string
+    acronym?: string
+    title?: string
+    year?: number
+    funder?: string[]
+}
+
+/** Type-ahead hits, ranked by the autocomplete body (acronym before title). */
+export async function suggest(prefix: string, size: number): Promise<ProjectSuggestionDoc[]> {
+    const {body} = await client.search({
+        index: indices.projectsIndexName,
+        body: query.projectAutocompleteBody(prefix, size),
+    })
+    const hits = body.hits.hits as unknown as Array<{_source?: ProjectSuggestionDoc}>
+    return hits.map((hit) => hit._source).filter((doc): doc is ProjectSuggestionDoc => doc != null)
 }

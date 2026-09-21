@@ -1,11 +1,21 @@
 import type {query} from '@heritagemonitor/search'
 import {
+    MAX_URL_TOPICS,
     PROJECT_FACET_FIELDS,
+    PROJECT_YEAR_HISTOGRAM,
+    SEARCH_PAGE_SIZE,
+    entitySuggestResponseSchema,
+    organisationRowSchema,
+    pageCountOf,
+    parseYearRange,
     projectDetailSchema,
     projectRowSchema,
+    type EntitySuggestResponse,
     type FacetDistribution,
     type FacetLabels,
     type ProjectDetail,
+    type ProjectOrganisation,
+    type ProjectOrganisationsResponse,
     type ProjectRow,
     type ProjectSearchRequest,
     type ProjectSearchResponse,
@@ -13,12 +23,15 @@ import {
 import {AppError} from '../../plugins/errors.js'
 import {topicNames, topicOf} from '../../reference/topics.js'
 import * as opensearchRepository from './opensearch.repository.js'
-import type {ProjectRawDoc} from './opensearch.repository.js'
+import type {OrganisationRawDoc, ProjectRawDoc} from './opensearch.repository.js'
 
-// Service layer: the domain decisions — which sort a request really gets,
-// what a document looks like once the topic table has been joined onto it,
-// and which facet values need a label. Transport-agnostic; storage details
-// stay in the repository. See apps/api/RULES.md rule 3.
+// Service layer: the domain decisions — which sort a request really gets, how
+// its params become index filters, what a document looks like once the topic
+// table has been joined onto it, and which facet values need a label.
+// Transport-agnostic; storage details stay in the repository. See
+// apps/api/RULES.md rule 3.
+
+const SUGGEST_LIMIT = 8
 
 // BM25 is meaningless without a query text, so a blank query is ranked by
 // money instead of by an all-equal score (plan section 1, blank-query
@@ -26,6 +39,37 @@ import type {ProjectRawDoc} from './opensearch.repository.js'
 function resolveSort(q: string, requested: ProjectSearchRequest['sort']): query.ProjectSort {
     if (requested) return requested
     return q.trim() ? 'relevance' : 'budget'
+}
+
+/**
+ * Request params -> index filters. The param names are the URL's own (see
+ * apps/web/src/common/url), the field names are the index's; this function is
+ * the only place the two meet.
+ */
+function toFilters(request: ProjectSearchRequest): query.ProjectFilters {
+    const topicSelectionSize = (request.topic?.length ?? 0) + (request.subfield?.length ?? 0) + (request.field?.length ?? 0)
+    if (topicSelectionSize > MAX_URL_TOPICS) {
+        throw new AppError(`At most ${MAX_URL_TOPICS} topics can be selected at once (got ${topicSelectionSize}).`, 400)
+    }
+
+    // An unparseable `years` drops the year filter rather than failing the
+    // request: the value comes from a URL a user may have edited or an old
+    // link, and losing one filter is friendlier than refusing the page.
+    const years = parseYearRange(request.years)
+
+    return {
+        corpus: request.c,
+        ...(years ? {year: years} : {}),
+        theme: request.theme,
+        pillar: request.pillar,
+        funder: request.funder,
+        programme: request.programme,
+        region: request.region,
+        topic: request.topic,
+        subfield: request.subfield,
+        field: request.field,
+        only: request.only,
+    }
 }
 
 // Raw OpenSearch documents are untyped (an index enforces a mapping, not our
@@ -48,14 +92,22 @@ function facetLabelsFor(distribution: FacetDistribution): FacetLabels {
     return {topic_id: topicNames(Object.keys(topicBuckets))}
 }
 
+/**
+ * Terms buckets plus the year histogram, flattened to `{field: {value:
+ * count}}`. The histogram rides in the same map under its own key — the web
+ * reads it as "year -> number of projects", which is exactly a distribution.
+ */
 function toFacetDistribution(aggregations: Record<string, query.TermsAggregationResult>): FacetDistribution {
+    const fields: string[] = [...PROJECT_FACET_FIELDS.map((facet) => facet.field), PROJECT_YEAR_HISTOGRAM]
     return Object.fromEntries(
-        PROJECT_FACET_FIELDS.filter((facet) => aggregations[facet.field]).map((facet) => [
-            facet.field,
-            Object.fromEntries(
-                aggregations[facet.field].buckets.map((bucket) => [bucket.key_as_string ?? String(bucket.key), bucket.doc_count]),
-            ),
-        ]),
+        fields
+            .filter((field) => aggregations[field])
+            .map((field) => [
+                field,
+                Object.fromEntries(
+                    aggregations[field].buckets.map((bucket) => [bucket.key_as_string ?? String(bucket.key), bucket.doc_count]),
+                ),
+            ]),
     )
 }
 
@@ -65,7 +117,10 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
         q,
         page: request.page ?? 1,
         sort: resolveSort(q, request.sort),
-        filters: {corpus: request.c, only: request.only},
+        filters: toFilters(request),
+        // A blank query has nothing to misspell, and its strict result set is
+        // already the whole corpus — a fallback could only make it slower.
+        typoTolerant: q.trim().length > 0,
     })
 
     const facetDistribution = toFacetDistribution(result.aggregations)
@@ -75,6 +130,9 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
         facetLabels: facetLabelsFor(facetDistribution),
         estimatedTotalHits: result.total,
         totalCapped: result.totalCapped,
+        approxTotal: result.approxTotal,
+        mode: result.mode,
+        didYouMean: result.didYouMean,
         page: result.page,
         pageCount: result.pageCount,
     }
@@ -90,4 +148,67 @@ export async function getProjectById(id: string): Promise<ProjectDetail> {
         throw new AppError(`Project '${id}' failed schema validation`, 500)
     }
     return result.data
+}
+
+function toOrganisation(raw: OrganisationRawDoc, coordinatorIds: Set<string>): ProjectOrganisation | null {
+    const result = organisationRowSchema.safeParse({...raw, hasGeo: raw.geo != null})
+    if (!result.success) {
+        console.warn(`Organisation document '${raw?.id ?? 'unknown'}' failed row validation:`, result.error.issues)
+        return null
+    }
+    return {...result.data, isCoordinator: coordinatorIds.has(result.data.id)}
+}
+
+/**
+ * One page of the organisations that worked on a project.
+ *
+ * The order is the index's own: `projects.org_ids` is written coordinators
+ * first (verified against EC projects, the only ones with a non-empty
+ * `coordinator_ids`), so a page is a plain slice — nothing is re-sorted here,
+ * and the order therefore cannot shift between pages.
+ */
+export async function getProjectOrganisations(id: string, page: number): Promise<ProjectOrganisationsResponse> {
+    const project = await opensearchRepository.getById(id)
+    if (!project) throw new AppError(`Project '${id}' not found`, 404)
+
+    const orgIds = project.org_ids ?? []
+    const from = (page - 1) * SEARCH_PAGE_SIZE
+    if (from > 0 && from >= orgIds.length) {
+        throw new AppError(`Page ${page} is past the end of this project's ${orgIds.length} organisations.`, 400)
+    }
+
+    const coordinatorIds = new Set(project.coordinator_ids ?? [])
+    const documents = await opensearchRepository.getOrganisations(orgIds.slice(from, from + SEARCH_PAGE_SIZE))
+
+    return {
+        hits: documents
+            .map((document) => toOrganisation(document, coordinatorIds))
+            .filter((organisation): organisation is ProjectOrganisation => organisation !== null),
+        estimatedTotalHits: orgIds.length,
+        page,
+        pageCount: pageCountOf(orgIds.length),
+    }
+}
+
+/**
+ * Type-ahead. The label is what the user is typing towards (the acronym when
+ * there is one, else the title); the id lets the web open that exact project
+ * rather than only re-running a text search for its name.
+ */
+export async function suggestProjects(q: string): Promise<EntitySuggestResponse> {
+    if (!q.trim()) return {suggestions: []}
+
+    const documents = await opensearchRepository.suggest(q.trim(), SUGGEST_LIMIT)
+    return entitySuggestResponseSchema.parse({
+        suggestions: documents
+            .filter((document) => document.acronym ?? document.title)
+            .map((document) => ({
+                id: document.id,
+                label: document.acronym ?? document.title,
+                hint:
+                    [document.acronym ? document.title : null, document.year ? String(document.year) : null, document.funder?.[0]]
+                        .filter(Boolean)
+                        .join(' · ') || undefined,
+            })),
+    })
 }

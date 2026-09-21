@@ -1,7 +1,7 @@
 'use client'
 
 import {useCallback, useEffect, useState} from 'react'
-import {SEARCH_PARAM} from './codecs'
+import {SEARCH_PARAM, type UrlPatch} from './codecs'
 import {useUrlState} from './useUrlState'
 
 /** Long enough that a normal typing burst produces one URL write, short enough to feel live. */
@@ -55,12 +55,18 @@ export function useUrlQueryDraft(debounceMs = TYPING_DEBOUNCE_MS) {
         return () => clearTimeout(timer)
     }, [draft, lastWritten, debounceMs, update])
 
+    /**
+     * `extraPatch` travels in the SAME update as the query, which matters for
+     * the selection rules in useUrlState: picking a project from the
+     * autocomplete sets `q` and `sel` together, and a patch that sets `sel`
+     * itself keeps it instead of falling back to the first row.
+     */
     const submit = useCallback(
-        (value?: string) => {
+        (value?: string, extraPatch?: UrlPatch) => {
             const submitted = (value ?? draft).trim()
             setDraft(submitted)
             setLastWritten(submitted)
-            update({[SEARCH_PARAM.query]: submitted || null})
+            update({[SEARCH_PARAM.query]: submitted || null, ...extraPatch})
         },
         [draft, update],
     )

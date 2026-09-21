@@ -52,15 +52,6 @@ export interface UseCase {
      * tabs, not this same panel — undecided until that's built.
      */
     hasResultsPanel?: boolean
-    /**
-     * Whether this UseCase's ActionBar (both on the hero page and its own
-     * /search/* route) offers typeahead autocomplete while typing. Only
-     * controls *whether* it's wired up — the suggestion source itself
-     * (today: useMinoritySuggestions, hitting /v1/minorities/suggest) is
-     * still specific to the UseCase that has one; making that pluggable
-     * per-UseCase is a later generalization, not implied by this flag.
-     */
-    hasAutoSuggestions?: boolean
 }
 
 export const USE_CASES: UseCase[] = [
@@ -111,7 +102,6 @@ export const USE_CASES: UseCase[] = [
             route: '/search/minorities',
         },
         hasResultsPanel: true,
-        hasAutoSuggestions: true,
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
     {

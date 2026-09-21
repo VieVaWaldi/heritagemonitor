@@ -71,5 +71,8 @@ export type {DualSliderProps} from './DualSlider'
 export {TabbedPanel} from './TabbedPanel'
 export type {TabbedPanelProps, TabbedPanelTab} from './TabbedPanel'
 
+export {YearFilter} from './YearFilter'
+export type {YearFilterProps} from './YearFilter'
+
 export {ViewModeToggle} from './ViewModeToggle'
 export type {ViewModeToggleProps, ViewMode} from './ViewModeToggle'

@@ -1,5 +1,6 @@
 'use client'
 
+import type {EntitySuggestion} from '@heritagemonitor/shared'
 import {useState} from 'react'
 import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
@@ -37,12 +38,14 @@ export interface SearchBarProps extends Omit<TextFieldProps, 'variant' | 'InputP
     roundedCorners?: 'all' | 'start' | 'end'
     /** Shown in a floating panel below the bar while it's focused — same
      * width and pill styling as the bar itself. Omit for a plain bar with
-     * no dropdown. */
-    suggestions?: string[]
-    /** Called when a suggestion is clicked. Defaults to onSearch, so the
-     * common case (selecting a suggestion just fills the bar) needs no
-     * extra wiring. */
-    onSuggestionSelect?: (value: string) => void
+     * no dropdown. Suggestions carry an optional `id` (so picking one can
+     * open that exact document, not just fill the bar) and an optional
+     * `hint` rendered as a dimmed second half of the row. */
+    suggestions?: EntitySuggestion[]
+    /** Called when a suggestion is clicked. Defaults to onSearch with the
+     * label, so the common case (selecting a suggestion just fills the bar)
+     * needs no extra wiring. */
+    onSuggestionSelect?: (suggestion: EntitySuggestion) => void
     /** Rows visible before the panel scrolls instead of growing further.
      * Defaults to 6. */
     maxSuggestionRows?: number
@@ -70,10 +73,10 @@ export function SearchBar({
     const hasSuggestions = Boolean(suggestions && suggestions.length > 0)
     const open = isFocused && hasSuggestions
 
-    function handleSuggestionSelect(suggestion: string) {
+    function handleSuggestionSelect(suggestion: EntitySuggestion) {
         setIsFocused(false)
         if (onSuggestionSelect) onSuggestionSelect(suggestion)
-        else onSearch?.(suggestion)
+        else onSearch?.(suggestion.label)
     }
 
     const borderRadius = {
@@ -174,7 +177,7 @@ export function SearchBar({
                     >
                         {suggestions!.map((suggestion) => (
                             <ButtonBase
-                                key={suggestion}
+                                key={suggestion.id ?? suggestion.label}
                                 role="option"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => handleSuggestionSelect(suggestion)}
@@ -184,13 +187,21 @@ export function SearchBar({
                                     justifyContent: 'flex-start',
                                     gap: 1.5,
                                     px: fluidUnit(1.5),
+                                    minWidth: 0,
                                     '&:hover': {
                                         backgroundColor: alpha(theme.palette.primary.main, 0.08),
                                     },
                                 })}
                             >
-                                <SearchIcon fontSize="small" sx={{color: 'text.secondary'}} />
-                                <Text variant="body2">{suggestion}</Text>
+                                <SearchIcon fontSize="small" sx={{color: 'text.secondary', flexShrink: 0}} />
+                                <Text variant="body2" truncate sx={{flexShrink: 0, maxWidth: '45%'}}>
+                                    {suggestion.label}
+                                </Text>
+                                {suggestion.hint && (
+                                    <Text variant="body2" truncate color="text.secondary" sx={{minWidth: 0}}>
+                                        {suggestion.hint}
+                                    </Text>
+                                )}
                             </ButtonBase>
                         ))}
                     </Box>

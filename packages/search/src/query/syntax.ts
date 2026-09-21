@@ -54,7 +54,10 @@ export function rewriteQuery(input: string): string {
         .trim()
 }
 
-export interface SimpleQueryStringClause {
+// Type aliases, not interfaces: an interface has no implicit index signature,
+// so it would not be assignable to the `Record<string, unknown>` body type the
+// query builders compose these into.
+export type SimpleQueryStringClause = {
     simple_query_string: {
         query: string
         fields: string[]
@@ -65,7 +68,7 @@ export interface SimpleQueryStringClause {
     }
 }
 
-export interface MatchAllClause {
+export type MatchAllClause = {
     match_all: Record<string, never>
 }
 

@@ -10,9 +10,13 @@ export interface ExternalLink {
     url: string
 }
 
-// Only http(s) is ever rendered as a link: these values come from upstream
-// data dumps, and an href is enough for a `javascript:`/`data:` URL to matter.
-function safeHttpUrl(value: string | null | undefined): string | null {
+/**
+ * Only http(s) is ever rendered as a link, or handed to Lucy as a fetchable
+ * source: these values come from upstream data dumps, and an href is enough
+ * for a `javascript:`/`data:` URL to matter. Exported because every place
+ * that turns stored data into a link needs the same guard.
+ */
+export function httpUrlOrNull(value: string | null | undefined): string | null {
     if (!value) return null
     const trimmed = value.trim()
     if (!trimmed) return null
@@ -83,7 +87,7 @@ export function projectLinks(project: ProjectLinkFields): ExternalLink[] {
         })
     }
 
-    const websiteUrl = safeHttpUrl(project.websiteUrl)
+    const websiteUrl = httpUrlOrNull(project.websiteUrl)
     if (websiteUrl) links.push({label: 'Website', url: websiteUrl})
 
     return links
