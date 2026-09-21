@@ -14,6 +14,10 @@ docker compose -f infra/docker-compose.prod.yml logs -f                         
 docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod down           # stop (add -v to also wipe pg-data-prod/os-data-prod)
 ```
 
+`NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` is a **build arg**, not a runtime variable: Next inlines every
+`NEXT_PUBLIC_*` value into the client bundle at build time, so changing it has no effect until web is
+rebuilt — `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build web`.
+
 ## Architecture
 
 See `~/README.md` for the full operational rundown.

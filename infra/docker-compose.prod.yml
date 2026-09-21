@@ -50,6 +50,8 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile.prod
+      args:
+        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
     container_name: hm-web
     restart: unless-stopped
     mem_limit: 768m

@@ -41,6 +41,13 @@ COPY packages/shared packages/shared
 # Getting this wrong doubles the prefix into /v1/v1/health, which
 # Caddy still routes to api (still starts with /v1/) but Fastify then 404s
 # since that route doesn't exist.
+# The public Mapbox pk.* token. A build ARG, not a runtime env var: every
+# NEXT_PUBLIC_* value is inlined into the client bundle by `next build`, so a
+# token supplied at container start would never reach the browser. Changing it
+# means rebuilding web.
+ARG NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+ENV NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=$NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+
 ENV NEXT_PUBLIC_API_URL=
 
 # shared must be built first. web imports its compiled dist/, not src/.
