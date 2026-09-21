@@ -17,6 +17,7 @@ import {
 import {AppError} from '../../plugins/errors.js'
 import {topicNames} from '../../reference/topics.js'
 import type {OrganisationRawDoc} from '../organisations/opensearch.repository.js'
+import type {OrganisationRankingKeys} from './opensearch.repository.js'
 import * as opensearchRepository from './opensearch.repository.js'
 
 // Service layer: the domain decisions behind "who are the experts on this".
@@ -49,7 +50,9 @@ function toFilters(request: ExpertSearchRequest): query.ProjectFilters {
 }
 
 interface RankedExpert {
-    document: OrganisationRawDoc
+    /** The best-ranked id of the group; the one whose record is shown. */
+    id: string
+    keys: OrganisationRankingKeys
     matchedProjects: number
     mergedIds: string[]
 }
@@ -64,16 +67,16 @@ interface RankedExpert {
  * represents the group, and the row says how many records it stands for.
  * An organisation without a `name_key` is only ever itself.
  */
-function mergeByNameKey(buckets: query.TermsBucket[], documents: Map<string, OrganisationRawDoc>): RankedExpert[] {
+function mergeByNameKey(buckets: query.TermsBucket[], keysById: Map<string, OrganisationRankingKeys>): RankedExpert[] {
     const groups = new Map<string, RankedExpert>()
 
     for (const bucket of buckets) {
         const id = String(bucket.key_as_string ?? bucket.key)
-        const document = documents.get(id)
+        const keys = keysById.get(id)
         // An id with no organisation record cannot be shown or linked to.
-        if (!document) continue
+        if (!keys) continue
 
-        const key = document.name_key ?? `id:${id}`
+        const key = keys.group ?? `id:${id}`
         const existing = groups.get(key)
         if (existing) {
             existing.matchedProjects += bucket.doc_count
@@ -82,7 +85,7 @@ function mergeByNameKey(buckets: query.TermsBucket[], documents: Map<string, Org
         }
         // Buckets arrive in count order, so the first id of a group is its
         // best-ranked one and becomes its representative.
-        groups.set(key, {document, matchedProjects: bucket.doc_count, mergedIds: [id]})
+        groups.set(key, {id, keys, matchedProjects: bucket.doc_count, mergedIds: [id]})
     }
 
     return [...groups.values()]
@@ -90,15 +93,19 @@ function mergeByNameKey(buckets: query.TermsBucket[], documents: Map<string, Org
 
 const SORTERS: Record<string, (a: RankedExpert, b: RankedExpert) => number> = {
     matches: (a, b) => b.matchedProjects - a.matchedProjects,
-    funding: (a, b) => (b.document.total_funding_eur ?? 0) - (a.document.total_funding_eur ?? 0),
-    projects: (a, b) => (b.document.project_count ?? 0) - (a.document.project_count ?? 0),
-    works: (a, b) => (b.document.work_count ?? 0) - (a.document.work_count ?? 0),
+    funding: (a, b) => b.keys.funding - a.keys.funding,
+    projects: (a, b) => b.keys.projectCount - a.keys.projectCount,
+    works: (a, b) => b.keys.workCount - a.keys.workCount,
 }
 
-function toRow(expert: RankedExpert): ExpertRow | null {
-    const organisation = organisationRowSchema.safeParse({...expert.document, hasGeo: expert.document.geo != null})
+function toRow(expert: RankedExpert, document: OrganisationRawDoc | undefined): ExpertRow | null {
+    // The record is fetched after paging, so it can in principle be missing
+    // (an organisation deleted between the two calls). Nothing to show then.
+    if (!document) return null
+
+    const organisation = organisationRowSchema.safeParse({...document, hasGeo: document.geo != null})
     if (!organisation.success) {
-        console.warn(`Organisation '${expert.document?.id ?? 'unknown'}' failed row validation:`, organisation.error.issues)
+        console.warn(`Organisation '${document.id}' failed row validation:`, organisation.error.issues)
         return null
     }
 
@@ -141,13 +148,13 @@ export async function searchExperts(request: ExpertSearchRequest): Promise<Exper
     })
     const {orgs, organisationCount, facets} = opensearchRepository.readExpertAggregations(result.aggregations)
 
-    // One mget for the whole ranked set, not per page: the merge below needs
-    // every name_key before it can know what page 1 even contains.
+    // Ranking keys for the whole ranked set, not just a page: the merge below
+    // needs every name key before it can know what page 1 even contains. From
+    // memory when the organisation table is loaded, otherwise from one mget.
     const ids = orgs.map((bucket) => String(bucket.key_as_string ?? bucket.key))
-    const documents = await opensearchRepository.fetchOrganisations(ids)
-    const byId = new Map(documents.map((document) => [document.id, document]))
+    const ranked = await opensearchRepository.fetchRankedOrganisations(ids)
 
-    const merged = mergeByNameKey(orgs, byId)
+    const merged = mergeByNameKey(orgs, ranked.keys)
     const sorted = [...merged].sort(SORTERS[request.sort ?? 'matches'] ?? SORTERS.matches)
 
     const from = (page - 1) * SEARCH_PAGE_SIZE
@@ -155,12 +162,19 @@ export async function searchExperts(request: ExpertSearchRequest): Promise<Exper
         throw new AppError(`Page ${page} is past the end of these ${sorted.length} organisations.`, 400)
     }
 
+    // Only the rows being rendered need a full record, and the table does not
+    // carry the display-only fields (short name, ROR type, website). So: rank
+    // 200 from memory, fetch 20 from the index. When the keys came from an
+    // mget the documents are already in hand and nothing more is fetched.
+    const shown = sorted.slice(from, from + SEARCH_PAGE_SIZE)
+    const documents =
+        ranked.documents.size > 0
+            ? ranked.documents
+            : new Map((await opensearchRepository.fetchOrganisations(shown.map((expert) => expert.id))).map((d) => [d.id, d]))
+
     const facetDistribution = toFacetDistribution(facets)
     return {
-        hits: sorted
-            .slice(from, from + SEARCH_PAGE_SIZE)
-            .map(toRow)
-            .filter((row): row is ExpertRow => row !== null),
+        hits: shown.map((expert) => toRow(expert, documents.get(expert.id))).filter((row): row is ExpertRow => row !== null),
         facetDistribution,
         facetLabels: facetLabelsFor(facetDistribution),
         // The honest total is how many distinct organisations are behind the

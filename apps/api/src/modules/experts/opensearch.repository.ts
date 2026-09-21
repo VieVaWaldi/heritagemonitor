@@ -1,6 +1,7 @@
 import {indices, mgetDocuments, query} from '@heritagemonitor/search'
 import {EXPERT_LIST_LIMIT, PROJECT_FACET_FIELDS, PROJECT_YEAR_HISTOGRAM} from '@heritagemonitor/shared'
 import {runSearch, type SearchExecution} from '../../common/search/runSearch.js'
+import {getOrganisations, isOrganisationTableReady} from '../../reference/organisationTable.js'
 import type {OrganisationRawDoc} from '../organisations/opensearch.repository.js'
 
 // Repository layer. Everything here happens in ONE request against the
@@ -15,13 +16,8 @@ import type {OrganisationRawDoc} from '../organisations/opensearch.repository.js
 const ORG_CARDINALITY_PRECISION = 3_000
 
 /**
- * The rollup fields the ranking and the rows need. Source-filtered, because
- * this is 200 documents fetched on every search and none of it needs the full
- * organisation record.
- *
- * SEAM: when the in-memory org table (plan F0-11) lands, this mget goes away
- * and these fields come from memory instead — the shape stays the same, so
- * only `fetchOrganisations` below changes.
+ * The fields a DISPLAYED row needs. Source-filtered: none of this needs the
+ * full organisation record.
  */
 const ORG_SOURCE = [
     'id',
@@ -105,7 +101,69 @@ export function readExpertAggregations(aggregations: Record<string, query.TermsA
     return {orgs, organisationCount: cardinality?.value ?? orgs.length, facets: aggregations}
 }
 
-/** The ranked organisations' own records, in one mget. See the SEAM note above. */
+/**
+ * What ranking an organisation needs to know about it: which institution it
+ * merges into (D19) and its own lifetime figures, which are the non-default
+ * sort keys.
+ */
+export interface OrganisationRankingKeys {
+    /** Ids sharing this are the same institution. `null` means the row is only ever itself. */
+    group: string | null
+    funding: number
+    projectCount: number
+    workCount: number
+}
+
+export interface RankedOrganisations {
+    /** Keyed by organisation id; an id missing here has no record and cannot be shown. */
+    keys: Map<string, OrganisationRankingKeys>
+    /**
+     * Full documents, when they were fetched anyway. Empty when the keys came
+     * from memory — the caller then fetches only the page it is about to show.
+     */
+    documents: Map<string, OrganisationRawDoc>
+}
+
+function keysFromDocument(document: OrganisationRawDoc): OrganisationRankingKeys {
+    return {
+        group: document.name_key ?? null,
+        funding: document.total_funding_eur ?? 0,
+        projectCount: document.project_count ?? 0,
+        workCount: document.work_count ?? 0,
+    }
+}
+
+/**
+ * Ranking keys for the WHOLE ranked set (up to 200 ids), because the merge has
+ * to see every name key before it can know what page 1 contains.
+ *
+ * Served from the in-memory organisation table (plan F0-11) when it has
+ * finished loading, which is the point of the table: this used to be an mget
+ * of 200 documents on every single search, and on the VM's cold cache an mget
+ * of that size cost seconds. Until it is ready — the first seconds after boot,
+ * or after a failed load — the old mget still answers, correctly and slowly,
+ * and its documents are handed back so the caller does not fetch them twice.
+ */
+export async function fetchRankedOrganisations(ids: string[]): Promise<RankedOrganisations> {
+    if (isOrganisationTableReady()) {
+        const keys = new Map(
+            getOrganisations(ids).map((row) => [
+                row.id,
+                {group: row.nameKey, funding: row.totalFundingEur, projectCount: row.projectCount, workCount: row.workCount},
+            ]),
+        )
+        return {keys, documents: new Map()}
+    }
+
+    const documents = await fetchOrganisations(ids)
+    return {
+        keys: new Map(documents.map((document) => [document.id, keysFromDocument(document)])),
+        documents: new Map(documents.map((document) => [document.id, document])),
+    }
+}
+
+/** The records behind the rows actually being rendered. */
 export async function fetchOrganisations(ids: string[]): Promise<OrganisationRawDoc[]> {
+    if (ids.length === 0) return []
     return mgetDocuments<OrganisationRawDoc>(indices.organisationsIndexName, ids, ORG_SOURCE)
 }
