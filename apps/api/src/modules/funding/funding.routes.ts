@@ -17,6 +17,9 @@ const fundingQueryProperties = {
     stream: stringArrayProp,
     years: {type: 'string'},
     region: stringArrayProp,
+    country: stringArrayProp,
+    orgType: stringArrayProp,
+    hasGeo: {type: 'string', enum: ['true']},
 } as const
 
 export async function fundingRoutes(fastify: FastifyInstance) {

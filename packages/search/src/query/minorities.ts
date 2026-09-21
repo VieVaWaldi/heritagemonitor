@@ -62,12 +62,40 @@ const TERM_FIELDS: ReadonlyArray<[keyof MinorityFilters, string]> = [
     ['home', 'ancestral_home'],
 ]
 
+/**
+ * The value the pipeline writes for a group that is not tied to any country.
+ *
+ * Exactly one group carries it today (Q7325, Jewish people) and it is that
+ * group's ONLY country value, which is what makes the special case both
+ * necessary and safe: a diaspora with no country would otherwise be invisible
+ * under every country filter, and filtering by Germany while hiding the one
+ * group that is everywhere is the wrong answer.
+ */
+export const GLOBAL_COUNTRY_PLACEHOLDER = '(global — see subgroups in dataset)'
+
 export function minorityFilters(filters: MinorityFilters = {}): QueryClause[] {
     const clauses: QueryClause[] = [...corpusFilter('minorities', filters.corpus)]
 
     for (const [key, field] of TERM_FIELDS) {
         const values = filters[key] as string[] | undefined
-        if (values?.length) clauses.push({terms: {[exactField(field)]: values}})
+        if (!values?.length) continue
+
+        if (key === 'country') {
+            // A global group matches EVERY country, so the clause is "one of
+            // the chosen countries OR global" rather than a plain terms.
+            clauses.push({
+                bool: {
+                    should: [
+                        {terms: {[exactField(field)]: values}},
+                        {term: {[exactField(field)]: GLOBAL_COUNTRY_PLACEHOLDER}},
+                    ],
+                    minimum_should_match: 1,
+                },
+            })
+            continue
+        }
+
+        clauses.push({terms: {[exactField(field)]: values}})
     }
 
     if (filters.hasSubgroups) clauses.push({term: {has_subgroups: true}})

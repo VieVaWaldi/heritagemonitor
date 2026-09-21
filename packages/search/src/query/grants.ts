@@ -1,7 +1,8 @@
+import {termsAgg} from './aggregations.js'
 import {corpusFilter, type Corpus} from './corpus.js'
 import {TOTAL_CAP} from './pagination.js'
-import {idsQuery, type QueryClause} from './projects.js'
-import {GRANT_FIELDS, sqs} from './syntax.js'
+import {idsQuery, projectFilters, type QueryClause} from './projects.js'
+import {GRANT_FIELDS, PROJECT_FIELDS, sqs} from './syntax.js'
 import {fuzzyQuery, suggestBlock, TYPO_POLICY} from './typo.js'
 
 // Bodies for the `grants` index: the funding streams projects are attributed
@@ -76,6 +77,43 @@ export interface GrantsBodyOptions {
     mode?: 'strict' | 'fuzzy'
     suggest?: boolean
     timeout?: string
+    /**
+     * Stream ids found by the project probe (see `grantProjectProbeBody`),
+     * added as a `should` so they join the results without displacing a stream
+     * whose own description matches.
+     */
+    boostIds?: string[]
+}
+
+/**
+ * Step one of the two-step search: which funding streams paid for the
+ * PROJECTS that match this text?
+ *
+ * A stream document holds only its own name and hierarchy — "ERASMUS+ -
+ * Cooperation for innovation…". Nothing in it says the stream funded work on
+ * photogrammetry or Roma heritage, so searching a research subject against the
+ * grants index alone returns nothing useful. Asking the projects index and
+ * folding the resulting `funding_stream_ids` back in is what makes a subject
+ * search over funding work at all.
+ *
+ * CAP: the aggregation returns at most `size` streams (1,000 by default,
+ * against ~6,100 in the index and ~950 with heritage projects). A broad query
+ * can therefore miss a stream in the long tail — acceptable because the
+ * buckets come back in document-count order, so what is missed is the streams
+ * with the fewest matching projects.
+ */
+export function grantProjectProbeBody(q: string, size = 1_000): Record<string, unknown> {
+    return {
+        size: 0,
+        track_total_hits: false,
+        query: {
+            bool: {
+                must: sqs(q, PROJECT_FIELDS),
+                filter: [...projectFilters(), {exists: {field: 'funding_stream_ids'}}],
+            },
+        },
+        aggs: {streams: termsAgg('funding_stream_ids', size)},
+    }
 }
 
 /**
@@ -95,11 +133,23 @@ export function grantsBody({
     mode = 'strict',
     suggest = false,
     timeout,
+    boostIds = [],
 }: GrantsBodyOptions): Record<string, unknown> {
-    const bool: Record<string, unknown> = {
-        must: grantTextQuery(q, mode),
-        filter: grantFilters(filters),
-    }
+    const hasQuery = q.trim().length > 0
+
+    // With a text query a stream may match EITHER its own description or the
+    // projects it funded, so the text clause joins the probe's ids in `should`
+    // and one of them must match. The probe ids are boosted below 1 so a
+    // stream whose own name matches still outranks one that merely funded a
+    // matching project.
+    const bool: Record<string, unknown> =
+        hasQuery && boostIds.length > 0
+            ? {
+                  should: [grantTextQuery(q, mode), {terms: {id: boostIds, boost: 0.6}}],
+                  minimum_should_match: 1,
+                  filter: grantFilters(filters),
+              }
+            : {must: grantTextQuery(q, mode), filter: grantFilters(filters)}
 
     const explicit = sort && sort !== 'relevance' ? SORT_FIELDS[sort] : undefined
     const sortClause = explicit ? sortClauses(explicit) : q.trim() ? undefined : sortClauses(SORT_FIELDS.dchProjects)

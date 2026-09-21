@@ -26,8 +26,11 @@ const EMPTY: WorkSearchResponse = {
  * `dpage`, fetched only while the tab is open — a large institution has tens
  * of thousands of works.
  */
-export function useRelatedWorks(entity: 'projects' | 'organisations', id: string | null, enabled: boolean) {
+export function useRelatedWorks(entity: 'projects' | 'organisations', id: string | null, enabled: boolean, search = '') {
     const {page, setPage} = useUrlDetailPage()
+    // Keyed by id AND the forwarded page filters: without the filters in the
+    // key, narrowing a facet would leave the previous rows on screen.
+    const fetchKey = id === null ? null : `${id}|${search}`
     const [fetched, setFetched] = useState<{id: string; data: WorkSearchResponse} | null>(null)
     const [loading, startTransition] = useTransition()
 
@@ -37,17 +40,17 @@ export function useRelatedWorks(entity: 'projects' | 'organisations', id: string
         const controller = new AbortController()
         startTransition(async () => {
             try {
-                const data = await apiGet(`/v1/${entity}/${encodeURIComponent(id)}/works?page=${page}`, workSearchResponseSchema, {
+                const data = await apiGet(`/v1/${entity}/${encodeURIComponent(id)}/works?page=${page}&${search}`, workSearchResponseSchema, {
                     signal: controller.signal,
                 })
-                setFetched({id, data})
+                setFetched({id: fetchKey!, data})
             } catch {
                 // Superseded, or a transient failure: keep what is on screen.
             }
         })
 
         return () => controller.abort()
-    }, [entity, id, page, enabled])
+    }, [entity, id, fetchKey, search, page, enabled])
 
-    return {works: enabled && id && fetched?.id === id ? fetched.data : EMPTY, page, setPage, loading}
+    return {works: enabled && fetchKey && fetched?.id === fetchKey ? fetched.data : EMPTY, page, setPage, loading}
 }

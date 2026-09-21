@@ -39,10 +39,22 @@ export interface MinorityRawDoc {
  * shared facet config, while the aggregation itself runs on the exact
  * sub-field where the index maps one (see `exactField`).
  */
+/** Agg name for the global-group count that the country facet is corrected with. */
+export const GLOBAL_COUNTRY_AGG = 'globalCountryGroups'
+
 function facetAggs(): Record<string, unknown> {
-    return Object.fromEntries(
-        MINORITY_FACET_FIELDS.map((facet) => [facet.field, query.termsAgg(query.exactField(facet.field), facet.size)]),
-    )
+    return {
+        ...Object.fromEntries(
+            MINORITY_FACET_FIELDS.map((facet) => [facet.field, query.termsAgg(query.exactField(facet.field), facet.size)]),
+        ),
+        // How many groups under the CURRENT query and filters are global (see
+        // query.GLOBAL_COUNTRY_PLACEHOLDER). They match every country, so the
+        // country buckets are short by exactly this number — corrected in the
+        // service, where the buckets become a distribution.
+        [GLOBAL_COUNTRY_AGG]: {
+            filter: {term: {[query.exactField('countries')]: query.GLOBAL_COUNTRY_PLACEHOLDER}},
+        },
+    }
 }
 
 export interface MinoritySearchParams {

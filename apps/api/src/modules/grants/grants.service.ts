@@ -28,6 +28,13 @@ import type {GrantRawDoc} from './opensearch.repository.js'
 // apps/api/RULES.md rule 3.
 
 const SUGGEST_LIMIT = 8
+
+/**
+ * How many funding streams the project probe may return. Above the ~950 that
+ * have heritage projects, so in practice nothing is cut; see the query
+ * builder for what a cut would mean.
+ */
+const PROBE_STREAM_LIMIT = 1_000
 const DEFAULT_FACET_VALUES_SIZE = 20
 
 function toFilters(request: GrantSearchRequest): query.GrantFilters {
@@ -80,12 +87,18 @@ export async function searchGrants(request: GrantSearchRequest): Promise<GrantSe
         if (cached) return cached
     }
 
+    // Two-step (D-minorities pattern): a stream document says nothing about
+    // what its projects are ABOUT, so a subject search has to go through the
+    // projects index first. A blank query needs no probe.
+    const boostIds = q.trim() ? await opensearchRepository.probeProjectsForStreams(q, PROBE_STREAM_LIMIT) : []
+
     const result = await opensearchRepository.search({
         q,
         page,
         sort: request.sort,
         filters: toFilters(request),
         typoTolerant: q.trim().length > 0,
+        boostIds,
     })
 
     const facetDistribution = toFacetDistribution(result.aggregations)

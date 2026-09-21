@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 // Tests run against the compiled `dist/` (the `test` script builds first).
-import {grantAutocompleteBody, grantFilters, grantsBody, grantsCountBody} from '../dist/query/grants.js'
+import {grantAutocompleteBody, grantFilters, grantProjectProbeBody, grantsBody, grantsCountBody} from '../dist/query/grants.js'
 
 test('the DCH corpus filters streams on dch_project_count', () => {
     assert.deepEqual(grantFilters({corpus: 'dch'}), [{range: {dch_project_count: {gte: 1}}}])
@@ -73,4 +73,43 @@ test('autocomplete only ever suggests streams that funded heritage work', () => 
     // only ever lead to an empty page.
     const body = grantAutocompleteBody('horiz') as {query: {bool: {filter: unknown[]}}}
     assert.deepEqual(body.query.bool.filter, [{range: {dch_project_count: {gte: 1}}}])
+})
+
+// --- two-step search: grants found through their projects -------------------
+
+test('the project probe aggregates funding_stream_ids under the text query', () => {
+    const body = grantProjectProbeBody('photogrammetry') as {
+        size: number
+        query: {bool: {filter: unknown[]}}
+        aggs: {streams: {terms: {field: string; size: number}}}
+    }
+    assert.equal(body.size, 0, 'the projects themselves are never wanted')
+    assert.equal(body.aggs.streams.terms.field, 'funding_stream_ids')
+    // Above the ~950 streams that have heritage projects, so nothing is cut
+    // in practice — see the builder's CAP note.
+    assert.equal(body.aggs.streams.terms.size, 1_000)
+    // Projects with no stream cannot contribute an id.
+    assert.deepEqual(body.query.bool.filter, [{exists: {field: 'funding_stream_ids'}}])
+})
+
+test('with a query and probe ids, a stream matches its OWN text or its projects', () => {
+    const body = grantsBody({q: 'photogrammetry', size: 20, from: 0, boostIds: ['EC::H2020']}) as {
+        query: {bool: {should?: unknown[]; minimum_should_match?: number; must?: unknown}}
+    }
+    assert.equal(body.query.bool.must, undefined, 'the text clause moves into should')
+    assert.equal(body.query.bool.minimum_should_match, 1)
+    // Boosted below 1: a stream whose own name matches still outranks one that
+    // merely funded a matching project.
+    assert.deepEqual(body.query.bool.should?.[1], {terms: {id: ['EC::H2020'], boost: 0.6}})
+})
+
+test('a blank query is untouched by the two-step', () => {
+    const body = grantsBody({size: 20, from: 0, boostIds: ['EC::H2020']}) as {query: {bool: {must?: unknown; should?: unknown}}}
+    assert.ok(body.query.bool.must, 'no query means the plain match_all path')
+    assert.equal(body.query.bool.should, undefined)
+})
+
+test('a query with no probe hits keeps the plain text query', () => {
+    const body = grantsBody({q: 'photogrammetry', size: 20, from: 0, boostIds: []}) as {query: {bool: {must?: unknown}}}
+    assert.ok(body.query.bool.must)
 })

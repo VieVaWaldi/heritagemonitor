@@ -35,6 +35,7 @@ import {
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {RelatedWorksTab} from '../entity/RelatedWorksTab'
+import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
@@ -102,14 +103,20 @@ export function OrganisationsResultsPanel() {
 
     const projectsTabOpen = tab === 'projects'
     const worksTabOpen = tab === 'works'
+    // What of this page carries into each tab — see entity/relatedParams.
+    const projectsRelated = useRelatedRequest('organisations:projects')
+    const worksRelated = useRelatedRequest('organisations:works')
+
     const {projects, page: projectsPage, setPage: setProjectsPage, loading: projectsLoading} = useOrganisationProjects(
         selectedId,
         projectsTabOpen,
+        projectsRelated.search,
     )
     const {works, page: worksPage, setPage: setWorksPage, loading: worksLoading} = useRelatedWorks(
         'organisations',
         selectedId,
         worksTabOpen,
+        worksRelated.search,
     )
 
     const labelUrlValue = useCallback(
@@ -253,6 +260,7 @@ export function OrganisationsResultsPanel() {
                             label: 'Projects',
                             content: detail ? (
                                 <OrganisationProjectsTab
+                                    filterCaption={projectsRelated.caption}
                                     projects={projects}
                                     page={projectsPage}
                                     onPageChange={setProjectsPage}
@@ -268,6 +276,7 @@ export function OrganisationsResultsPanel() {
                             label: 'Works',
                             content: detail ? (
                                 <RelatedWorksTab
+                                    filterCaption={worksRelated.caption}
                                     works={works}
                                     page={worksPage}
                                     onPageChange={setWorksPage}

@@ -11,6 +11,8 @@ export interface OrganisationProjectsTabProps {
     loading: boolean
     /** Opens this project on the projects entity — see buildEntityLink. */
     onSelectProject: (projectId: string) => void
+    /** What of the surrounding page this list is filtered by — see relatedParams. */
+    filterCaption?: string
 }
 
 function toRow(project: OrganisationProject): RelatedRow {
@@ -37,10 +39,18 @@ function toRow(project: OrganisationProject): RelatedRow {
  * The projects this organisation worked on, biggest budget first, with the
  * ones it coordinates marked. A row is a link INTO the projects entity.
  */
-export function OrganisationProjectsTab({projects, page, onPageChange, loading, onSelectProject}: OrganisationProjectsTabProps) {
+export function OrganisationProjectsTab({
+    projects,
+    page,
+    onPageChange,
+    loading,
+    onSelectProject,
+    filterCaption,
+}: OrganisationProjectsTabProps) {
     return (
         <RelatedList
             caption={`${formatResultCount(projects)} projects, largest budget first`}
+            filterCaption={filterCaption}
             rows={projects.hits.map(toRow)}
             page={page}
             pageCount={projects.pageCount}

@@ -11,6 +11,8 @@ export interface GrantOrganisationsTabProps {
     loading: boolean
     /** Opens this organisation on the organisations entity — see buildEntityLink. */
     onSelectOrganisation: (organisationId: string) => void
+    /** What of the surrounding page this list is filtered by — see relatedParams. */
+    filterCaption?: string
 }
 
 function toRow(organisation: GrantOrganisation): RelatedRow {
@@ -35,7 +37,13 @@ function toRow(organisation: GrantOrganisation): RelatedRow {
  * per-stream amount per organisation, so the alternative would be a number
  * that looks like one and is not.
  */
-export function GrantOrganisationsTab({organisations, complete, loading, onSelectOrganisation}: GrantOrganisationsTabProps) {
+export function GrantOrganisationsTab({
+    organisations,
+    complete,
+    loading,
+    onSelectOrganisation,
+    filterCaption,
+}: GrantOrganisationsTabProps) {
     return (
         <RelatedList
             caption={
@@ -43,6 +51,7 @@ export function GrantOrganisationsTab({organisations, complete, loading, onSelec
                     ? `Top ${organisations.length} organisations by projects in this stream`
                     : 'Organisation names are still loading on the server — try again in a moment.'
             }
+            filterCaption={filterCaption}
             rows={organisations.map(toRow)}
             page={1}
             pageCount={1}

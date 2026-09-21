@@ -3,6 +3,7 @@ import {test} from 'node:test'
 // Imported straight from source: the codecs are deliberately free of React,
 // next/navigation and `@/` path aliases, so Node's own TypeScript support can
 // run them as-is. The hooks around them are the part that needs a browser.
+import {hexZoomFactor} from '../src/common/deckgl/layers/hexScale.ts'
 import {RELATED_RELATIONS, relatedFilterCaption, relatedParams} from '../src/modules/search/entity/relatedParams.ts'
 import {
     applyPatch,
@@ -346,4 +347,23 @@ test('every relation that omits a param gives a reason for it', () => {
             assert.ok(reason.length > 10, `${relation}/${param} needs a real reason`)
         }
     }
+})
+
+// --- funding map hex scaling (common/deckgl/layers/hexFundingLayer) ---------
+
+test('hex geometry shrinks as the camera zooms in and grows as it zooms out', () => {
+    // Ported from digicher_webinterface: halve per zoom level in, double out.
+    // Without it the columns are invisible specks at continental zoom and
+    // 375km walls you end up inside of at city zoom.
+    const atBase = hexZoomFactor(4.2)
+    assert.ok(Math.abs(atBase - 1) < 0.001, 'the base zoom is the tuned size')
+    assert.ok(hexZoomFactor(7) < atBase, 'zoomed in is smaller')
+    assert.ok(hexZoomFactor(2) > atBase, 'zoomed out is bigger')
+})
+
+test('the zoom factor is clamped at both ends', () => {
+    // The raw curve reaches absurd values a few levels out and collapses to
+    // nothing a few levels in.
+    assert.ok(hexZoomFactor(0) <= 3.5)
+    assert.ok(hexZoomFactor(22) >= 0.12)
 })

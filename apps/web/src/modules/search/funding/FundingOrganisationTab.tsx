@@ -16,6 +16,8 @@ export interface FundingOrganisationTabProps {
     loading: boolean
     /** Opens this project on the projects entity — see buildEntityLink. */
     onSelectProject: (projectId: string) => void
+    /** What of the surrounding page this list is filtered by — see relatedParams. */
+    filterCaption?: string
 }
 
 function toRow(project: ProjectRow): RelatedRow {
@@ -46,6 +48,7 @@ export function FundingOrganisationTab({
     onPageChange,
     loading,
     onSelectProject,
+    filterCaption,
 }: FundingOrganisationTabProps) {
     return (
         <Box sx={{p: 2.5, display: 'flex', flexDirection: 'column', gap: 2, height: '100%', minHeight: 0}}>
@@ -70,6 +73,7 @@ export function FundingOrganisationTab({
             <Box sx={{flex: '1 1 auto', minHeight: 0, overflow: 'auto'}}>
                 <RelatedList
                     caption={`${formatResultCount(projects)} of the matching projects, largest budget first`}
+                    filterCaption={filterCaption}
                     rows={projects.hits.map(toRow)}
                     page={page}
                     pageCount={projects.pageCount}

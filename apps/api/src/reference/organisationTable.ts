@@ -40,6 +40,7 @@ const SOURCE = [
     'work_count',
     'total_funding_eur',
     'has_dch_project',
+    'rorTypes',
 ] as const
 
 interface OrganisationScanDoc {
@@ -53,6 +54,7 @@ interface OrganisationScanDoc {
     work_count?: number
     total_funding_eur?: number
     has_dch_project?: boolean
+    rorTypes?: string[]
 }
 
 /** What a caller gets back. Built on demand from the columns — never stored. */
@@ -69,6 +71,8 @@ export interface OrganisationTableRow {
     workCount: number
     totalFundingEur: number
     hasDchProject: boolean
+    /** ROR institution types, including the `unknown` bucket. */
+    rorTypes: string[]
 }
 
 /**
@@ -108,6 +112,13 @@ class StringDictionary {
     }
 }
 
+/**
+ * ROR publishes exactly 10 institution types, so a row's set of them fits in
+ * one 16-bit mask — 2 bytes instead of an array of strings per organisation,
+ * which at 494k rows is the difference between ~1 MB and ~60 MB.
+ */
+const MAX_ROR_TYPES = 16
+
 interface Columns {
     ids: string[]
     names: string[]
@@ -120,6 +131,9 @@ interface Columns {
     workCount: Int32Array
     funding: Float64Array
     hasDch: Uint8Array
+    /** Bitmask into `rorTypeNames`. */
+    rorTypes: Uint16Array
+    rorTypeNames: string[]
     byId: Map<string, number>
     countries: StringDictionary
     regions: StringDictionary
@@ -190,6 +204,9 @@ async function load(): Promise<void> {
     const workCount: number[] = []
     const funding: number[] = []
     const hasDch: number[] = []
+    const rorTypeMasks: number[] = []
+    // Built as encountered; ROR has 10 types, so this never reaches the cap.
+    const rorTypeNames: string[] = []
 
     // The client types a sort cursor as plain field values, which is what
     // sorting on `_doc` yields (one document number).
@@ -226,6 +243,19 @@ async function load(): Promise<void> {
             workCount.push(source.work_count ?? 0)
             funding.push(source.total_funding_eur ?? 0)
             hasDch.push(source.has_dch_project ? 1 : 0)
+
+            let mask = 0
+            for (const type of source.rorTypes ?? []) {
+                let index = rorTypeNames.indexOf(type)
+                if (index === -1) {
+                    // Anything past the cap is dropped rather than silently
+                    // aliased onto another type's bit.
+                    if (rorTypeNames.length >= MAX_ROR_TYPES) continue
+                    index = rorTypeNames.push(type) - 1
+                }
+                mask |= 1 << index
+            }
+            rorTypeMasks.push(mask)
         }
 
         searchAfter = hits[hits.length - 1]?.sort
@@ -244,6 +274,8 @@ async function load(): Promise<void> {
         workCount: Int32Array.from(workCount),
         funding: Float64Array.from(funding),
         hasDch: Uint8Array.from(hasDch),
+        rorTypes: Uint16Array.from(rorTypeMasks),
+        rorTypeNames,
         byId: new Map(ids.map((id, index) => [id, index])),
         countries,
         regions,
@@ -296,6 +328,7 @@ function rowAt(index: number): OrganisationTableRow {
         workCount: table.workCount[index],
         totalFundingEur: table.funding[index],
         hasDchProject: table.hasDch[index] === 1,
+        rorTypes: table.rorTypeNames.filter((_name, bit) => (table.rorTypes[index] & (1 << bit)) !== 0),
     }
 }
 

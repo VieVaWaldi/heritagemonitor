@@ -197,7 +197,6 @@ export function ExpertsResultsPanel() {
             topic: <TopicsFilterButton entity="experts" countNoun="projects" variant="text" label="Browse all topics" />,
         },
         titleKey: 'experts',
-        filterBarExtra: <TopicsFilterButton entity="experts" countNoun="projects" />,
     }
 
     const openOrganisation = useCallback(

@@ -56,6 +56,7 @@ import {useTopicNames} from '../entity/useTopicBrowser'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {MinorityOverviewTab} from './MinorityOverviewTab'
@@ -136,23 +137,30 @@ export function MinoritiesResultsPanel() {
     // Every tab is the same request shape keyed to the selected group — see
     // useRelatedSearch. Only the path differs.
     const qid = selectedId
+    // The surrounding page's filters, per relation — see entity/relatedParams.
+    const projectsRelated = useRelatedRequest('minorities:projects')
+    const worksRelated = useRelatedRequest('minorities:works')
+    const organisationsRelated = useRelatedRequest('minorities:organisations')
+
     const projectsTab = useRelatedSearch({
-        key: qid,
-        path: (dpage) => `/v1/projects/search?minority=${encodeURIComponent(qid ?? '')}&page=${dpage}`,
+        // The forwarded filters are part of the list's identity: without them
+        // in the key, narrowing a facet would leave the old rows on screen.
+        key: qid && `${qid}|${projectsRelated.search}`,
+        path: (dpage) => `/v1/projects/search?minority=${encodeURIComponent(qid ?? '')}&page=${dpage}&${projectsRelated.search}`,
         schema: projectSearchResponseSchema,
         empty: EMPTY_PROJECTS,
         enabled: tab === 'projects',
     })
     const worksTab = useRelatedSearch({
-        key: qid,
-        path: (dpage) => `/v1/works/search?minority=${encodeURIComponent(qid ?? '')}&page=${dpage}`,
+        key: qid && `${qid}|${worksRelated.search}`,
+        path: (dpage) => `/v1/works/search?minority=${encodeURIComponent(qid ?? '')}&page=${dpage}&${worksRelated.search}`,
         schema: workSearchResponseSchema,
         empty: EMPTY_WORKS,
         enabled: tab === 'works',
     })
     const organisationsTab = useRelatedSearch({
-        key: qid,
-        path: (dpage) => `/v1/minorities/${encodeURIComponent(qid ?? '')}/organisations?page=${dpage}`,
+        key: qid && `${qid}|${organisationsRelated.search}`,
+        path: (dpage) => `/v1/minorities/${encodeURIComponent(qid ?? '')}/organisations?page=${dpage}&${organisationsRelated.search}`,
         schema: workOrganisationsResponseSchema,
         empty: EMPTY_ORGANISATIONS,
         enabled: tab === 'organisations',
@@ -218,7 +226,6 @@ export function MinoritiesResultsPanel() {
             topic: <TopicsFilterButton entity="minorities" countNoun="groups" variant="text" label="Browse all topics" />,
         },
         titleKey: 'minorities',
-        filterBarExtra: <TopicsFilterButton entity="minorities" countNoun="groups" />,
     }
 
     const openProject = useCallback(
@@ -366,6 +373,7 @@ export function MinoritiesResultsPanel() {
                             content: detail ? (
                                 <RelatedList
                                     caption={`${formatResultCount(projectsTab.data)} projects mention this group — ${MINORITY_COUNT_DISCLAIMER}`}
+                                    filterCaption={projectsRelated.caption}
                                     rows={projectRows}
                                     page={projectsTab.page}
                                     pageCount={projectsTab.data.pageCount}
@@ -384,6 +392,7 @@ export function MinoritiesResultsPanel() {
                             content: detail ? (
                                 <RelatedList
                                     caption={`${formatResultCount(worksTab.data)} works, tagged via their linked project`}
+                                    filterCaption={worksRelated.caption}
                                     rows={workRows}
                                     page={worksTab.page}
                                     pageCount={worksTab.data.pageCount}
@@ -402,6 +411,7 @@ export function MinoritiesResultsPanel() {
                             content: detail ? (
                                 <RelatedList
                                     caption={`${organisationsTab.data.estimatedTotalHits} organisations worked on this group's projects, most projects first`}
+                                    filterCaption={organisationsRelated.caption}
                                     rows={organisationsTab.data.hits.map((organisation) => ({
                                         id: organisation.id,
                                         primary: organisation.legalName ?? organisation.legalShortName ?? organisation.id,

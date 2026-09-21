@@ -1,12 +1,21 @@
 'use client'
 
-import {organisationDetailSchema, type GrantRow} from '@heritagemonitor/shared'
+import {
+    FUNDING_FACET_FIELDS,
+    FUNDING_ROW_FILTER_NOTE,
+    organisationDetailSchema,
+    type FundingFacetParam,
+    type GrantRow,
+} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Paper from '@mui/material/Paper'
+import Switch from '@mui/material/Switch'
 import Tooltip from '@mui/material/Tooltip'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
 import {CORPUSES} from '@/common/catalog'
-import {NoticeBar, PaginatedList, TabbedPanel} from '@/common/components'
+import {FacetSidebar, NoticeBar, PaginatedList, TabbedPanel} from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
 import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
@@ -17,13 +26,18 @@ import {
     readOptionalOneOf,
     readText,
     SEARCH_PARAM,
+    buildResetPatch,
     useUrlCorpus,
     useUrlDetailPage,
+    useUrlFilters,
     useUrlMapView,
     useUrlPage,
     useUrlState,
     useUrlTab,
 } from '@/common/url'
+import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
+import {useEntityFacets} from '../entity/useEntityFacets'
+import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {FundingMapTab} from './FundingMapTab'
 import {FundingOrganisationRow} from './FundingOrganisationRow'
@@ -77,6 +91,10 @@ export function FundingResultsPanel() {
     const {tab, setTab} = useUrlTab(TABS)
     const {initialView, onViewChange} = useUrlMapView()
 
+    const FILTER_PARAMS = FUNDING_FACET_FIELDS.map((facet) => facet.param)
+    const {values: filterValues, setFilter, activeCount} = useUrlFilters<FundingFacetParam>(FILTER_PARAMS)
+    const hasGeoOnly = params.get(SEARCH_PARAM.hasGeo) === 'true'
+
     const {data, error} = useFundingOrganisations()
     const {data: mapData, loading: mapLoading} = useFundingMap()
 
@@ -88,6 +106,39 @@ export function FundingResultsPanel() {
     const {selectedId, detail, select} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
     const selectedOrganisation = data.hits.find((hit) => hit.id === selectedId) ?? null
 
+    const facets = useEntityFacets(FUNDING_FACET_FIELDS, data.facetDistribution, {})
+
+    const filterProps: EntityFiltersProps = {
+        entity: 'organisations',
+        titleKey: 'funding',
+        facets,
+        values: filterValues,
+        onFilterChange: (param, next) => setFilter(param as FundingFacetParam, next),
+        onReset: () =>
+            update(
+                buildResetPatch(params, [SEARCH_PARAM.corpus, SEARCH_PARAM.tab, SEARCH_PARAM.view, SEARCH_PARAM.query]),
+            ),
+        hasActiveFilters: activeCount > 0 || hasGeoOnly,
+        sidebarHeader: (
+            <Paper variant="outlined" sx={{p: 2}}>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={hasGeoOnly}
+                            onChange={(event) => update({[SEARCH_PARAM.hasGeo]: event.target.checked ? 'true' : null})}
+                        />
+                    }
+                    label={<Text variant="body2">Only organisations on the map</Text>}
+                    sx={{ml: 0}}
+                />
+                <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
+                    {FUNDING_ROW_FILTER_NOTE}
+                </Text>
+            </Paper>
+        ),
+    }
+
+    const projectsRelated = useRelatedRequest('funding:projects')
     const organisationTabOpen = tab === 'organisation'
     const {projects, page: projectsPage, setPage: setProjectsPage, loading: projectsLoading} = useFundingOrganisationProjects(
         selectedId,
@@ -163,7 +214,13 @@ export function FundingResultsPanel() {
     usePageChatContextPublisher(pageContext)
 
     return (
-        <Box sx={{width: '80%', mx: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 2}}>
+        <Box sx={{width: '80%', mx: 'auto', height: '100%', display: 'flex', gap: 3}}>
+            <FacetSidebar>
+                <EntityFacetSidebar {...filterProps} />
+            </FacetSidebar>
+
+            <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
+            <EntityFilterBar {...filterProps} />
             {error && <NoticeBar tone="warning">{error}</NoticeBar>}
             {!data.complete && (
                 <NoticeBar tone="note">
@@ -233,9 +290,10 @@ export function FundingResultsPanel() {
                             },
                             {
                                 value: 'organisation',
-                                label: 'Organisation',
+                                label: 'Overview',
                                 content: selectedOrganisation ? (
                                     <FundingOrganisationTab
+                                        filterCaption={projectsRelated.caption}
                                         organisation={selectedOrganisation}
                                         projects={projects}
                                         page={projectsPage}
@@ -266,6 +324,7 @@ export function FundingResultsPanel() {
                         ]}
                     />
                 </Box>
+            </Box>
             </Box>
         </Box>
     )

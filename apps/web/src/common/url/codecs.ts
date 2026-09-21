@@ -41,6 +41,12 @@ export const SEARCH_PARAM = {
      * touches the page's own `q`.
      */
     allWorks: 'allWorks',
+    /** Funding: only organisations that can be drawn on the map. */
+    hasGeo: 'hasGeo',
+    /** Funding: ROR institution type of the organisation. */
+    orgType: 'orgType',
+    /** Organisation country code — a facet on the organisations and funding pages. */
+    country: 'country',
     /** Map camera: `lat,lng,zoom` at 4 decimals. See readMapView. */
     view: 'view',
     /** Which map visualization is showing (`hexes`, ...). */
@@ -65,6 +71,14 @@ export const WEB_ONLY_PARAMS: readonly string[] = [
     SEARCH_PARAM.tab,
     SEARCH_PARAM.detailPage,
     SEARCH_PARAM.allWorks,
+    // The map camera and the chosen layer describe what the user is LOOKING
+    // AT, not what was searched for. Leaving them in was a real bug: they
+    // became part of every fetch key, so panning the funding map aborted and
+    // refired its 500-organisation request on each frame, and the map could
+    // end up showing a payload from a different filter state than the list
+    // beside it.
+    SEARCH_PARAM.view,
+    SEARCH_PARAM.layer,
 ]
 
 /**
@@ -388,6 +402,9 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.tab]: 'Open tab',
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
     [SEARCH_PARAM.allWorks]: 'Showing all works (not only matching)',
+    [SEARCH_PARAM.hasGeo]: 'Only organisations with coordinates',
+    [SEARCH_PARAM.orgType]: 'Organisation type',
+    [SEARCH_PARAM.country]: 'Country',
     [SEARCH_PARAM.view]: 'Map view (lat, lng, zoom)',
     [SEARCH_PARAM.layer]: 'Map layer',
     [SEARCH_PARAM.years]: 'Years',

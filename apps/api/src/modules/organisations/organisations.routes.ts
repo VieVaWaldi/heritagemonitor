@@ -35,6 +35,7 @@ interface PagedQuery {
     page?: number
 }
 
+
 /** The works tabs accept the calling page's text and corpus — see searchWorksFor. */
 interface WorksQuery extends PagedQuery {
     q?: string
@@ -45,6 +46,24 @@ type FacetValuesQuery = OrganisationSearchRequest & {facet?: string; facetQ?: st
 
 const stringArrayProp = {type: 'array', items: {type: 'string'}} as const
 const pageProp = {type: 'integer', minimum: 1, default: 1} as const
+
+/**
+ * The surrounding page's filters, forwarded into a tab list. Declared once
+ * because /:id/projects and /:id/works both take them — see the web's
+ * relatedParams.ts, which decides what is sent.
+ */
+const relatedFilterProperties = {
+    c: {type: 'string', enum: [...CORPUS_KEYS]},
+    years: {type: 'string'},
+    theme: stringArrayProp,
+    pillar: stringArrayProp,
+    funder: stringArrayProp,
+    programme: stringArrayProp,
+    region: stringArrayProp,
+    topic: stringArrayProp,
+    subfield: stringArrayProp,
+    field: stringArrayProp,
+} as const
 
 // One definition for /search and /facet-values: the value lists must be
 // aggregated under exactly the params the search ran with.
@@ -99,16 +118,18 @@ export async function organisationsRoutes(fastify: FastifyInstance) {
         async (request): Promise<OrganisationDetail> => getOrganisationById(request.params.id),
     )
 
-    fastify.get<{Params: ByIdParams; Querystring: PagedQuery}>(
+    fastify.get<{Params: ByIdParams; Querystring: PagedQuery & OrganisationSearchRequest}>(
         '/organisations/:id/projects',
         {
             schema: {
                 params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
-                querystring: {type: 'object', properties: {page: pageProp}},
+                querystring: {type: 'object', properties: {page: pageProp, ...relatedFilterProperties}},
             },
         },
-        async (request): Promise<OrganisationProjectsResponse> =>
-            getOrganisationProjects(request.params.id, request.query.page ?? 1),
+        async (request): Promise<OrganisationProjectsResponse> => {
+            const {page, ...narrow} = request.query
+            return getOrganisationProjects(request.params.id, page ?? 1, narrow)
+        },
     )
 
     // Same shape as /projects/:id/works: this module's URL, the works

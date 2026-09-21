@@ -40,6 +40,7 @@ import {ResultsHeader} from '../entity/ResultsHeader'
 import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {labelFacetValue, useEntityFacets} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
+import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {GrantOrganisationsTab} from './GrantOrganisationsTab'
 import {GrantOverviewTab} from './GrantOverviewTab'
@@ -104,10 +105,14 @@ export function GrantsResultsPanel() {
 
     const projectsTabOpen = tab === 'projects'
     const organisationsTabOpen = tab === 'organisations'
+    const projectsRelated = useRelatedRequest('grants:projects')
+    const organisationsRelated = useRelatedRequest('grants:organisations')
+
     const {projects, page: projectsPage, setPage: setProjectsPage, loading: projectsLoading} = useGrantProjects(
         selectedId,
         corpus,
         projectsTabOpen,
+        projectsRelated.search,
     )
     const {organisations, complete: organisationsComplete, loading: organisationsLoading} = useGrantOrganisations(
         selectedId,
@@ -250,6 +255,7 @@ export function GrantsResultsPanel() {
                             label: 'Projects',
                             content: detail ? (
                                 <GrantProjectsTab
+                                    filterCaption={projectsRelated.caption}
                                     projects={projects}
                                     page={projectsPage}
                                     onPageChange={setProjectsPage}
@@ -265,6 +271,7 @@ export function GrantsResultsPanel() {
                             label: 'Organisations',
                             content: detail ? (
                                 <GrantOrganisationsTab
+                                    filterCaption={organisationsRelated.caption}
                                     organisations={organisations}
                                     complete={organisationsComplete}
                                     loading={organisationsLoading}

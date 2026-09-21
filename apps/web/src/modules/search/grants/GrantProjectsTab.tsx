@@ -11,6 +11,8 @@ export interface GrantProjectsTabProps {
     loading: boolean
     /** Opens this project on the projects entity — see buildEntityLink. */
     onSelectProject: (projectId: string) => void
+    /** What of the surrounding page this list is filtered by — see relatedParams. */
+    filterCaption?: string
 }
 
 function toRow(project: ProjectRow): RelatedRow {
@@ -33,10 +35,11 @@ function toRow(project: ProjectRow): RelatedRow {
  * filtered to the stream, so the order is the projects list's own default
  * (largest budget first) and a row is a link INTO the projects entity.
  */
-export function GrantProjectsTab({projects, page, onPageChange, loading, onSelectProject}: GrantProjectsTabProps) {
+export function GrantProjectsTab({projects, page, onPageChange, loading, onSelectProject, filterCaption}: GrantProjectsTabProps) {
     return (
         <RelatedList
             caption={`${formatResultCount(projects)} projects, largest budget first`}
+            filterCaption={filterCaption}
             rows={projects.hits.map(toRow)}
             page={page}
             pageCount={projects.pageCount}

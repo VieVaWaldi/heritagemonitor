@@ -11,6 +11,8 @@ export interface RelatedWorksTabProps {
     loading: boolean
     /** Opens this work on the works entity — see buildEntityLink. */
     onSelectWork: (workId: string) => void
+    /** What of the surrounding page this list is filtered by — see relatedParams. */
+    filterCaption?: string
     emptyMessage: string
 }
 
@@ -19,7 +21,7 @@ export interface RelatedWorksTabProps {
  * Rows deep-link into the works entity, where the full record and its
  * PDF/DOI button live — the same pattern as every other cross-entity tab.
  */
-export function RelatedWorksTab({works, page, onPageChange, loading, onSelectWork, emptyMessage}: RelatedWorksTabProps) {
+export function RelatedWorksTab({works, page, onPageChange, loading, onSelectWork, emptyMessage, filterCaption}: RelatedWorksTabProps) {
     const rows: RelatedRow[] = works.hits.map((work) => ({
         id: work.id,
         primary: work.title ?? work.id,
@@ -39,6 +41,7 @@ export function RelatedWorksTab({works, page, onPageChange, loading, onSelectWor
     return (
         <RelatedList
             caption={`${formatResultCount(works)} works, most cited first`}
+            filterCaption={filterCaption}
             rows={rows}
             page={page}
             pageCount={works.pageCount}

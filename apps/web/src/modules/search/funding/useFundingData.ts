@@ -16,6 +16,7 @@ import {toApiSearchParams, useUrlState} from '@/common/url'
 
 const EMPTY_ORGANISATIONS: FundingOrganisationsResponse = {
     hits: [],
+    facetDistribution: {},
     estimatedTotalHits: 0,
     page: 1,
     pageCount: 1,
@@ -31,19 +32,21 @@ export function useFundingOrganisations(): {data: FundingOrganisationsResponse; 
     const {params} = useUrlState()
     const queryString = toApiSearchParams(params)
 
-    const [data, setData] = useState(EMPTY_ORGANISATIONS)
+    // Tagged with the request it answers: a response that arrives after the
+    // filters moved on must not be rendered against them.
+    const [fetched, setFetched] = useState<{key: string; data: FundingOrganisationsResponse} | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [loading, startTransition] = useTransition()
+    const data = fetched?.key === queryString ? fetched.data : (fetched?.data ?? EMPTY_ORGANISATIONS)
 
     useEffect(() => {
         const controller = new AbortController()
         startTransition(async () => {
             try {
-                setData(
-                    await apiGet(`/v1/funding/organisations?${queryString}`, fundingOrganisationsResponseSchema, {
-                        signal: controller.signal,
-                    }),
-                )
+                const response = await apiGet(`/v1/funding/organisations?${queryString}`, fundingOrganisationsResponseSchema, {
+                    signal: controller.signal,
+                })
+                setFetched({key: queryString, data: response})
                 setError(null)
             } catch (caught) {
                 // A 4xx is the api telling the user about their own request
@@ -70,20 +73,28 @@ export function useFundingMap(): {data: FundingMapResponse; loading: boolean} {
     mapParams.delete('page')
     const queryString = mapParams.toString()
 
-    const [data, setData] = useState(EMPTY_MAP)
+    // Tagged with the request it answers. Untagged, a superseded map response
+    // (or a failed one, which this hook deliberately swallows) left the
+    // PREVIOUS points on the map while the list beside it had already moved
+    // on — the "list shows 9, map shows hundreds" bug.
+    const [fetched, setFetched] = useState<{key: string; data: FundingMapResponse} | null>(null)
     const [loading, startTransition] = useTransition()
 
     useEffect(() => {
         const controller = new AbortController()
         startTransition(async () => {
             try {
-                setData(await apiGet(`/v1/funding/map?${queryString}`, fundingMapResponseSchema, {signal: controller.signal}))
+                const response = await apiGet(`/v1/funding/map?${queryString}`, fundingMapResponseSchema, {
+                    signal: controller.signal,
+                })
+                setFetched({key: queryString, data: response})
             } catch {
-                // Superseded or transient — the previous points stay on screen.
+                // Superseded or transient — the previous points stay on screen
+                // only until the matching response lands (see the key check).
             }
         })
         return () => controller.abort()
     }, [queryString])
 
-    return {data, loading}
+    return {data: fetched?.key === queryString ? fetched.data : EMPTY_MAP, loading}
 }

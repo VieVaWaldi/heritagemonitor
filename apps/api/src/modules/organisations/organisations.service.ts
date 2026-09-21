@@ -152,8 +152,12 @@ export async function getOrganisationById(id: string): Promise<OrganisationDetai
  * mapping are that module's business, and going through its service function
  * is what keeps the two modules separable (apps/api/RULES.md rule 4).
  */
-export async function getOrganisationProjects(id: string, page: number): Promise<OrganisationProjectsResponse> {
-    return searchOrganisationProjects(id, page)
+export async function getOrganisationProjects(
+    id: string,
+    page: number,
+    narrow: Parameters<typeof searchOrganisationProjects>[2] = {},
+): Promise<OrganisationProjectsResponse> {
+    return searchOrganisationProjects(id, page, narrow)
 }
 
 /** Which facets can be typed into. A whitelist — see the projects module's twin. */

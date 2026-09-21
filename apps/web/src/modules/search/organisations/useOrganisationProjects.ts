@@ -26,12 +26,14 @@ const EMPTY: OrganisationProjectsResponse = {
  * common/url's patchClearsDetailPage). Fetched only while the tab is open: an
  * institution can have tens of thousands of projects.
  */
-export function useOrganisationProjects(organisationId: string | null, enabled: boolean) {
+export function useOrganisationProjects(organisationId: string | null, enabled: boolean, search = '') {
     const {page, setPage} = useUrlDetailPage()
     // Tagged with the organisation it belongs to, so one institution's
     // projects can never be shown under another's name while a request is in
     // flight. Paging WITHIN one keeps the previous page visible instead of
     // blanking.
+    // Keyed by id AND the forwarded page filters — see useRelatedWorks.
+    const fetchKey = organisationId === null ? null : `${organisationId}|${search}`
     const [fetched, setFetched] = useState<{organisationId: string; data: OrganisationProjectsResponse} | null>(null)
     const [loading, startTransition] = useTransition()
 
@@ -42,20 +44,20 @@ export function useOrganisationProjects(organisationId: string | null, enabled: 
         startTransition(async () => {
             try {
                 const data = await apiGet(
-                    `/v1/organisations/${encodeURIComponent(organisationId)}/projects?page=${page}`,
+                    `/v1/organisations/${encodeURIComponent(organisationId)}/projects?page=${page}&${search}`,
                     organisationProjectsResponseSchema,
                     {signal: controller.signal},
                 )
-                setFetched({organisationId, data})
+                setFetched({organisationId: fetchKey!, data})
             } catch {
                 // Superseded by a newer request, or a transient failure.
             }
         })
 
         return () => controller.abort()
-    }, [organisationId, page, enabled])
+    }, [organisationId, fetchKey, search, page, enabled])
 
-    const projects = enabled && organisationId && fetched?.organisationId === organisationId ? fetched.data : EMPTY
+    const projects = enabled && fetchKey && fetched?.organisationId === fetchKey ? fetched.data : EMPTY
 
     return {projects, page, setPage, loading}
 }

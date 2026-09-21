@@ -44,12 +44,37 @@ function toFilters(request: FundingRequest): query.ProjectFilters {
 interface RankedOrganisation extends FundingOrganisation {
     lat: number
     lng: number
+    rorTypes: string[]
 }
 
 export interface FundingRanking {
     organisations: RankedOrganisation[]
+    /** Rows before the organisation-level filters — what the facet counts are over. */
+    unfiltered: RankedOrganisation[]
     capped: boolean
     complete: boolean
+}
+
+/**
+ * Facet counts over the ranked rows.
+ *
+ * Deliberately computed BEFORE the organisation filters are applied: counting
+ * after them would make every unpicked value read 0 the moment one is picked,
+ * which is the classic self-erasing facet.
+ */
+function toFacetDistribution(rows: RankedOrganisation[]): Record<string, Record<string, number>> {
+    const counts: Record<string, Record<string, number>> = {region: {}, country: {}, orgType: {}}
+    const add = (field: string, value: string | null) => {
+        if (!value) return
+        counts[field][value] = (counts[field][value] ?? 0) + 1
+    }
+
+    for (const row of rows) {
+        add('region', row.region)
+        add('country', row.country)
+        for (const type of row.rorTypes) add('orgType', type)
+    }
+    return counts
 }
 
 /**
@@ -69,17 +94,19 @@ async function rank(request: FundingRequest): Promise<FundingRanking> {
 
     // Without the table there are no names and no coordinates, so there is no
     // honest answer to give — better to say so than to render ids.
-    if (!isOrganisationTableReady()) return {organisations: [], capped: false, complete: false}
+    if (!isOrganisationTableReady()) return {organisations: [], unfiltered: [], capped: false, complete: false}
 
     const rows = new Map(getOrganisations(buckets.map((bucket) => bucket.id)).map((row) => [row.id, row]))
-    const regions = request.region?.length ? new Set(request.region) : null
 
+    // MERGE FIRST, filter second. The facet counts have to be taken over the
+    // unfiltered rows (see toFacetDistribution), and merging after filtering
+    // would also split an institution whose duplicate records disagree about
+    // country.
     const groups = new Map<string, RankedOrganisation>()
     for (const bucket of buckets) {
         const row = rows.get(bucket.id)
         // An id with no organisation record cannot be named or placed.
         if (!row) continue
-        if (regions && !(row.region && regions.has(row.region))) continue
 
         const key = row.nameKey ?? `id:${row.id}`
         const existing = groups.get(key)
@@ -87,16 +114,20 @@ async function rank(request: FundingRequest): Promise<FundingRanking> {
             existing.fundingEur += bucket.fundingEur
             existing.projectCount += bucket.projectCount
             existing.mergedRecords += 1
-            // A duplicate record may carry the coordinates the best-ranked one lacks.
+            // A duplicate record may carry what the best-ranked one lacks.
             if (Number.isNaN(existing.lat) && !Number.isNaN(row.lat)) {
                 existing.lat = row.lat
                 existing.lng = row.lng
                 existing.hasGeo = true
             }
+            existing.country ??= row.country
+            existing.region ??= row.region
+            for (const type of row.rorTypes) if (!existing.rorTypes.includes(type)) existing.rorTypes.push(type)
             continue
         }
 
         groups.set(key, {
+            rorTypes: [...row.rorTypes],
             id: row.id,
             name: row.name,
             country: row.country,
@@ -110,12 +141,30 @@ async function rank(request: FundingRequest): Promise<FundingRanking> {
         })
     }
 
-    const organisations = [...groups.values()].sort((a, b) => b.fundingEur - a.fundingEur)
-    return {organisations, capped: buckets.length >= FUNDING_TOP_ORGANISATIONS, complete: true}
+    const unfiltered = [...groups.values()].sort((a, b) => b.fundingEur - a.fundingEur)
+
+    // Organisation-level filters, applied to the ranked ROWS rather than to
+    // the projects behind them — an organisation's country is not a property
+    // of a project. See FUNDING_ROW_FILTER_NOTE for what that means for the
+    // user, which the page states in so many words.
+    const regions = request.region?.length ? new Set(request.region) : null
+    const countries = request.country?.length ? new Set(request.country) : null
+    const orgTypes = request.orgType?.length ? new Set(request.orgType) : null
+    const geoOnly = request.hasGeo === 'true'
+
+    const organisations = unfiltered.filter((row) => {
+        if (regions && !(row.region && regions.has(row.region))) return false
+        if (countries && !(row.country && countries.has(row.country))) return false
+        if (orgTypes && !row.rorTypes.some((type) => orgTypes.has(type))) return false
+        if (geoOnly && !row.hasGeo) return false
+        return true
+    })
+
+    return {organisations, unfiltered, capped: buckets.length >= FUNDING_TOP_ORGANISATIONS, complete: true}
 }
 
 function toDto(organisation: RankedOrganisation): FundingOrganisation {
-    const {lat: _lat, lng: _lng, ...dto} = organisation
+    const {lat: _lat, lng: _lng, rorTypes: _rorTypes, ...dto} = organisation
     return dto
 }
 
@@ -133,7 +182,7 @@ export async function getFundingOrganisations(request: FundingRequest): Promise<
         if (cached) return cached
     }
 
-    const {organisations, capped, complete} = await rank(request)
+    const {organisations, unfiltered, capped, complete} = await rank(request)
 
     const from = (page - 1) * SEARCH_PAGE_SIZE
     if (from > 0 && from >= organisations.length) {
@@ -142,6 +191,7 @@ export async function getFundingOrganisations(request: FundingRequest): Promise<
 
     const response: FundingOrganisationsResponse = {
         hits: organisations.slice(from, from + SEARCH_PAGE_SIZE).map(toDto),
+        facetDistribution: toFacetDistribution(unfiltered),
         estimatedTotalHits: organisations.length,
         page,
         pageCount: Math.max(1, pageCountOf(organisations.length)),

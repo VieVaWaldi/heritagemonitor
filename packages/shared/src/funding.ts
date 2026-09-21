@@ -63,8 +63,23 @@ export const fundingOrganisationSchema = z.object({
 })
 export type FundingOrganisation = z.infer<typeof fundingOrganisationSchema>
 
+/**
+ * Facet counts over the ranked rows BEFORE the organisation filters are
+ * applied, so a value never disappears the moment you pick it. Computed in
+ * memory over at most 500 rows, not by a second aggregation.
+ */
+export const FUNDING_FACET_FIELDS = [
+    {field: 'region', param: 'region', label: 'Region', size: 12, searchable: false},
+    {field: 'country', param: 'country', label: 'Country', size: 30, searchable: false},
+    {field: 'orgType', param: 'orgType', label: 'Type', size: 12, searchable: false},
+] as const
+export type FundingFacetConfig = (typeof FUNDING_FACET_FIELDS)[number]
+export type FundingFacetParam = FundingFacetConfig['param']
+
 export const fundingOrganisationsResponseSchema = z.object({
     hits: z.array(fundingOrganisationSchema),
+    /** `{field: {value: count}}` over the ranked rows — see FUNDING_FACET_FIELDS. */
+    facetDistribution: z.record(z.string(), z.record(z.string(), z.number())),
     /** Size of the ranked set, which is what paging runs over — not the corpus total. */
     estimatedTotalHits: z.number(),
     page: z.number(),
@@ -119,5 +134,26 @@ export const fundingRequestSchema = z.object({
     stream: z.array(z.string()).optional(),
     years: z.string().optional(),
     region: z.array(z.string()).optional(),
+
+    // ORGANISATION-level filters. These narrow the ranked rows AFTER the
+    // aggregation, not the projects going into it — see FUNDING_ROW_FILTER_NOTE.
+    country: z.array(z.string()).optional(),
+    /** ROR institution types (`rorTypes`), including the `unknown` bucket. */
+    orgType: z.array(z.string()).optional(),
+    /** Only organisations that can be drawn on the map. */
+    hasGeo: z.enum(['true']).optional(),
 })
+
+/**
+ * Why the organisation filters behave differently from the rest.
+ *
+ * Region, country, type and "has coordinates" are properties of an
+ * ORGANISATION, not of a project, so they cannot narrow the aggregation that
+ * produces the ranking — they are applied to the top 500 rows it returns.
+ * Practical consequence, and the reason the UI says so: filtering to one
+ * country shows the best-funded organisations of that country WITHIN the
+ * overall top 500, not the top 500 of that country.
+ */
+export const FUNDING_ROW_FILTER_NOTE =
+    'Region, country, type and “has coordinates” filter the best-funded 500 organisations of the current search, not the whole index — so they show that group within the overall top 500.'
 export type FundingRequest = z.infer<typeof fundingRequestSchema>

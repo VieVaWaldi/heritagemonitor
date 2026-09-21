@@ -35,8 +35,6 @@ export interface EntityFiltersProps {
      * routes (experts, funding, minorities) pass their own key.
      */
     titleKey?: string
-    /** Extra controls at the end of the filter bar, e.g. the topics browser. */
-    filterBarExtra?: ReactNode
 }
 
 /**
@@ -97,7 +95,6 @@ export function EntityFilterBar({
     onFilterChange,
     onReset,
     hasActiveFilters,
-    filterBarExtra,
 }: EntityFiltersProps) {
     return (
         <FilterBar>
@@ -134,8 +131,6 @@ export function EntityFilterBar({
                         />
                     ),
                 )}
-
-            {filterBarExtra}
         </FilterBar>
     )
 }

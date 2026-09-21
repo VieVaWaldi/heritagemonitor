@@ -33,11 +33,27 @@ export interface GrantSearchParams {
     sort?: query.GrantSort
     filters: query.GrantFilters
     typoTolerant: boolean
+    /** Stream ids found by the project probe — see probeProjectsForStreams. */
+    boostIds: string[]
+}
+
+/**
+ * Step one of the two-step search: the funding streams behind the projects
+ * that match this text. See query.grantProjectProbeBody for why, and for the
+ * bucket cap.
+ */
+export async function probeProjectsForStreams(q: string, size: number): Promise<string[]> {
+    const {body} = await client.search({
+        index: indices.projectsIndexName,
+        body: query.grantProjectProbeBody(q, size),
+    })
+    const aggregations = body.aggregations as unknown as Record<string, query.TermsAggregationResult> | undefined
+    return (aggregations?.streams?.buckets ?? []).map((bucket) => String(bucket.key_as_string ?? bucket.key))
 }
 
 export async function search(params: GrantSearchParams): Promise<SearchExecution<GrantRawDoc>> {
     const {threshold, timeout} = query.TYPO_POLICY.grants
-    const common = {q: params.q, sort: params.sort, filters: params.filters, aggs: facetAggs()}
+    const common = {q: params.q, sort: params.sort, filters: params.filters, aggs: facetAggs(), boostIds: params.boostIds}
 
     return runSearch<GrantRawDoc>({
         index: indices.grantsIndexName,

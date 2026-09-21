@@ -262,14 +262,29 @@ export async function getProjectFacetValues(
  * `isCoordinator` is per project — the same organisation coordinates some of
  * its projects and merely participates in others.
  */
-export async function searchOrganisationProjects(organisationId: string, page: number): Promise<OrganisationProjectsResponse> {
+/**
+ * The projects of one organisation, for its detail tab.
+ *
+ * `narrow` carries the filters the surrounding page had set. A tab list is a
+ * search inside a search: if the page is narrowed to Horizon Europe and
+ * 2019-2025, this list showing the institution's 1990s national grants
+ * contradicts it. Which params arrive is decided once on the web side
+ * (apps/web/src/modules/search/entity/relatedParams.ts) — notably NOT `q`,
+ * which on the organisations page searches institution names and would match
+ * no project text.
+ */
+export async function searchOrganisationProjects(
+    organisationId: string,
+    page: number,
+    narrow: Omit<ProjectSearchRequest, 'page' | 'sort' | 'org' | 'only' | 'q'> = {},
+): Promise<OrganisationProjectsResponse> {
     const result = await opensearchRepository.search({
         q: '',
         page,
         // Biggest first: the question behind this tab is "what does this
         // institution actually do", and money is the best available proxy.
         sort: 'budget',
-        filters: {org: [organisationId]},
+        filters: {...toFilters({...narrow, org: [organisationId]}), org: [organisationId]},
         typoTolerant: false,
     })
 

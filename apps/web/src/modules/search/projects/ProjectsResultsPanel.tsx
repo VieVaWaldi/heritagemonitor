@@ -40,6 +40,7 @@ import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {RelatedWorksTab} from '../entity/RelatedWorksTab'
 import {TopicsFilterButton} from '../entity/TopicsFilterButton'
 import {useTopicNames} from '../entity/useTopicBrowser'
+import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
@@ -139,10 +140,12 @@ export function ProjectsResultsPanel() {
         setPage: setOrganisationsPage,
         loading: organisationsLoading,
     } = useProjectOrganisations(selectedId, organisationsTabOpen)
+    const worksRelated = useRelatedRequest('projects:works')
     const {works, page: worksPage, setPage: setWorksPage, loading: worksLoading} = useRelatedWorks(
         'projects',
         selectedId,
         worksTabOpen,
+        worksRelated.search,
     )
 
     const hasActiveFilters = activeCount > 0 || years !== null
@@ -180,7 +183,6 @@ export function ProjectsResultsPanel() {
                 </>
             ),
         },
-        filterBarExtra: <TopicsFilterButton entity="projects" countNoun="projects" />,
     }
 
     // An organisation row on the Organisations tab leads to that organisation
@@ -325,6 +327,7 @@ export function ProjectsResultsPanel() {
                             label: 'Works',
                             content: detail ? (
                                 <RelatedWorksTab
+                                    filterCaption={worksRelated.caption}
                                     works={works}
                                     page={worksPage}
                                     onPageChange={setWorksPage}

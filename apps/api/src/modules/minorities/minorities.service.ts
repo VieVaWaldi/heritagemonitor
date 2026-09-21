@@ -1,4 +1,4 @@
-import type {query} from '@heritagemonitor/search'
+import {query} from '@heritagemonitor/search'
 import {
     MINORITY_FACET_FIELDS,
     SEARCH_PAGE_SIZE,
@@ -27,6 +27,7 @@ import {minorityWikipediaUrl} from '../../reference/minorityWikipedia.js'
 import {topicAncestors, topicNames, topicOf} from '../../reference/topics.js'
 import {getOrganisationsByIds} from '../organisations/organisations.service.js'
 import * as opensearchRepository from './opensearch.repository.js'
+import {GLOBAL_COUNTRY_AGG} from './opensearch.repository.js'
 import type {MinorityRawDoc} from './opensearch.repository.js'
 
 // Service layer: the domain decisions. See apps/api/RULES.md rule 3.
@@ -76,14 +77,42 @@ function toDto(raw: MinorityRawDoc): MinorityDto | null {
     return null
 }
 
-function toFacetDistribution(aggregations: Record<string, query.TermsAggregationResult>): FacetDistribution {
+/**
+ * Folds the global groups into every country bucket, and hides the raw
+ * placeholder.
+ *
+ * A group marked global (see query.GLOBAL_COUNTRY_PLACEHOLDER) matches every
+ * country filter, so if the facet showed "Germany 12" while picking Germany
+ * returned 13, the count would be a lie. Adding the global count to each
+ * bucket makes the number match what clicking it gives. The placeholder's own
+ * bucket is dropped rather than listed: "(global — see subgroups in dataset)"
+ * is not a country anyone wants to filter by, and it is already included
+ * everywhere else.
+ *
+ * Exported for the unit test — the arithmetic is the part worth pinning.
+ */
+export function applyGlobalCountryCount(
+    countryBuckets: Record<string, number>,
+    globalCount: number,
+): Record<string, number> {
     return Object.fromEntries(
-        MINORITY_FACET_FIELDS.filter((facet) => aggregations[facet.field]).map((facet) => [
-            facet.field,
-            Object.fromEntries(
+        Object.entries(countryBuckets)
+            .filter(([value]) => value !== query.GLOBAL_COUNTRY_PLACEHOLDER)
+            .map(([value, count]) => [value, count + globalCount]),
+    )
+}
+
+function toFacetDistribution(aggregations: Record<string, query.TermsAggregationResult>): FacetDistribution {
+    const globalCount =
+        (aggregations[GLOBAL_COUNTRY_AGG] as unknown as {doc_count?: number} | undefined)?.doc_count ?? 0
+
+    return Object.fromEntries(
+        MINORITY_FACET_FIELDS.filter((facet) => aggregations[facet.field]).map((facet) => {
+            const buckets = Object.fromEntries(
                 aggregations[facet.field].buckets.map((bucket) => [bucket.key_as_string ?? String(bucket.key), bucket.doc_count]),
-            ),
-        ]),
+            )
+            return [facet.field, facet.field === 'countries' ? applyGlobalCountryCount(buckets, globalCount) : buckets]
+        }),
     )
 }
 

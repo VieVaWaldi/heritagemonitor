@@ -32,10 +32,11 @@ const EMPTY: ProjectSearchResponse = {
  * only while the tab is open: the biggest streams have tens of thousands of
  * projects.
  */
-export function useGrantProjects(grantId: string | null, corpus: string | undefined, enabled: boolean) {
+export function useGrantProjects(grantId: string | null, corpus: string | undefined, enabled: boolean, search = '') {
     const {page, setPage} = useUrlDetailPage()
     // Tagged with the stream it belongs to, so one programme's projects can
     // never be shown under another's name while a request is in flight.
+    const fetchKey = `${grantId ?? ''}|${search}`
     const [fetched, setFetched] = useState<{grantId: string; data: ProjectSearchResponse} | null>(null)
     const [loading, startTransition] = useTransition()
 
@@ -43,24 +44,28 @@ export function useGrantProjects(grantId: string | null, corpus: string | undefi
         if (!enabled || !grantId) return
 
         const controller = new AbortController()
-        const search = new URLSearchParams({stream: grantId, page: String(page)})
-        if (corpus) search.set('c', corpus)
+        // The page's own filters first, then this list's own two params — see
+        // entity/relatedParams for what carries and why `q` does not.
+        const query = new URLSearchParams(search)
+        query.set('stream', grantId)
+        query.set('page', String(page))
+        if (corpus) query.set('c', corpus)
 
         startTransition(async () => {
             try {
-                const data = await apiGet(`/v1/projects/search?${search.toString()}`, projectSearchResponseSchema, {
+                const data = await apiGet(`/v1/projects/search?${query.toString()}`, projectSearchResponseSchema, {
                     signal: controller.signal,
                 })
-                setFetched({grantId, data})
+                setFetched({grantId: fetchKey, data})
             } catch {
                 // Superseded by a newer request, or a transient failure.
             }
         })
 
         return () => controller.abort()
-    }, [grantId, corpus, page, enabled])
+    }, [grantId, corpus, page, enabled, search, fetchKey])
 
-    const projects = enabled && grantId && fetched?.grantId === grantId ? fetched.data : EMPTY
+    const projects = enabled && grantId && fetched?.grantId === fetchKey ? fetched.data : EMPTY
 
     return {projects, page, setPage, loading}
 }
