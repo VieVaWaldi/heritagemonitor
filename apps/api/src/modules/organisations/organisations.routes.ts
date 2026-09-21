@@ -6,8 +6,10 @@ import {
     type OrganisationProjectsResponse,
     type OrganisationSearchRequest,
     type OrganisationSearchResponse,
+    type WorkSearchResponse,
 } from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
+import {searchWorksFor} from '../works/works.service.js'
 import {
     getOrganisationById,
     getOrganisationFacetValues,
@@ -100,5 +102,19 @@ export async function organisationsRoutes(fastify: FastifyInstance) {
         },
         async (request): Promise<OrganisationProjectsResponse> =>
             getOrganisationProjects(request.params.id, request.query.page ?? 1),
+    )
+
+    // Same shape as /projects/:id/works: this module's URL, the works
+    // module's business. See that route's note.
+    fastify.get<{Params: ByIdParams; Querystring: PagedQuery}>(
+        '/organisations/:id/works',
+        {
+            schema: {
+                params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
+                querystring: {type: 'object', properties: {page: pageProp}},
+            },
+        },
+        async (request): Promise<WorkSearchResponse> =>
+            searchWorksFor({organisation: request.params.id}, request.query.page ?? 1),
     )
 }

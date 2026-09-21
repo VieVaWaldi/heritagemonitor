@@ -21,6 +21,13 @@ export interface FacetValuesMenuButtonProps {
      * types anything, so opening the menu costs no request.
      */
     fallbackOptions: FilterOption[]
+    /**
+     * Where the type-ahead fetches from, given the typed text and the page's
+     * own api params. Defaults to `/v1/<entity>/facet-values`; works override
+     * it because their publisher list is an in-memory table rather than an
+     * aggregation (50M documents — see the works repository).
+     */
+    endpoint?: (searchText: string, apiParams: string) => string
 }
 
 /**
@@ -30,7 +37,20 @@ export interface FacetValuesMenuButtonProps {
  * counts the user would get by picking it — a static value list could not say
  * that, which is the whole reason this is a server call.
  */
-export function FacetValuesMenuButton({entity, facet, label, value, onChange, fallbackOptions}: FacetValuesMenuButtonProps) {
+function defaultEndpoint(entity: EntityKey, facet: string) {
+    return (searchText: string, apiParams: string) =>
+        `/v1/${entity}/facet-values?${apiParams}&facet=${encodeURIComponent(facet)}&facetQ=${encodeURIComponent(searchText)}`
+}
+
+export function FacetValuesMenuButton({
+    entity,
+    facet,
+    label,
+    value,
+    onChange,
+    fallbackOptions,
+    endpoint,
+}: FacetValuesMenuButtonProps) {
     const {params} = useUrlState()
     const searchParams = toApiSearchParams(params)
 
@@ -47,11 +67,9 @@ export function FacetValuesMenuButton({entity, facet, label, value, onChange, fa
 
         const controller = new AbortController()
         const timer = setTimeout(() => {
-            apiGet(
-                `/v1/${entity}/facet-values?${searchParams}&facet=${encodeURIComponent(facet)}&facetQ=${encodeURIComponent(trimmed)}`,
-                facetValuesResponseSchema,
-                {signal: controller.signal},
-            )
+            apiGet((endpoint ?? defaultEndpoint(entity, facet))(trimmed, searchParams), facetValuesResponseSchema, {
+                signal: controller.signal,
+            })
                 .then((response) => setFetched({text: trimmed, values: response.values}))
                 // Superseded or a transient failure: keep whatever is shown.
                 .catch(() => {})
@@ -61,7 +79,7 @@ export function FacetValuesMenuButton({entity, facet, label, value, onChange, fa
             clearTimeout(timer)
             controller.abort()
         }
-    }, [entity, facet, trimmed, searchParams])
+    }, [entity, facet, trimmed, searchParams, endpoint])
 
     const matches = trimmed && fetched?.text === trimmed ? fetched.values : null
     // Typed something, nothing back for it yet: that is exactly "searching".

@@ -22,6 +22,7 @@ import {
 import {useSelectedCorpusReader, USE_CASES} from '@/common/catalog'
 import {useActiveUseCase} from '@/common/hooks/useActiveUseCase'
 import {Text} from '@/common/text'
+import {classifyChatLink} from './chatLinks'
 import {createLlmChatAdapter} from './adapter'
 import {ChatEventIndicator} from './ChatEventIndicator'
 import {LlmChatHeaderRight} from './LlmChatHeader'
@@ -258,21 +259,29 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // renderer (MarkdownLink in renderMarkdown.js, not something this module
     // has a supported hook into — see the module comment above on why this
     // file avoids @mui/x-chat-headless internals), which hardcodes
-    // target="_blank" — every link opens a new, separate tab with its own
-    // fresh chat instance instead of the one the user was just talking to.
-    // Intercepting the click here (delegated, since the anchors themselves
-    // aren't ours to attach a handler to) and navigating this tab instead —
-    // via next/navigation's router for an in-app link, so the singleton chat
-    // (see LlmChatRuntime) survives it same as any other in-app navigation —
-    // is the one thing this component *can* control without needing
-    // @mui/x-chat to expose link behavior as a prop.
+    // target="_blank". Intercepting the click here (delegated, since the
+    // anchors themselves aren't ours to attach a handler to) is the one thing
+    // this component *can* control, and the two link kinds want opposite
+    // things — see classifyChatLink:
+    //
+    // - an IN-APP link is taken over and pushed through next/navigation, so
+    //   this tab navigates and the singleton chat (mounted in the root layout,
+    //   see LlmChatRuntime — outside `children`, so a route change never
+    //   remounts it) keeps the conversation. Lucy's answers are often lists of
+    //   heritagemonitor URLs used as a table of contents; opening each in its
+    //   own tab with a fresh, empty chat would defeat the point.
+    // - an OUTBOUND link keeps the renderer's own target="_blank" and is left
+    //   to the browser, so leaving for doi.org does not throw the conversation
+    //   away. `rel` is set here because the anchor is not ours to author:
+    //   browsers already imply `noopener` for target="_blank", and this makes
+    //   it explicit rather than inherited from a default that could change.
     const router = useRouter()
     const handleContentClick = useCallback(
         (event: MouseEvent<HTMLElement>) => {
             // Middle-click, and ctrl/cmd/shift/alt-click, are the standard
             // browser gestures for "open in a new tab/window regardless of
             // what the link normally does" — respect that intent instead of
-            // forcing every click to stay in this tab.
+            // forcing every click through this handler.
             if (
                 event.button !== 0 ||
                 event.metaKey ||
@@ -281,15 +290,19 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                 event.altKey
             )
                 return
+
             const anchor = (event.target as HTMLElement).closest('a')
-            const href = anchor?.getAttribute('href')
-            if (!href) return
-            event.preventDefault()
-            const url = new URL(href, window.location.origin)
-            if (url.origin === window.location.origin) {
-                router.push(`${url.pathname}${url.search}${url.hash}`)
-            } else {
-                window.location.assign(href)
+            if (!anchor) return
+
+            const target = classifyChatLink(anchor.getAttribute('href'), window.location.origin)
+            if (target.kind === 'internal') {
+                event.preventDefault()
+                router.push(target.href)
+                return
+            }
+            if (target.kind === 'external') {
+                anchor.target = '_blank'
+                anchor.rel = 'noopener noreferrer'
             }
         },
         [router],

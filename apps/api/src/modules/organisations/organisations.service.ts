@@ -1,7 +1,9 @@
 import type {query} from '@heritagemonitor/search'
 import {
     ORGANISATION_FACET_FIELDS,
+    SEARCH_PAGE_SIZE,
     entitySuggestResponseSchema,
+    pageCountOf,
     organisationDetailSchema,
     organisationRowSchema,
     type EntitySuggestResponse,
@@ -12,7 +14,14 @@ import {
     type OrganisationRow,
     type OrganisationSearchRequest,
     type OrganisationSearchResponse,
+    type WorkOrganisationsResponse,
 } from '@heritagemonitor/shared'
+import {
+    defaultPageKey,
+    isDefaultRequest,
+    readDefaultPage,
+    writeDefaultPage,
+} from '../../common/search/defaultPageCache.js'
 import {AppError} from '../../plugins/errors.js'
 import {searchOrganisationProjects} from '../projects/projects.service.js'
 import * as opensearchRepository from './opensearch.repository.js'
@@ -64,9 +73,20 @@ function toFacetDistribution(aggregations: Record<string, query.TermsAggregation
 
 export async function searchOrganisations(request: OrganisationSearchRequest): Promise<OrganisationSearchResponse> {
     const q = request.q ?? ''
+    const page = request.page ?? 1
+
+    // See common/search/defaultPageCache: the blank first pages are the same
+    // answer for everyone, so they are held rather than recomputed.
+    const cacheable = isDefaultRequest(request, page)
+    const cacheKey = defaultPageKey({entity: 'organisations', corpus: request.c, page, sort: request.sort})
+    if (cacheable) {
+        const cached = readDefaultPage<OrganisationSearchResponse>(cacheKey)
+        if (cached) return cached
+    }
+
     const result = await opensearchRepository.search({
         q,
-        page: request.page ?? 1,
+        page,
         sort: request.sort,
         filters: toFilters(request),
         // A blank query has nothing to misspell, and its strict result set is
@@ -74,7 +94,7 @@ export async function searchOrganisations(request: OrganisationSearchRequest): P
         typoTolerant: q.trim().length > 0,
     })
 
-    return {
+    const response: OrganisationSearchResponse = {
         hits: result.documents.map(toRow).filter((row): row is OrganisationRow => row !== null),
         facetDistribution: toFacetDistribution(result.aggregations),
         // No organisation facet has id-like values (regions, ROR types and
@@ -87,6 +107,28 @@ export async function searchOrganisations(request: OrganisationSearchRequest): P
         didYouMean: result.didYouMean,
         page: result.page,
         pageCount: result.pageCount,
+    }
+
+    if (cacheable) writeDefaultPage(cacheKey, response)
+    return response
+}
+
+/**
+ * Organisations by id, one page at a time — for a work's organisations tab.
+ * A plain lookup, not a search.
+ */
+export async function getOrganisationsByIds(ids: string[], page: number): Promise<WorkOrganisationsResponse> {
+    const from = (page - 1) * SEARCH_PAGE_SIZE
+    if (from > 0 && from >= ids.length) {
+        throw new AppError(`Page ${page} is past the end of these ${ids.length} organisations.`, 400)
+    }
+
+    const documents = await opensearchRepository.getOrganisationsByIds(ids.slice(from, from + SEARCH_PAGE_SIZE))
+    return {
+        hits: documents.map(toRow).filter((row): row is OrganisationRow => row !== null),
+        estimatedTotalHits: ids.length,
+        page,
+        pageCount: pageCountOf(ids.length),
     }
 }
 

@@ -6,8 +6,10 @@ import {
     type ProjectOrganisationsResponse,
     type ProjectSearchRequest,
     type ProjectSearchResponse,
+    type WorkSearchResponse,
 } from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
+import {searchWorksFor} from '../works/works.service.js'
 import {
     getProjectById,
     getProjectFacetValues,
@@ -135,5 +137,21 @@ export async function projectsRoutes(fastify: FastifyInstance) {
         },
         async (request): Promise<ProjectOrganisationsResponse> =>
             getProjectOrganisations(request.params.id, request.query.page ?? 1),
+    )
+
+    // The URL belongs to this module, the business to the works module: "the
+    // works of this project" is a search over 50M works, which is theirs to
+    // run (apps/api/RULES.md rule 4). Kept as a one-line delegation here
+    // rather than as a function in this module's service, so the service
+    // dependency graph stays acyclic — see works.service's own note.
+    fastify.get<{Params: ByIdParams; Querystring: PagedQuery}>(
+        '/projects/:id/works',
+        {
+            schema: {
+                params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
+                querystring: {type: 'object', properties: {page: pageProp}},
+            },
+        },
+        async (request): Promise<WorkSearchResponse> => searchWorksFor({project: request.params.id}, request.query.page ?? 1),
     )
 }

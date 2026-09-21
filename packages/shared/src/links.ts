@@ -127,3 +127,43 @@ export function organisationLinks(organisation: OrganisationLinkFields): Externa
 
     return links
 }
+
+export interface WorkLinkFields {
+    pdf_url?: string | null
+    landing_url?: string | null
+    doi?: string | null
+}
+
+/**
+ * Outbound links for one work, most useful first.
+ *
+ * **PDF before DOI on purpose.** A DOI resolves through doi.org to whichever
+ * publisher host owns the record, and Lucy's fetch tool is allowlisted by
+ * HOSTNAME of the URLs a page published — so a doi.org link she follows can
+ * land on a host she is not allowed to read. A `pdf_url` points straight at
+ * the file, which is both what a reader wants and what actually fetches.
+ *
+ * `landing_url` is already doi.org-first where a DOI exists (D25), so it is
+ * labelled "DOI" when it points there and "Page" when it does not.
+ */
+export function workLinks(work: WorkLinkFields): ExternalLink[] {
+    const links: ExternalLink[] = []
+
+    const pdf = httpUrlOrNull(work.pdf_url)
+    if (pdf) links.push({label: 'PDF', url: pdf})
+
+    const landing = httpUrlOrNull(work.landing_url)
+    if (landing) {
+        const isDoiLink = /^https?:\/\/(dx\.)?doi\.org\//iu.test(landing)
+        links.push({label: isDoiLink ? 'DOI' : 'Page', url: landing})
+    }
+
+    // Only when `landing_url` did not already point there — the same link
+    // twice under two labels helps nobody.
+    const doi = normalizeDoi(work.doi)
+    if (doi && !links.some((link) => link.label === 'DOI')) {
+        links.push({label: 'DOI', url: `https://doi.org/${encodeURI(doi)}`})
+    }
+
+    return links
+}

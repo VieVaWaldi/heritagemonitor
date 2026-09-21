@@ -33,8 +33,12 @@ test('a blank query is ranked by funding — BM25 has nothing to rank on', () =>
 test('a text query with no explicit sort blends BM25 with the project-count rank feature (D33)', () => {
     const body = organisationsBody({q: 'fraunhofer', size: 20, from: 0})
     assert.equal(body.sort, undefined, 'score order, not a field sort')
+    // 2.0, not the 0.5 carried over from export/queries.py: measured on the
+    // dev index as the smallest boost that puts Fraunhofer Society first for
+    // `fraunhofer` while precise small-name matches still win their own
+    // queries. See NAME_MATCH_ACTIVITY_BOOST for the measurements.
     assert.deepEqual((body.query as {bool: {should: unknown}}).bool.should, [
-        {rank_feature: {field: 'rank_projects', log: {scaling_factor: 1.0}, boost: 0.5}},
+        {rank_feature: {field: 'rank_projects', log: {scaling_factor: 1.0}, boost: 2.0}},
     ])
 })
 

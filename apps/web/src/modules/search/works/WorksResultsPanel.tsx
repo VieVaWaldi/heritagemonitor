@@ -1,20 +1,20 @@
 'use client'
 
 import {
-    ORGANISATION_FACET_FIELDS,
-    ORGANISATION_SORT_OPTIONS,
-    organisationDetailSchema,
-    organisationSearchResponseSchema,
-    type OrganisationFacetParam,
-    type OrganisationSearchResponse,
-    type OrganisationSort,
+    OPEN_ACCESS_COLORS,
+    WORK_LANGUAGES,
+    WORK_SORT_OPTIONS,
+    workDetailSchema,
+    workSearchResponseSchema,
+    type WorkSearchResponse,
+    type WorkSort,
 } from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
 import {CORPUSES} from '@/common/catalog'
-import {NoticeBar, PaginatedList, TabbedPanel} from '@/common/components'
+import {NoticeBar, PaginatedList, TabbedPanel, YearFilter} from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
 import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
@@ -31,24 +31,23 @@ import {
     useUrlSort,
     useUrlState,
     useUrlTab,
+    useUrlYears,
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
-import {RelatedWorksTab} from '../entity/RelatedWorksTab'
-import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {ResultsHeader} from '../entity/ResultsHeader'
-import {describeSearchState, formatResultCount} from '../entity/searchState'
-import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
+import {describeSearchState} from '../entity/searchState'
+import type {EntityFacet} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
-import {OrganisationOverviewTab} from './OrganisationOverviewTab'
-import {OrganisationProjectsTab} from './OrganisationProjectsTab'
-import {OrganisationResultRow} from './OrganisationResultRow'
-import {organisationProjectsSection, organisationSources, selectedOrganisationSection, summarizeOrganisationRow} from './organisationsChatContext'
-import {useOrganisationProjects} from './useOrganisationProjects'
+import {WorkOverviewTab} from './WorkOverviewTab'
+import {WorkOrganisationsTab, WorkProjectsTab} from './WorkRelatedTabs'
+import {WorkResultRow} from './WorkResultRow'
+import {selectedWorkSection, summarizeWorkRow, workSources} from './worksChatContext'
+import {useWorkOrganisations, useWorkProjects} from './useWorkRelated'
 
-const EMPTY_RESULTS: OrganisationSearchResponse = {
+const EMPTY_RESULTS: WorkSearchResponse = {
     hits: [],
     facetDistribution: {},
     facetLabels: {},
@@ -61,9 +60,34 @@ const EMPTY_RESULTS: OrganisationSearchResponse = {
     pageCount: 1,
 }
 
-const SORT_VALUES = ORGANISATION_SORT_OPTIONS.map((option) => option.value)
-const FILTER_PARAMS = ORGANISATION_FACET_FIELDS.map((facet) => facet.param)
-const TABS = ['overview', 'projects', 'works'] as const
+const SORT_VALUES = WORK_SORT_OPTIONS.map((option) => option.value)
+const FILTER_PARAMS = ['oa', 'language', 'publisher'] as const
+const TABS = ['overview', 'projects', 'organisations'] as const
+
+/**
+ * Works have NO facets: 50M documents on 4 shards means a terms aggregation is
+ * a full scan (see the api's works repository). So these are not facet buckets
+ * with counts, they are the values the fields can hold, measured once over the
+ * whole corpus and shipped as constants in @heritagemonitor/shared.
+ *
+ * `publisher` is the exception that still needs a server: ~3,000 values, so
+ * its menu types against the api's in-memory publisher table.
+ */
+const WORK_FILTERS: EntityFacet[] = [
+    {
+        config: {field: 'open_access_color', param: 'oa', label: 'Open access', size: 0, searchable: false},
+        options: OPEN_ACCESS_COLORS.map((option) => ({value: option.value, label: option.label})),
+    },
+    {
+        config: {field: 'language', param: 'language', label: 'Language', size: 0, searchable: false},
+        options: WORK_LANGUAGES.map((option) => ({value: option.value, label: option.label})),
+    },
+    {
+        config: {field: 'publisher', param: 'publisher', label: 'Publisher', size: 0, searchable: true},
+        options: [],
+        valuesEndpoint: (searchText) => `/v1/works/publishers?q=${encodeURIComponent(searchText)}`,
+    },
+]
 
 function EmptyTabMessage({message}: {message: string}) {
     return (
@@ -76,72 +100,70 @@ function EmptyTabMessage({message}: {message: string}) {
 }
 
 /**
- * The organisations entity of `/search`. Holds no state of its own: query,
- * corpus, filters, sort, page, selected row, tab and the detail panel's own
- * page all live in the URL, the data comes from the generic entity hooks, and
- * everything below is presentation — per apps/web/RULES.md #7.
+ * The works entity of `/search`. Same generic machinery as the other entities;
+ * what differs is what this index can afford — no facet counts, no
+ * autocomplete, and a year control with no histogram behind it.
  */
-export function OrganisationsResultsPanel() {
+export function WorksResultsPanel() {
     const router = useRouter()
     const {params, update} = useUrlState()
     const query = readText(params, SEARCH_PARAM.query)
     const onlyIds = readList(params, SEARCH_PARAM.only)
     const {submit} = useUrlQueryDraft()
     const {corpus} = useUrlCorpus()
-    const {sort, setSort} = useUrlSort<OrganisationSort>(SORT_VALUES)
+    const {sort, setSort} = useUrlSort<WorkSort>(SORT_VALUES)
     const {page, setPage} = useUrlPage()
     const {tab, setTab} = useUrlTab(TABS)
-    const {values: filterValues, setFilter, activeCount} = useUrlFilters<OrganisationFacetParam>(FILTER_PARAMS)
+    const {values: filterValues, setFilter, activeCount} = useUrlFilters(FILTER_PARAMS)
+    const {years, setYears, minYear, maxYear} = useUrlYears()
 
-    const {data, error} = useEntitySearch('organisations', organisationSearchResponseSchema, EMPTY_RESULTS)
-    const facets = useEntityFacets(ORGANISATION_FACET_FIELDS, data.facetDistribution, data.facetLabels)
-
+    const {data, error} = useEntitySearch('works', workSearchResponseSchema, EMPTY_RESULTS)
     const rowIds = useMemo(() => data.hits.map((hit) => hit.id), [data.hits])
-    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('organisations', organisationDetailSchema, rowIds)
+    const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('works', workDetailSchema, rowIds)
 
     const projectsTabOpen = tab === 'projects'
-    const worksTabOpen = tab === 'works'
-    const {projects, page: projectsPage, setPage: setProjectsPage, loading: projectsLoading} = useOrganisationProjects(
+    const organisationsTabOpen = tab === 'organisations'
+    const {projects, page: projectsPage, setPage: setProjectsPage, loading: projectsLoading} = useWorkProjects(
         selectedId,
         projectsTabOpen,
     )
-    const {works, page: worksPage, setPage: setWorksPage, loading: worksLoading} = useRelatedWorks(
-        'organisations',
-        selectedId,
-        worksTabOpen,
-    )
+    const {
+        organisations,
+        page: organisationsPage,
+        setPage: setOrganisationsPage,
+        loading: organisationsLoading,
+    } = useWorkOrganisations(selectedId, organisationsTabOpen)
 
-    const labelUrlValue = useCallback(
-        (param: string, value: string) => {
-            if (param === SEARCH_PARAM.corpus) return CORPUSES.find((option) => option.key === value)?.fullName ?? value
-            const facet = facets.find((candidate) => candidate.config.param === param)
-            return facet ? labelFacetValue(facet, value) : value
-        },
-        [facets],
-    )
+    const labelUrlValue = useCallback((param: string, value: string) => {
+        if (param === SEARCH_PARAM.corpus) return CORPUSES.find((option) => option.key === value)?.fullName ?? value
+        const filter = WORK_FILTERS.find((candidate) => candidate.config.param === param)
+        return filter?.options.find((option) => option.value === value)?.label ?? value
+    }, [])
 
+    const hasActiveFilters = activeCount > 0 || years !== null
     const resetFilters = useCallback(() => {
+        setYears(null)
         for (const param of FILTER_PARAMS) setFilter(param, [])
-    }, [setFilter])
+    }, [setFilter, setYears])
 
     const filterProps: EntityFiltersProps = {
-        entity: 'organisations',
-        facets,
+        entity: 'works',
+        facets: WORK_FILTERS,
         values: filterValues,
-        onFilterChange: (param, next) => setFilter(param as OrganisationFacetParam, next),
+        onFilterChange: (param, next) => setFilter(param as (typeof FILTER_PARAMS)[number], next),
         onReset: resetFilters,
-        hasActiveFilters: activeCount > 0,
+        hasActiveFilters,
+        // No histogram: that would be an aggregation, which this index cannot
+        // afford. The slider alone still says "these years".
+        sidebarHeader: <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} />,
     }
 
-    // A project row on the Projects tab leads to that project in the projects
-    // entity — the same deep link a project's organisation row uses in the
-    // other direction, from the one helper.
     const openProject = useCallback(
         (projectId: string) => router.push(buildEntityLink({entity: 'projects', id: projectId, corpus})),
         [router, corpus],
     )
-    const openWork = useCallback(
-        (workId: string) => router.push(buildEntityLink({entity: 'works', id: workId, corpus})),
+    const openOrganisation = useCallback(
+        (organisationId: string) => router.push(buildEntityLink({entity: 'organisations', id: organisationId, corpus})),
         [router, corpus],
     )
 
@@ -153,25 +175,22 @@ export function OrganisationsResultsPanel() {
                         heading: describeSearchState({
                             query,
                             corpusName: CORPUSES.find((option) => option.key === corpus)?.fullName ?? corpus,
-                            sortLabel: ORGANISATION_SORT_OPTIONS.find((option) => option.value === sort)?.label ?? null,
+                            sortLabel: WORK_SORT_OPTIONS.find((option) => option.value === sort)?.label ?? null,
                             page: data.page,
                             pageCount: data.pageCount,
                             count: data,
-                            entityNoun: 'organisations',
+                            entityNoun: 'publications',
                             urlParams: describeUrlParams(params, {labelValue: labelUrlValue}),
                             fuzzy: data.mode === 'fuzzy',
                             didYouMean: data.didYouMean,
                         }),
-                        rows: data.hits.map(summarizeOrganisationRow),
+                        rows: data.hits.map(summarizeWorkRow),
                     },
-                    ...(detail ? [selectedOrganisationSection(detail)] : []),
-                    ...(detail && projectsTabOpen
-                        ? [organisationProjectsSection(detail, projects.hits, formatResultCount(projects))]
-                        : []),
+                    ...(detail ? [selectedWorkSection(detail)] : []),
                 ],
-                sources: organisationSources(detail, data.hits),
+                sources: workSources(detail, data.hits),
             }),
-        [data, query, corpus, sort, detail, params, labelUrlValue, projectsTabOpen, projects],
+        [data, query, corpus, sort, detail, params, labelUrlValue],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -185,7 +204,7 @@ export function OrganisationsResultsPanel() {
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
                         onlyIds={onlyIds}
-                        noun="organisation"
+                        noun="publication"
                         onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (
@@ -214,17 +233,15 @@ export function OrganisationsResultsPanel() {
                     header={
                         <ResultsHeader
                             count={data}
-                            noun="organisations"
-                            sortOptions={ORGANISATION_SORT_OPTIONS}
+                            noun="publications"
+                            sortOptions={WORK_SORT_OPTIONS}
                             sort={sort}
                             onSortChange={setSort}
                         />
                     }
                     items={data.hits}
                     getItemKey={(item) => item.id}
-                    renderItem={(item) => (
-                        <OrganisationResultRow organisation={item} selected={item.id === selectedId} onSelect={select} />
-                    )}
+                    renderItem={(item) => <WorkResultRow work={item} selected={item.id === selectedId} onSelect={select} />}
                     page={page}
                     pageCount={data.pageCount}
                     onPageChange={setPage}
@@ -239,16 +256,16 @@ export function OrganisationsResultsPanel() {
                             value: 'overview',
                             label: 'Overview',
                             content: detail ? (
-                                <OrganisationOverviewTab organisation={detail} />
+                                <WorkOverviewTab work={detail} />
                             ) : (
-                                <EmptyTabMessage message={detailLoading ? 'Loading…' : 'Select an organisation to see its details.'} />
+                                <EmptyTabMessage message={detailLoading ? 'Loading…' : 'Select a publication to see its details.'} />
                             ),
                         },
                         {
                             value: 'projects',
                             label: 'Projects',
                             content: detail ? (
-                                <OrganisationProjectsTab
+                                <WorkProjectsTab
                                     projects={projects}
                                     page={projectsPage}
                                     onPageChange={setProjectsPage}
@@ -256,23 +273,22 @@ export function OrganisationsResultsPanel() {
                                     onSelectProject={openProject}
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select an organisation to see its projects." />
+                                <EmptyTabMessage message="Select a publication to see its projects." />
                             ),
                         },
                         {
-                            value: 'works',
-                            label: 'Publications',
+                            value: 'organisations',
+                            label: 'Organisations',
                             content: detail ? (
-                                <RelatedWorksTab
-                                    works={works}
-                                    page={worksPage}
-                                    onPageChange={setWorksPage}
-                                    loading={worksLoading}
-                                    onSelectWork={openWork}
-                                    emptyMessage="No publications are linked to this organisation."
+                                <WorkOrganisationsTab
+                                    organisations={organisations}
+                                    page={organisationsPage}
+                                    onPageChange={setOrganisationsPage}
+                                    loading={organisationsLoading}
+                                    onSelectOrganisation={openOrganisation}
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select an organisation to see its publications." />
+                                <EmptyTabMessage message="Select a publication to see its organisations." />
                             ),
                         },
                     ]}

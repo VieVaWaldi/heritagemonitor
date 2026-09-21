@@ -86,6 +86,7 @@ export function EntityFilterBar({entity, facets, values, onFilterChange, onReset
                             value={values[facet.config.param] ?? []}
                             onChange={(next) => onFilterChange(facet.config.param, next)}
                             fallbackOptions={facet.options}
+                            endpoint={facet.valuesEndpoint}
                         />
                     ) : (
                         <FilterMenuButton

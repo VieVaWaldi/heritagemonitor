@@ -5,6 +5,12 @@ import type {FilterOption} from '@/common/components'
 export interface EntityFacet {
     config: FacetConfig
     options: FilterOption[]
+    /**
+     * Overrides where a searchable facet's type-ahead fetches from. Works'
+     * publishers come from an in-memory table rather than an aggregation, so
+     * they cannot use the generic facet-values endpoint.
+     */
+    valuesEndpoint?: (searchText: string, apiParams: string) => string
 }
 
 /**

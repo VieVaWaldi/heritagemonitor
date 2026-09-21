@@ -36,6 +36,25 @@ export function organisationFilters(filters: OrganisationFilters = {}): QueryCla
     return clauses
 }
 
+/**
+ * How hard "this institution actually does research" pushes against "this
+ * name matches well" when a text query has no explicit sort.
+ *
+ * Measured on the dev index (28,137 organisations, denormalised counts at
+ * their full values). 0.5, the value carried over from export/queries.py, left
+ * "Fraunhofer Society" (3,042 projects) fourth for `fraunhofer`, behind three
+ * smaller institutes whose names are shorter. 2.0 is the SMALLEST value that
+ * puts it first, and precise matches survive it: `FRAUNHOFER IWU` (1 project)
+ * still wins its own query, as does `Max-Planck-Gymnasium` (195). Higher
+ * values buy nothing here — 5 and above only reorder `max planck`, where the
+ * runners-up are all genuinely Max Planck institutes anyway.
+ *
+ * The `log` saturation (D33) is what keeps this safe: it is the difference
+ * between 5 and 50 projects that moves a result, not the one between 5,000
+ * and 50,000.
+ */
+const NAME_MATCH_ACTIVITY_BOOST = 2.0
+
 export type OrganisationSort = 'relevance' | 'funding' | 'projects' | 'works'
 
 /**
@@ -101,7 +120,7 @@ export function organisationsBody({
     } else if (!q.trim()) {
         sortClause = sortClauses(SORT_FIELDS.funding)
     } else {
-        bool.should = [{rank_feature: {field: 'rank_projects', log: {scaling_factor: 1.0}, boost: 0.5}}]
+        bool.should = [{rank_feature: {field: 'rank_projects', log: {scaling_factor: 1.0}, boost: NAME_MATCH_ACTIVITY_BOOST}}]
     }
 
     return {

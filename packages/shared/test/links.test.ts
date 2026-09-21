@@ -4,7 +4,7 @@ import {test} from 'node:test'
 // `src/`: this package ships ESM with explicit `.js` specifiers, which Node's
 // own TypeScript support does not rewrite back to `.ts`. Testing the built
 // entry points is also what every consumer actually imports.
-import {projectLinks} from '../dist/links.js'
+import {projectLinks, workLinks} from '../dist/links.js'
 
 // Cases mirror the real shapes in the core_v4 `projects` index — see
 // HERITAGEMONITOR_PLAN.md section 3.3.
@@ -99,4 +99,45 @@ test('a doi column that does not hold a doi produces no link', () => {
 test('missing openaireId and websiteUrl simply add nothing', () => {
     assert.deepEqual(projectLinks({}), [])
     assert.deepEqual(projectLinks({doi: null, grantId: null, funder: null, programme: null, openaireId: null, websiteUrl: null}), [])
+})
+
+// --- works ------------------------------------------------------------------
+
+test('a work with a PDF offers the PDF first — it is what actually fetches', () => {
+    // Lucy's fetch tool is allowlisted by hostname; a doi.org link redirects
+    // to a publisher host she may not be allowed to read, a pdf_url does not.
+    assert.deepEqual(
+        workLinks({
+            pdf_url: 'https://repositori.irta.cat/bitstream/20.500.12327/314/1/kamilaris_deep_2018.pdf',
+            landing_url: 'https://doi.org/10.1016/j.compag.2018.02.016',
+            doi: '10.1016/j.compag.2018.02.016',
+        }),
+        [
+            {label: 'PDF', url: 'https://repositori.irta.cat/bitstream/20.500.12327/314/1/kamilaris_deep_2018.pdf'},
+            {label: 'DOI', url: 'https://doi.org/10.1016/j.compag.2018.02.016'},
+        ],
+    )
+})
+
+test('without a PDF the landing url carries the work, labelled by where it points', () => {
+    assert.deepEqual(workLinks({landing_url: 'https://doi.org/10.1234/abc'}), [
+        {label: 'DOI', url: 'https://doi.org/10.1234/abc'},
+    ])
+    assert.deepEqual(workLinks({landing_url: 'https://repository.example.org/item/42'}), [
+        {label: 'Page', url: 'https://repository.example.org/item/42'},
+    ])
+})
+
+test('a bare doi becomes a doi.org link when nothing else points there', () => {
+    assert.deepEqual(workLinks({doi: '10.1234/abc'}), [{label: 'DOI', url: 'https://doi.org/10.1234/abc'}])
+    // …but never twice: landing_url already IS the doi.org link here.
+    assert.deepEqual(workLinks({landing_url: 'https://doi.org/10.1234/abc', doi: '10.1234/abc'}), [
+        {label: 'DOI', url: 'https://doi.org/10.1234/abc'},
+    ])
+})
+
+test('a work with no usable link at all offers none (the row hides its button)', () => {
+    assert.deepEqual(workLinks({}), [])
+    assert.deepEqual(workLinks({pdf_url: null, landing_url: null, doi: null}), [])
+    assert.deepEqual(workLinks({pdf_url: 'javascript:alert(1)'}), [])
 })

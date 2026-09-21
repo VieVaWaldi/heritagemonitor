@@ -7,6 +7,7 @@ import {Text} from '@/common/text'
 import {useUrlEntity} from '@/common/url'
 import {OrganisationsResultsPanel} from '../organisations/OrganisationsResultsPanel'
 import {ProjectsResultsPanel} from '../projects/ProjectsResultsPanel'
+import {WorksResultsPanel} from '../works/WorksResultsPanel'
 
 /**
  * `/search` is the one use case with several entities behind it (`?e=`), so
@@ -20,6 +21,7 @@ import {ProjectsResultsPanel} from '../projects/ProjectsResultsPanel'
 const PANEL_BY_ENTITY: Partial<Record<EntityKey, ComponentType>> = {
     projects: ProjectsResultsPanel,
     organisations: OrganisationsResultsPanel,
+    works: WorksResultsPanel,
 }
 
 export function SearchEntityPanel() {

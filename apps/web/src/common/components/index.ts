@@ -47,6 +47,9 @@ export type {MultiSelectDropdownProps, MultiSelectOption} from './MultiSelectDro
 export {Navbar, NAVBAR_HEIGHT, NAVBAR_HEIGHT_MID, NAVBAR_HEIGHT_TALL, NAVBAR_BORDER_COLOR} from './Navbar'
 export type {NavbarProps} from './Navbar'
 
+export {NoticeBar} from './NoticeBar'
+export type {NoticeBarProps, NoticeTone} from './NoticeBar'
+
 export {PaginatedList} from './PaginatedList'
 export type {PaginatedListProps} from './PaginatedList'
 

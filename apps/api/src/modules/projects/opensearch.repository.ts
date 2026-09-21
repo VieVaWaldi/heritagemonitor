@@ -173,6 +173,11 @@ export async function getById(id: string): Promise<ProjectRawDoc | null> {
     return getDocument<ProjectRawDoc>(indices.projectsIndexName, id)
 }
 
+/** Row-shaped project documents for the ids given, in that order. */
+export async function getProjectsByIds(ids: string[]): Promise<ProjectRawDoc[]> {
+    return mgetDocuments<ProjectRawDoc>(indices.projectsIndexName, ids, ROW_SOURCE)
+}
+
 /** Full documents for one page of a project's `org_ids`, in the order given. */
 export async function getOrganisations(ids: string[]): Promise<OrganisationRawDoc[]> {
     return mgetDocuments<OrganisationRawDoc>(indices.organisationsIndexName, ids, ORGANISATION_SOURCE)

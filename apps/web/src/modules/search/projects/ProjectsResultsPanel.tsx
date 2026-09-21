@@ -10,13 +10,12 @@ import {
     type ProjectSearchResponse,
     type ProjectSort,
 } from '@heritagemonitor/shared'
-import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
 import {CORPUSES} from '@/common/catalog'
-import {PaginatedList, TabbedPanel} from '@/common/components'
+import {NoticeBar, PaginatedList, TabbedPanel} from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
 import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
@@ -37,6 +36,8 @@ import {
     useUrlYears,
 } from '@/common/url'
 import {DeepLinkNotice} from '../entity/DeepLinkNotice'
+import {RelatedWorksTab} from '../entity/RelatedWorksTab'
+import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {ResultsHeader} from '../entity/ResultsHeader'
@@ -70,9 +71,9 @@ const EMPTY_RESULTS: ProjectSearchResponse = {
 const SORT_VALUES = PROJECT_SORT_OPTIONS.map((option) => option.value)
 const FILTER_PARAMS = PROJECT_FACET_FIELDS.map((facet) => facet.param)
 
-// `works` is the next slice. This list is what `tab=` is validated against, so
-// an unknown tab in a link falls back to the first one rather than to nothing.
-const TABS = ['overview', 'organisations'] as const
+// What `tab=` is validated against: an unknown tab in a link falls back to the
+// first one rather than to nothing.
+const TABS = ['overview', 'organisations', 'works'] as const
 
 function EmptyTabMessage({message}: {message: string}) {
     return (
@@ -123,12 +124,18 @@ export function ProjectsResultsPanel() {
     const {selectedId, detail, loading: detailLoading, select} = useSelectedEntity('projects', projectDetailSchema, rowIds)
 
     const organisationsTabOpen = tab === 'organisations'
+    const worksTabOpen = tab === 'works'
     const {
         organisations,
         page: organisationsPage,
         setPage: setOrganisationsPage,
         loading: organisationsLoading,
     } = useProjectOrganisations(selectedId, organisationsTabOpen)
+    const {works, page: worksPage, setPage: setWorksPage, loading: worksLoading} = useRelatedWorks(
+        'projects',
+        selectedId,
+        worksTabOpen,
+    )
 
     const hasActiveFilters = activeCount > 0 || years !== null
     const resetFilters = useCallback(() => {
@@ -159,6 +166,10 @@ export function ProjectsResultsPanel() {
     // in the organisations entity, through the one shared link helper.
     const openOrganisation = useCallback(
         (organisationId: string) => router.push(buildEntityLink({entity: 'organisations', id: organisationId, corpus})),
+        [router, corpus],
+    )
+    const openWork = useCallback(
+        (workId: string) => router.push(buildEntityLink({entity: 'works', id: workId, corpus})),
         [router, corpus],
     )
 
@@ -205,18 +216,18 @@ export function ProjectsResultsPanel() {
             filters={<EntityFilterBar {...filterProps} />}
             notice={
                 error ? (
-                    <Alert severity="warning">{error}</Alert>
+                    <NoticeBar tone="warning">{error}</NoticeBar>
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
                         onlyIds={onlyIds}
                         noun="project"
-                        onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: selectedId})}
+                        onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (
                     // The user's own spelling matched almost nothing, so this
                     // list answers a slightly different question — saying so
                     // is the difference between help and a wrong answer.
-                    <Alert severity="info">
+                    <NoticeBar tone="note">
                         Few results for <strong>{query}</strong>, showing close matches instead.
                         {data.didYouMean.length > 0 && (
                             <>
@@ -233,7 +244,7 @@ export function ProjectsResultsPanel() {
                                 ?
                             </>
                         )}
-                    </Alert>
+                    </NoticeBar>
                 ) : undefined
             }
             list={
@@ -286,6 +297,22 @@ export function ProjectsResultsPanel() {
                                 />
                             ) : (
                                 <EmptyTabMessage message="Select a project to see the organisations that worked on it." />
+                            ),
+                        },
+                        {
+                            value: 'works',
+                            label: 'Publications',
+                            content: detail ? (
+                                <RelatedWorksTab
+                                    works={works}
+                                    page={worksPage}
+                                    onPageChange={setWorksPage}
+                                    loading={worksLoading}
+                                    onSelectWork={openWork}
+                                    emptyMessage="No publications are linked to this project."
+                                />
+                            ) : (
+                                <EmptyTabMessage message="Select a project to see its publications." />
                             ),
                         },
                     ]}

@@ -1,4 +1,4 @@
-import {client, getDocument, indices, query} from '@heritagemonitor/search'
+import {client, getDocument, indices, mgetDocuments, query} from '@heritagemonitor/search'
 import {ORGANISATION_FACET_FIELDS, SEARCH_PAGE_SIZE, type SearchMode} from '@heritagemonitor/shared'
 import {runSearch, type SearchExecution} from '../../common/search/runSearch.js'
 
@@ -103,6 +103,11 @@ export async function search(params: OrganisationSearchParams): Promise<SearchEx
 
 export async function getById(id: string): Promise<OrganisationRawDoc | null> {
     return getDocument<OrganisationRawDoc>(indices.organisationsIndexName, id)
+}
+
+/** Row-shaped organisation documents for the ids given, in that order. */
+export async function getOrganisationsByIds(ids: string[]): Promise<OrganisationRawDoc[]> {
+    return mgetDocuments<OrganisationRawDoc>(indices.organisationsIndexName, ids, ROW_SOURCE)
 }
 
 export interface OrganisationSuggestionDoc {

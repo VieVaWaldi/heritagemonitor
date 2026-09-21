@@ -21,7 +21,14 @@ import {
     type ProjectRow,
     type ProjectSearchRequest,
     type ProjectSearchResponse,
+    type WorkProjectsResponse,
 } from '@heritagemonitor/shared'
+import {
+    defaultPageKey,
+    isDefaultRequest,
+    readDefaultPage,
+    writeDefaultPage,
+} from '../../common/search/defaultPageCache.js'
 import {AppError} from '../../plugins/errors.js'
 import {topicNames, topicOf} from '../../reference/topics.js'
 import * as opensearchRepository from './opensearch.repository.js'
@@ -116,9 +123,21 @@ function toFacetDistribution(aggregations: Record<string, query.TermsAggregation
 
 export async function searchProjects(request: ProjectSearchRequest): Promise<ProjectSearchResponse> {
     const q = request.q ?? ''
+    const page = request.page ?? 1
+
+    // The blank default page is the same answer for everyone and an expensive
+    // one (a full doc-values pass plus every facet) — see
+    // common/search/defaultPageCache.
+    const cacheable = isDefaultRequest(request, page)
+    const cacheKey = defaultPageKey({entity: 'projects', corpus: request.c, page, sort: request.sort})
+    if (cacheable) {
+        const cached = readDefaultPage<ProjectSearchResponse>(cacheKey)
+        if (cached) return cached
+    }
+
     const result = await opensearchRepository.search({
         q,
-        page: request.page ?? 1,
+        page,
         sort: resolveSort(q, request.sort),
         filters: toFilters(request),
         // A blank query has nothing to misspell, and its strict result set is
@@ -127,7 +146,7 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
     })
 
     const facetDistribution = toFacetDistribution(result.aggregations)
-    return {
+    const response: ProjectSearchResponse = {
         hits: result.documents.map(toRow).filter((row): row is ProjectRow => row !== null),
         facetDistribution,
         facetLabels: facetLabelsFor(facetDistribution),
@@ -138,6 +157,29 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
         didYouMean: result.didYouMean,
         page: result.page,
         pageCount: result.pageCount,
+    }
+
+    if (cacheable) writeDefaultPage(cacheKey, response)
+    return response
+}
+
+/**
+ * Projects by id, one page at a time — for a work's projects tab. A plain
+ * lookup, not a search: the ids are already known, so `mget` keeps their order
+ * and asks the index for nothing it does not need.
+ */
+export async function getProjectsByIds(ids: string[], page: number): Promise<WorkProjectsResponse> {
+    const from = (page - 1) * SEARCH_PAGE_SIZE
+    if (from > 0 && from >= ids.length) {
+        throw new AppError(`Page ${page} is past the end of these ${ids.length} projects.`, 400)
+    }
+
+    const documents = await opensearchRepository.getProjectsByIds(ids.slice(from, from + SEARCH_PAGE_SIZE))
+    return {
+        hits: documents.map(toRow).filter((row): row is ProjectRow => row !== null),
+        estimatedTotalHits: ids.length,
+        page,
+        pageCount: pageCountOf(ids.length),
     }
 }
 
