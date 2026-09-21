@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 // Tests run against the compiled `dist/` (the `test` script builds first).
-import {workFilters, worksBody} from '../dist/query/works.js'
+import {workFilters, worksBody, worksCountBody} from '../dist/query/works.js'
 
 test('the DCH corpus is a proxy on the linked project, not on the work', () => {
     assert.deepEqual(workFilters({corpus: 'dch'}), [{term: {is_ch_via_project: true}}])
@@ -43,4 +43,18 @@ test('the fuzzy rerun carries the works typo budget', () => {
     const body = worksBody({q: 'heritge', size: 20, from: 0, mode: 'fuzzy', suggest: true, timeout: '1500ms'})
     assert.equal(body.timeout, '1500ms')
     assert.ok(body.suggest)
+})
+
+test('the works count body is the same matching with nothing attached', () => {
+    // It is a `_count`: no hits, no sort, no aggregations — only the query.
+    const body = worksCountBody({q: 'heritage', filters: {org: ['o1'], corpus: 'dch'}})
+    assert.deepEqual(Object.keys(body), ['query'])
+    assert.deepEqual((body.query as {bool: {filter: unknown[]}}).bool.filter, [
+        {term: {is_ch_via_project: true}},
+        {terms: {organisation_ids: ['o1']}},
+    ])
+})
+
+test('an organisation works tab with no text filters on the organisation alone', () => {
+    assert.deepEqual(workFilters({org: ['o1']}), [{terms: {organisation_ids: ['o1']}}])
 })

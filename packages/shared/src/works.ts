@@ -169,6 +169,16 @@ export function openAccessLabel(color: string | null | undefined): string | null
 
 // --- the tabs ---------------------------------------------------------------
 
+/**
+ * How many works match a filter — a `_count`, with no hits and no
+ * aggregations. `count` is null when the api could not answer in time: an
+ * approximate extra number is never worth delaying a page for.
+ */
+export const workCountResponseSchema = z.object({
+    count: z.number().nullable(),
+})
+export type WorkCountResponse = z.infer<typeof workCountResponseSchema>
+
 /** A work's own projects and organisations: plain id lookups, not searches. */
 export const workProjectsResponseSchema = paginatedResponseSchema(projectRowSchema)
 export type WorkProjectsResponse = z.infer<typeof workProjectsResponseSchema>

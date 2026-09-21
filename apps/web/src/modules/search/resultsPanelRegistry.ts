@@ -1,5 +1,6 @@
 import type {ComponentType} from 'react'
 import {SearchEntityPanel} from './entity/SearchEntityPanel'
+import {ExpertsResultsPanel} from './experts/ExpertsResultsPanel'
 import {MinoritiesResultsPanel} from './minorities/MinoritiesResultsPanel'
 
 // Keyed by UseCase.key — only UseCases with a real backend register here;
@@ -15,4 +16,5 @@ export const RESULTS_PANEL_BY_USE_CASE: Partial<Record<string, ComponentType>> =
     // is a router over `?e=` rather than a single panel (see SearchEntityPanel).
     search: SearchEntityPanel,
     minorities: MinoritiesResultsPanel,
+    findExperts: ExpertsResultsPanel,
 }

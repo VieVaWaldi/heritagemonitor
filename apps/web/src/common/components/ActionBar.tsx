@@ -1,6 +1,7 @@
 'use client'
 
 import type {EntitySuggestion} from '@heritagemonitor/shared'
+import type {CompositionEventHandler} from 'react'
 import Box from '@mui/material/Box'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {SearchBar} from './SearchBar'
@@ -24,6 +25,13 @@ export interface ActionBarProps<EntityKey extends string = string> {
      * for a plain bar with no autocomplete dropdown. */
     suggestions?: EntitySuggestion[]
     onSuggestionSelect?: (suggestion: EntitySuggestion) => void
+    /**
+     * IME composition (Japanese, Chinese, accented input). Forwarded to the
+     * input so half-composed text is never written to the URL — see
+     * common/url's useUrlQueryDraft.
+     */
+    onCompositionStart?: CompositionEventHandler<HTMLElement>
+    onCompositionEnd?: CompositionEventHandler<HTMLElement>
 }
 
 // SearchBar (a full pill) plus a circular icon-only EntitySelector floating
@@ -41,6 +49,8 @@ export function ActionBar<EntityKey extends string = string>({
     entitySelectorInteractive = true,
     suggestions,
     onSuggestionSelect,
+    onCompositionStart,
+    onCompositionEnd,
 }: ActionBarProps<EntityKey>) {
     return (
         <Box sx={{display: 'flex', alignItems: 'stretch', gap: fluidUnit(1), width: '100%'}}>
@@ -57,6 +67,8 @@ export function ActionBar<EntityKey extends string = string>({
                     roundedCorners="all"
                     suggestions={suggestions}
                     onSuggestionSelect={onSuggestionSelect}
+                    onCompositionStart={onCompositionStart}
+                    onCompositionEnd={onCompositionEnd}
                 />
             </Box>
             <EntitySelector

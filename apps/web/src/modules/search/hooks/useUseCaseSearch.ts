@@ -22,7 +22,7 @@ const DEFAULT_ENTITY: EntityKey = 'projects'
  * UseCase catalog to the props the ActionBar wants.
  */
 export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
-    const {draft, setDraft, submit} = useUrlQueryDraft()
+    const {draft, setDraft, submit, onCompositionStart, onCompositionEnd} = useUrlQueryDraft()
     const {entity: urlEntity, setEntity} = useUrlEntity()
 
     const useCase = USE_CASES.find((candidate) => candidate.key === useCaseKey) ?? USE_CASES[0]
@@ -66,5 +66,7 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
         handleSearchSubmit: submit,
         suggestions,
         handleSuggestionSelect,
+        onCompositionStart,
+        onCompositionEnd,
     }
 }

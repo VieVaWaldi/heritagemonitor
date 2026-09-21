@@ -77,6 +77,14 @@ export const topicSearchResponseSchema = z.object({
 })
 export type TopicSearchResponse = z.infer<typeof topicSearchResponseSchema>
 
-/** Entities whose current search the topic counts can be computed against. */
-export const TOPIC_COUNT_ENTITIES = ['projects', 'minorities'] as const
+/**
+ * Entities whose current search the topic counts can be computed against.
+ *
+ * `experts` is an alias for `projects`: an expert search IS a project search
+ * whose results are grouped by organisation, so "how many would this topic
+ * give me" is the same number on both pages. It is named separately so the
+ * caller passes its own entity and the api decides, rather than every experts
+ * component having to know it should say "projects".
+ */
+export const TOPIC_COUNT_ENTITIES = ['projects', 'minorities', 'experts'] as const
 export type TopicCountEntity = (typeof TOPIC_COUNT_ENTITIES)[number]

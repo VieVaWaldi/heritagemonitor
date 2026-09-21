@@ -256,3 +256,16 @@ test('applying the reset patch leaves exactly the kept params', () => {
     const after = applyPatch(before, buildResetPatch(before, ['e', 'c']))
     assert.equal(after.toString(), 'e=works&c=dch')
 })
+
+test('the publications toggle is a tab-level param that never touches the page query', () => {
+    // "Show all publications" must not rewrite `q`: the page's search still
+    // ranks the experts, only the tab widens.
+    const patch = {allWorks: '1'}
+    assert.equal(patchClearsSelection(patch), false, 'it does not invalidate the open row')
+    assert.equal(patchInvalidatesPage(patch), false, 'nor the page of results')
+    const after = applyPatch(params('q=heritage&sel=42&tab=works'), patch)
+    assert.equal(after.get('q'), 'heritage')
+    assert.equal(after.get('allWorks'), '1')
+    // …and it never reaches the api's search request.
+    assert.equal(toApiSearchParams(after), 'q=heritage')
+})

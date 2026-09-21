@@ -45,6 +45,9 @@ export async function getTopicCounts(
         if (cached) return cached
     }
 
+    // `experts` aggregates over projects: the experts page ranks the
+    // organisations behind a project search, so its topic counts ARE the
+    // project counts (see TOPIC_COUNT_ENTITIES).
     const counts =
         entity === 'minorities' ? await aggregateMinorityTopicCounts(request) : await aggregateProjectTopicCounts(request)
 

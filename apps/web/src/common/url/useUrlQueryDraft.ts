@@ -1,10 +1,11 @@
 'use client'
 
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useReducer, type CompositionEvent} from 'react'
 import {SEARCH_PARAM, type UrlPatch} from './codecs'
+import {initialQueryDraftState, queryDraftReducer, shouldEmit} from './queryDraft'
 import {useUrlState} from './useUrlState'
 
-/** Long enough that a normal typing burst produces one URL write, short enough to feel live. */
+/** Long enough that a normal typing burst is one URL write, short enough to feel live. */
 const TYPING_DEBOUNCE_MS = 300
 
 /**
@@ -13,47 +14,46 @@ const TYPING_DEBOUNCE_MS = 300
  * Two history policies in one hook, which is why it is a hook and not two
  * `update` calls at the call site:
  * - while TYPING, the text is written with `replace` after a pause, so a
- *   copied link always reproduces what is on screen without leaving one
- *   history entry per keystroke;
+ *   copied link reproduces what is on screen without leaving one history entry
+ *   per keystroke;
  * - on SUBMIT (Enter, the search button, picking a suggestion) it is written
- *   with `push`, so the back button walks through the queries the user
- *   actually meant.
+ *   with `push`, so the back button walks through the queries the user meant.
  *
- * The draft is local state, not a read of the URL, because the URL lags
- * behind the keyboard by up to the debounce. `lastWritten` is what keeps the
- * two from fighting: a URL change is only mirrored back into the box when it
- * did NOT come from this hook (a permalink, back/forward, a link from
- * elsewhere) — otherwise a slow router update would overwrite characters the
- * user has already typed. It is state rather than a ref because the render
- * itself decides with it whether to accept the URL's value.
+ * THE TEXT IS NEVER NORMALISED HERE. Not trimmed, not rewritten, not
+ * de-duplicated: the draft and the URL both hold exactly what was typed, and
+ * every comparison is raw. Trimming the URL value on the way back in is what
+ * used to delete the trailing space of `heritage AND `, which then glued the
+ * next word on. `rewriteQuery`, the trim and the unbalanced-quote repair all
+ * live where the OpenSearch query is built (packages/search's query lib),
+ * which is the only place they belong.
+ *
+ * Which URL changes are this box's own echoes and which are somebody else's is
+ * decided by the reducer in ./queryDraft — see its header for the race that
+ * makes a single "last written" value insufficient.
  */
 export function useUrlQueryDraft(debounceMs = TYPING_DEBOUNCE_MS) {
     const {params, update} = useUrlState()
-    const urlQuery = (params.get(SEARCH_PARAM.query) ?? '').trim()
+    // Raw. `readText` trims, which is right for display and wrong for this.
+    const urlQuery = params.get(SEARCH_PARAM.query) ?? ''
 
-    const [draft, setDraft] = useState(urlQuery)
-    const [lastWritten, setLastWritten] = useState(urlQuery)
+    const [state, dispatch] = useReducer(queryDraftReducer, urlQuery, initialQueryDraftState)
 
-    // Adjusted during render rather than in an effect, per
-    // https://react.dev/learn/you-might-not-need-an-effect — same pattern the
-    // rest of this app uses for "state derived from a prop that can change".
-    const [previousUrlQuery, setPreviousUrlQuery] = useState(urlQuery)
-    if (urlQuery !== previousUrlQuery) {
-        setPreviousUrlQuery(urlQuery)
-        if (urlQuery !== lastWritten) {
-            setLastWritten(urlQuery)
-            setDraft(urlQuery)
-        }
-    }
+    // Every URL change is offered to the reducer, which decides whether it is
+    // an echo to ignore or a real change to follow.
+    useEffect(() => {
+        dispatch({type: 'url', value: urlQuery, at: Date.now()})
+    }, [urlQuery])
 
     useEffect(() => {
-        if (draft === lastWritten) return
+        if (!shouldEmit(state)) return
         const timer = setTimeout(() => {
-            setLastWritten(draft)
-            update({[SEARCH_PARAM.query]: draft || null}, {history: 'replace'})
+            dispatch({type: 'emit', value: state.draft, at: Date.now()})
+            update({[SEARCH_PARAM.query]: state.draft || null}, {history: 'replace'})
         }, debounceMs)
         return () => clearTimeout(timer)
-    }, [draft, lastWritten, debounceMs, update])
+    }, [state, debounceMs, update])
+
+    const setDraft = useCallback((value: string) => dispatch({type: 'type', value}), [])
 
     /**
      * `extraPatch` travels in the SAME update as the query, which matters for
@@ -63,13 +63,22 @@ export function useUrlQueryDraft(debounceMs = TYPING_DEBOUNCE_MS) {
      */
     const submit = useCallback(
         (value?: string, extraPatch?: UrlPatch) => {
-            const submitted = (value ?? draft).trim()
-            setDraft(submitted)
-            setLastWritten(submitted)
+            const submitted = value ?? state.draft
+            dispatch({type: 'submit', value: submitted, at: Date.now()})
             update({[SEARCH_PARAM.query]: submitted || null, ...extraPatch})
         },
-        [draft, update],
+        [state.draft, update],
     )
 
-    return {draft, setDraft, submit}
+    // IME (Japanese, Chinese, accented input): half-composed text is neither
+    // written to the URL nor overwritten by it.
+    const onCompositionStart = useCallback(() => dispatch({type: 'compositionStart'}), [])
+    const onCompositionEnd = useCallback((event: CompositionEvent<HTMLElement>) => {
+        // The input's own value at the moment composition finished — the
+        // committed text, not the half-composed one React last rendered.
+        const target = event.target as HTMLInputElement
+        dispatch({type: 'compositionEnd', value: target.value ?? ''})
+    }, [])
+
+    return {draft: state.draft, setDraft, submit, onCompositionStart, onCompositionEnd}
 }

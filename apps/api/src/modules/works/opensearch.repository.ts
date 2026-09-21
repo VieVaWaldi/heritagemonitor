@@ -1,4 +1,4 @@
-import {getDocument, indices, query} from '@heritagemonitor/search'
+import {client, getDocument, indices, query} from '@heritagemonitor/search'
 import {SEARCH_PAGE_SIZE, type SearchMode} from '@heritagemonitor/shared'
 import {runSearch, type SearchExecution} from '../../common/search/runSearch.js'
 
@@ -83,6 +83,26 @@ export async function search(params: WorkSearchParams): Promise<SearchExecution<
             : {}),
         countBody: (mode: SearchMode) => query.worksCountBody({q: params.q, filters: params.filters, mode}),
     })
+}
+
+/**
+ * How many works match, without fetching any. Used for "about K of this
+ * organisation's publications match your text", which is a nice-to-have: it
+ * carries its own short timeout and answers null rather than delaying a page.
+ *
+ * COST: on the real 50M-document index a `_count` with a broad text query is a
+ * full match pass — see the report; this must be timed on the VM.
+ */
+export async function countWorks(q: string, filters: query.WorkFilters, timeoutMs: number): Promise<number | null> {
+    try {
+        const {body} = await client.count(
+            {index: indices.worksIndexName, body: query.worksCountBody({q, filters})},
+            {requestTimeout: timeoutMs},
+        )
+        return typeof body.count === 'number' ? body.count : null
+    } catch {
+        return null
+    }
 }
 
 /**

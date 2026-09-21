@@ -6,10 +6,11 @@ import {
     type OrganisationProjectsResponse,
     type OrganisationSearchRequest,
     type OrganisationSearchResponse,
+    type WorkCountResponse,
     type WorkSearchResponse,
 } from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
-import {searchWorksFor} from '../works/works.service.js'
+import {countWorksFor, searchWorksFor} from '../works/works.service.js'
 import {
     getOrganisationById,
     getOrganisationFacetValues,
@@ -32,6 +33,12 @@ interface SuggestQuery {
 
 interface PagedQuery {
     page?: number
+}
+
+/** The works tabs accept the calling page's text and corpus — see searchWorksFor. */
+interface WorksQuery extends PagedQuery {
+    q?: string
+    c?: 'science' | 'dch'
 }
 
 type FacetValuesQuery = OrganisationSearchRequest & {facet?: string; facetQ?: string; size?: number}
@@ -106,15 +113,40 @@ export async function organisationsRoutes(fastify: FastifyInstance) {
 
     // Same shape as /projects/:id/works: this module's URL, the works
     // module's business. See that route's note.
-    fastify.get<{Params: ByIdParams; Querystring: PagedQuery}>(
+    fastify.get<{Params: ByIdParams; Querystring: WorksQuery}>(
         '/organisations/:id/works',
         {
             schema: {
                 params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
-                querystring: {type: 'object', properties: {page: pageProp}},
+                querystring: {
+                    type: 'object',
+                    properties: {page: pageProp, q: {type: 'string'}, c: {type: 'string', enum: [...CORPUS_KEYS]}},
+                },
             },
         },
         async (request): Promise<WorkSearchResponse> =>
-            searchWorksFor({organisation: request.params.id}, request.query.page ?? 1),
+            searchWorksFor({organisation: request.params.id}, request.query.page ?? 1, {
+                q: request.query.q,
+                c: request.query.c,
+            }),
+    )
+
+    // "About K of its publications match your text" on the experts page. A
+    // separate endpoint because it is wanted WITHOUT opening the tab, and a
+    // best-effort number that may come back null.
+    fastify.get<{Params: ByIdParams; Querystring: WorksQuery}>(
+        '/organisations/:id/works/count',
+        {
+            schema: {
+                params: {type: 'object', properties: {id: {type: 'string'}}, required: ['id']},
+                querystring: {
+                    type: 'object',
+                    properties: {q: {type: 'string'}, c: {type: 'string', enum: [...CORPUS_KEYS]}},
+                },
+            },
+        },
+        async (request): Promise<WorkCountResponse> => ({
+            count: await countWorksFor({organisation: request.params.id}, {q: request.query.q, c: request.query.c}),
+        }),
     )
 }

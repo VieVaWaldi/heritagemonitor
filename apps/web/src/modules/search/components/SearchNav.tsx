@@ -30,6 +30,8 @@ export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
         handleSearchSubmit,
         suggestions,
         handleSuggestionSelect,
+        onCompositionStart,
+        onCompositionEnd,
     } = useUseCaseSearch(useCaseKey, subUseCaseKey)
     const placeholder = useCyclingPlaceholder(examples)
     const useCaseName = subUseCase?.name ?? useCase.name
@@ -76,6 +78,8 @@ export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
                     entitySelectorInteractive={entitySelectorInteractive}
                     suggestions={suggestions}
                     onSuggestionSelect={handleSuggestionSelect}
+                    onCompositionStart={onCompositionStart}
+                    onCompositionEnd={onCompositionEnd}
                 />
                 {/* Centered in this track, not hugging the ActionBar — the track
                     itself already spans from the ActionBar's edge to the

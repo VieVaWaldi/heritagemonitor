@@ -137,12 +137,46 @@ export async function getWorkOrganisations(id: string, page: number): Promise<Wo
  * filter, ranked by citations. Exposed under `/v1/projects/:id/works` and
  * `/v1/organisations/:id/works` by those modules' route files — the endpoint
  * is theirs, the business is this module's.
+ *
+ * `q` and `c` are optional and come from the CALLING page: the experts page
+ * asks for "this organisation's publications matching what I searched for",
+ * which is the same request with the text left in.
  */
-export async function searchWorksFor(link: {project?: string; organisation?: string}, page: number): Promise<WorkSearchResponse> {
+export async function searchWorksFor(
+    link: {project?: string; organisation?: string},
+    page: number,
+    narrow: {q?: string; c?: WorkSearchRequest['c']} = {},
+): Promise<WorkSearchResponse> {
     return searchWorks({
         page,
-        sort: 'citations',
+        // With a text query, relevance first (citations remain the tie-break);
+        // without one, most cited.
+        sort: narrow.q?.trim() ? 'relevance' : 'citations',
+        ...(narrow.q ? {q: narrow.q} : {}),
+        ...(narrow.c ? {c: narrow.c} : {}),
         ...(link.project ? {project: [link.project]} : {}),
         ...(link.organisation ? {org: [link.organisation]} : {}),
     })
+}
+
+/** Timeout for the optional "how many match" number. Short: nothing waits on it. */
+const COUNT_TIMEOUT_MS = 1_200
+
+/**
+ * How many of an organisation's publications match a text query. Best effort:
+ * null on timeout or failure, and the UI simply omits the number.
+ */
+export async function countWorksFor(
+    link: {organisation?: string; project?: string},
+    narrow: {q?: string; c?: WorkSearchRequest['c']} = {},
+): Promise<number | null> {
+    return opensearchRepository.countWorks(
+        narrow.q ?? '',
+        toFilters({
+            ...(narrow.c ? {c: narrow.c} : {}),
+            ...(link.organisation ? {org: [link.organisation]} : {}),
+            ...(link.project ? {project: [link.project]} : {}),
+        }),
+        COUNT_TIMEOUT_MS,
+    )
 }

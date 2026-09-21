@@ -27,6 +27,12 @@ export const SEARCH_PARAM = {
     funder: 'funder',
     programme: 'programme',
     region: 'region',
+    /**
+     * Detail-panel toggle: show ALL of the open organisation's publications
+     * rather than only those matching the search text. Tab-level, so it never
+     * touches the page's own `q`.
+     */
+    allWorks: 'allWorks',
     /** Topic-tree selections; three levels sharing one cap, see readTopicSelection. */
     topic: 'topic',
     subfield: 'subfield',
@@ -46,6 +52,7 @@ export const WEB_ONLY_PARAMS: readonly string[] = [
     SEARCH_PARAM.selection,
     SEARCH_PARAM.tab,
     SEARCH_PARAM.detailPage,
+    SEARCH_PARAM.allWorks,
 ]
 
 /**
@@ -58,6 +65,7 @@ export const PAGE_PRESERVING_PARAMS: ReadonlySet<string> = new Set([
     SEARCH_PARAM.selection,
     SEARCH_PARAM.tab,
     SEARCH_PARAM.detailPage,
+    SEARCH_PARAM.allWorks,
 ])
 
 // Pure read/write of URL params: no React, no next/navigation, so every rule
@@ -302,6 +310,7 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.only]: 'Restricted to id',
     [SEARCH_PARAM.tab]: 'Open tab',
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
+    [SEARCH_PARAM.allWorks]: 'Showing all publications (not only matching)',
     [SEARCH_PARAM.years]: 'Years',
     [SEARCH_PARAM.theme]: 'Theme',
     [SEARCH_PARAM.pillar]: 'Pillar',
