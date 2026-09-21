@@ -92,7 +92,7 @@ function hitsList<T>(options: {
 
 // --- the three row kinds ----------------------------------------------------
 
-const projectsOf = (title: string, path: string, schema: {parse(data: unknown): HitsResponse<ProjectRow>}) =>
+export const projectsOf = (title: string, path: string, schema: {parse(data: unknown): HitsResponse<ProjectRow>}) =>
     hitsList<ProjectRow>({
         title,
         path,

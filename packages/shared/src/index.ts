@@ -1,5 +1,6 @@
 export * from './breadcrumbs.js'
 export * from './chatSources.js'
+export * from './collaboration.js'
 export * from './demo.js'
 export * from './experts.js'
 export * from './funding.js'

@@ -80,6 +80,7 @@ function toFilters(request: ProjectSearchRequest): query.ProjectFilters {
         subfield: request.subfield,
         field: request.field,
         org: request.org,
+        orgAll: request.orgAll,
         minority: request.minority,
         only: request.only,
     }

@@ -148,6 +148,12 @@ export const projectSearchRequestSchema = baseSearchRequestSchema.extend({
     field: z.array(z.string()).optional(),
     /** Any-of: projects involving at least one of these organisations. */
     org: z.array(z.string()).optional(),
+    /**
+     * All-of: projects involving EVERY one of these organisations — the shared
+     * projects of a pair. Combine with `org` (any-of) to ask for "the centre AND
+     * any record of this partner".
+     */
+    orgAll: z.array(z.string()).optional(),
     /** Wikidata ids of minority groups a project is tagged with. */
     minority: z.array(z.string()).optional(),
 })

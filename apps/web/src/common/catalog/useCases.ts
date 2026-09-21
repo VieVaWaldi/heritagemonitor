@@ -9,6 +9,12 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 export interface UseCaseAction {
     entity: EntityKey
     route?: string
+    /**
+     * What picking an autocomplete suggestion does on this route. Default
+     * `only`: the list is restricted to that one document. `center`: the
+     * document becomes the centre of the organisation network.
+     */
+    suggestionFocus?: 'only' | 'center'
 }
 
 export interface SubUseCase {
@@ -137,7 +143,9 @@ export const USE_CASES: UseCase[] = [
                 action: {
                     entity: 'organisations',
                     route: '/search/collaboration/organisationNetwork',
+                    suggestionFocus: 'center',
                 },
+                hasResultsPanel: true,
             },
             {
                 key: 'queryNetwork',

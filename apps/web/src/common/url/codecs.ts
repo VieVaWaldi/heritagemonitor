@@ -52,6 +52,17 @@ export const SEARCH_PARAM = {
     orgType: 'orgType',
     /** Organisation country code — a facet on the organisations and funding pages. */
     country: 'country',
+    /**
+     * Organisation network: the organisation in the middle of the map (its
+     * id, as suggested by the organisations autocomplete). `sel` is then the
+     * selected partner. Never sent to the api as a search param.
+     */
+    center: 'center',
+    /**
+     * Projects involving EVERY listed organisation (the shared projects of a
+     * pair) — the projects list's all-of counterpart of `org`.
+     */
+    orgAll: 'orgAll',
     /** Map camera: `lat,lng,zoom` at 4 decimals. See readMapView. */
     view: 'view',
     /** Which map visualization is showing (`hexes`, ...). */
@@ -84,6 +95,9 @@ export const WEB_ONLY_PARAMS: readonly string[] = [
     // beside it.
     SEARCH_PARAM.view,
     SEARCH_PARAM.layer,
+    // The organisation network's own centre; the projects endpoints never
+    // see it (the network request is built from `center` explicitly).
+    SEARCH_PARAM.center,
 ]
 
 /**
@@ -211,6 +225,8 @@ export const SELECTION_CLEARING_PARAMS: ReadonlySet<string> = new Set([
     SEARCH_PARAM.page,
     SEARCH_PARAM.query,
     SEARCH_PARAM.corpus,
+    // A new centre is a new network: the selected partner belongs to the old one.
+    SEARCH_PARAM.center,
 ])
 
 /**
@@ -418,6 +434,8 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
     [SEARCH_PARAM.allWorks]: 'Showing all works (not only matching)',
     [SEARCH_PARAM.hasGeo]: 'Only organisations with coordinates',
+    [SEARCH_PARAM.center]: 'Organisation in the middle of the collaboration network (its id; sel = the selected partner)',
+    [SEARCH_PARAM.orgAll]: 'Only projects shared by ALL of these organisation ids',
     [SEARCH_PARAM.coordinators]: 'Only organisations coordinating the projects (EC projects only; ranks by coordinated projects)',
     [SEARCH_PARAM.orgType]: 'Organisation type',
     [SEARCH_PARAM.country]: 'Country',
@@ -494,6 +512,8 @@ export interface SearchUrlParams {
     tab?: string
     /** Restrict the destination list to one funding stream's projects. */
     stream?: string
+    /** Organisation network: the organisation to centre it on. */
+    center?: string
 }
 
 /**
@@ -534,12 +554,37 @@ export function buildEntityLink({
  * the very document just picked. The entity and the corpus are the lens and
  * stay.
  */
-export function buildFocusPatch(params: URLSearchParams, id: string): UrlPatch {
-    return {
-        ...buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus]),
-        [SEARCH_PARAM.only]: id,
-        [SEARCH_PARAM.selection]: id,
-    }
+export function buildFocusPatch(params: URLSearchParams, id: string, focus: SuggestionFocus = 'only'): UrlPatch {
+    const reset = buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus])
+    // The organisation network has no restricted list: the picked organisation
+    // becomes the CENTRE and is selected in the list of its own network.
+    if (focus === 'center') return {...reset, [SEARCH_PARAM.center]: id, [SEARCH_PARAM.selection]: id}
+    return {...reset, [SEARCH_PARAM.only]: id, [SEARCH_PARAM.selection]: id}
+}
+
+/**
+ * What picking an autocomplete suggestion does on a route: `only` narrows the
+ * list to that document (every entity list); `center` makes it the centre of
+ * the organisation network. Declared per UseCase action (common/catalog).
+ */
+export type SuggestionFocus = 'only' | 'center'
+
+/** The link the landing page follows for a picked suggestion, on the action's route. */
+export function buildSuggestionLink({
+    route,
+    entity,
+    id,
+    corpus,
+    focus = 'only',
+}: {
+    route: string
+    entity: string
+    id: string
+    corpus?: string
+    focus?: SuggestionFocus
+}): string {
+    if (focus === 'center') return buildSearchUrl({route, entity, corpus, center: id, selection: id})
+    return buildEntityLink({entity, id, corpus, route})
 }
 
 /**
@@ -548,7 +593,7 @@ export function buildFocusPatch(params: URLSearchParams, id: string): UrlPatch {
  * Built on the same param names and the same writer as every in-page update,
  * so a link can never produce a URL the reading side does not understand.
  */
-export function buildSearchUrl({route, query, entity, corpus, only, selection, tab, stream}: SearchUrlParams): string {
+export function buildSearchUrl({route, query, entity, corpus, only, selection, tab, stream, center}: SearchUrlParams): string {
     const params = applyPatch(new URLSearchParams(), {
         [SEARCH_PARAM.query]: query ?? null,
         [SEARCH_PARAM.entity]: entity ?? null,
@@ -557,6 +602,7 @@ export function buildSearchUrl({route, query, entity, corpus, only, selection, t
         [SEARCH_PARAM.selection]: selection ?? null,
         [SEARCH_PARAM.tab]: tab ?? null,
         [SEARCH_PARAM.stream]: stream ?? null,
+        [SEARCH_PARAM.center]: center ?? null,
     })
     const queryString = params.toString()
     return queryString ? `${route}?${queryString}` : route

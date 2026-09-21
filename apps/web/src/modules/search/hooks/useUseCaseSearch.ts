@@ -53,8 +53,10 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
     const {params} = useUrlState()
     const handleSuggestionSelect = useCallback(
         (suggestion: EntitySuggestion) =>
-            suggestion.id ? submit('', buildFocusPatch(params, suggestion.id)) : submit(suggestion.label),
-        [submit, params],
+            suggestion.id
+                ? submit('', buildFocusPatch(params, suggestion.id, action?.suggestionFocus))
+                : submit(suggestion.label),
+        [submit, params, action?.suggestionFocus],
     )
 
     return {

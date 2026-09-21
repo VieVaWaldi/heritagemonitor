@@ -29,6 +29,13 @@ export interface FacetValuesMenuButtonProps {
      * aggregation (50M documents — see the works repository).
      */
     endpoint?: (searchText: string, apiParams: string) => string
+    /**
+     * Extra api params that scope the counts, e.g. `orgAll=<id>` so a page
+     * about one organisation shows ITS funders, not the whole index's.
+     */
+    scope?: string
+    /** Fetch the top values as soon as the button mounts, instead of waiting for typed text. */
+    prefetch?: boolean
 }
 
 /**
@@ -51,9 +58,11 @@ export function FacetValuesMenuButton({
     onChange,
     fallbackOptions,
     endpoint,
+    scope,
+    prefetch = false,
 }: FacetValuesMenuButtonProps) {
     const {params} = useUrlState()
-    const searchParams = toApiSearchParams(params)
+    const searchParams = [toApiSearchParams(params), scope].filter(Boolean).join('&')
 
     const [text, setText] = useState('')
     const trimmed = text.trim()
@@ -64,7 +73,7 @@ export function FacetValuesMenuButton({
     const [fetched, setFetched] = useState<{text: string; values: FacetValue[]} | null>(null)
 
     useEffect(() => {
-        if (!trimmed) return
+        if (!trimmed && !prefetch) return
 
         const controller = new AbortController()
         const timer = setTimeout(() => {
@@ -80,11 +89,11 @@ export function FacetValuesMenuButton({
             clearTimeout(timer)
             controller.abort()
         }
-    }, [entity, facet, trimmed, searchParams, endpoint])
+    }, [entity, facet, trimmed, searchParams, endpoint, prefetch])
 
-    const matches = trimmed && fetched?.text === trimmed ? fetched.values : null
+    const matches = (trimmed || prefetch) && fetched?.text === trimmed ? fetched.values : null
     // Typed something, nothing back for it yet: that is exactly "searching".
-    const loading = Boolean(trimmed) && matches === null
+    const loading = (Boolean(trimmed) || prefetch) && matches === null
 
     // A value that is already ticked must stay visible even when it does not
     // match what is being typed — otherwise it looks as though it was lost.

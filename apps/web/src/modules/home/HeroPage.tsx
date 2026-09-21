@@ -7,7 +7,7 @@ import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ActionBar} from '@/common/components'
 import {useCorpus} from '@/common/catalog'
-import {buildEntityLink, buildSearchUrl} from '@/common/url'
+import {buildSearchUrl, buildSuggestionLink} from '@/common/url'
 import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
 import type {EntitySuggestion} from '@heritagemonitor/shared'
 import {useEntitySuggestions} from '@/common/hooks/useEntitySuggestions'
@@ -30,6 +30,7 @@ export function HeroPage() {
         selectedSubUseCase,
         activeExamples,
         activeRoute,
+        suggestionFocus,
         selectedEntity,
         entityOptions,
         entitySelectorInteractive,
@@ -66,9 +67,12 @@ export function HeroPage() {
     // open, rather than on a text search for its name.
     function handleSuggestionSelect(suggestion: EntitySuggestion) {
         if (suggestion.id && activeRoute) {
-            // Only that document, selected — see buildEntityLink. Not a text
-            // search for its name, which would list everything similar too.
-            router.push(buildEntityLink({entity: selectedEntity, id: suggestion.id, corpus: selectedCorpus, route: activeRoute}))
+            // Only that document, selected (or the centre of the network) — see
+            // buildSuggestionLink. Not a text search for its name, which would
+            // list everything similar too.
+            router.push(
+                buildSuggestionLink({route: activeRoute, entity: selectedEntity, id: suggestion.id, corpus: selectedCorpus, focus: suggestionFocus}),
+            )
             return
         }
         setSearchValue(suggestion.label)

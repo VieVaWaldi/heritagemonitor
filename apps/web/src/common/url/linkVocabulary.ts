@@ -31,6 +31,7 @@ const FORMATS: Partial<Record<SearchParamName, string>> = {
     [SEARCH_PARAM.subfield]: 'numeric id, repeatable',
     [SEARCH_PARAM.field]: 'numeric id, repeatable',
     [SEARCH_PARAM.stream]: 'funder::programme[::action] — percent-encode it',
+    [SEARCH_PARAM.center]: 'an organisation id (find it from an organisation link or its suggest result)',
     [SEARCH_PARAM.sort]: 'depends on the entity; omit it unless asked for a specific order',
 }
 
@@ -76,7 +77,7 @@ const ROUTES: ReadonlyArray<{route: string; what: string; examples: readonly str
     {
         route: '/search/collaboration/organisationNetwork',
         what: 'who works with whom, centred on an organisation',
-        examples: ['/search/collaboration/organisationNetwork?c=dch'],
+        examples: ['/search/collaboration/organisationNetwork?center=<organisation id>&c=dch'],
     },
 ]
 

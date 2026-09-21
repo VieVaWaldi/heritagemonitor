@@ -7,6 +7,7 @@ import {startBreadcrumbSweep} from "./modules/breadcrumbs/breadcrumbs.service.js
 import {demoRoutes} from "./modules/demo/demo.routes.js";
 import {expertsRoutes} from "./modules/experts/experts.routes.js";
 import {fundingRoutes} from "./modules/funding/funding.routes.js";
+import {collaborationRoutes} from "./modules/collaboration/collaboration.routes.js";
 import {grantsRoutes} from "./modules/grants/grants.routes.js";
 import {healthRoutes} from "./modules/health/health.routes.js";
 import {llmchatRoutes} from "./modules/llmchat/llmchat.routes.js";
@@ -64,6 +65,7 @@ fastify.register(async (v1) => {
     v1.register(expertsRoutes)
     v1.register(grantsRoutes)
     v1.register(fundingRoutes)
+    v1.register(collaborationRoutes)
     v1.register(demoRoutes)
     v1.register(breadcrumbsRoutes)
 }, {prefix: '/v1'})

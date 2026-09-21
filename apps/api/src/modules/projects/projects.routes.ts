@@ -79,6 +79,7 @@ const projectSearchQueryProperties = {
     subfield: stringArrayProp,
     field: stringArrayProp,
     org: stringArrayProp,
+    orgAll: stringArrayProp,
     minority: stringArrayProp,
     only: stringArrayProp,
 } as const

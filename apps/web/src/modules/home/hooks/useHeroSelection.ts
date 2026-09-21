@@ -27,6 +27,8 @@ export function useHeroSelection() {
     // Destination path for the search submit — every UseCase/SubUseCase
     // action currently defines one (see common/catalog/useCases.ts).
     const activeRoute = activeAction?.route
+    // What picking a suggestion does there (default: restrict the list to it).
+    const suggestionFocus = activeAction?.suggestionFocus
 
     // Only Search lets the user actually pick an entity (ENTITIES). Every
     // other UseCase shows one fixed, non-interactive icon — its own — no
@@ -65,6 +67,7 @@ export function useHeroSelection() {
         selectedSubUseCase,
         activeExamples,
         activeRoute,
+        suggestionFocus,
         selectedEntity,
         entityOptions,
         entitySelectorInteractive,

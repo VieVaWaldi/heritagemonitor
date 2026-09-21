@@ -5,6 +5,7 @@
 // lives one level up (../index.ts), the domain decisions in apps/api.
 
 export * from './aggregations.js'
+export * from './collaboration.js'
 export * from './corpus.js'
 export * from './facetValues.js'
 export * from './grants.js'

@@ -3,12 +3,14 @@
 // selected row and its active tab. All of the parsing, writing and history
 // policy lives in this folder — modules import hooks, never param names.
 
+export type {SuggestionFocus} from './codecs'
 export {
     EMPTY_TOPIC_SELECTION,
     MAX_VALUES_PER_PARAM,
     URL_PARAM_LABELS,
     PAGE_PRESERVING_PARAMS,
     buildFocusPatch,
+    buildSuggestionLink,
     canReset,
     SELECTION_CLEARING_PARAMS,
     SEARCH_PARAM,

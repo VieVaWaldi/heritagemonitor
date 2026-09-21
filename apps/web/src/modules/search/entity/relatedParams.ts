@@ -122,6 +122,22 @@ export const RELATED_RELATIONS: Readonly<Record<string, RelatedRelation>> = {
     'experts:works': {carry: [...ALWAYS, SEARCH_PARAM.query], omit: {}},
     'funding:projects': {carry: [...ALWAYS, SEARCH_PARAM.query, ...PROJECT_FILTER_PARAMS, SEARCH_PARAM.stream], omit: {}},
 
+    // The organisation network. The page is centred on ONE organisation, so
+    // the text search means nothing there; the corpus and the project filters
+    // narrow the network AND the project lists inside it (the same string).
+    'collaboration:projects': {
+        carry: [
+            ...ALWAYS,
+            SEARCH_PARAM.years,
+            SEARCH_PARAM.funder,
+            SEARCH_PARAM.programme,
+            SEARCH_PARAM.topic,
+            SEARCH_PARAM.subfield,
+            SEARCH_PARAM.field,
+        ],
+        omit: {[SEARCH_PARAM.query]: 'the network is centred on one organisation, not a text search'},
+    },
+
     'works:projects': {
         carry: [...ALWAYS],
         omit: {[SEARCH_PARAM.query]: 'it searches work text, not projects'},

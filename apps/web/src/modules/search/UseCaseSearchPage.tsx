@@ -33,7 +33,12 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
     const useCase = USE_CASES.find((candidate) => candidate.key === useCaseKey) ?? USE_CASES[0]
     const subUseCase = useCase.subUseCases?.find((candidate) => candidate.key === subUseCaseKey)
     const hasResultsPanel = subUseCase?.hasResultsPanel ?? useCase.hasResultsPanel ?? false
-    const ResultsPanel = RESULTS_PANEL_BY_USE_CASE[useCaseKey] ?? SearchResultsPanel
+    // A sub-use-case may have its own panel (`collaboration/organisationNetwork`);
+    // otherwise the use case's panel, otherwise the placeholder.
+    const ResultsPanel =
+        (subUseCaseKey ? RESULTS_PANEL_BY_USE_CASE[`${useCaseKey}/${subUseCaseKey}`] : undefined) ??
+        RESULTS_PANEL_BY_USE_CASE[useCaseKey] ??
+        SearchResultsPanel
 
     return (
         <>
