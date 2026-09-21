@@ -39,7 +39,7 @@ export const EXPERT_SORT_OPTIONS = [
     {value: 'matches', label: 'Matching projects', direction: 'desc'},
     {value: 'funding', label: 'Funding (high–low)', direction: 'desc'},
     {value: 'projects', label: 'Projects in total (high–low)', direction: 'desc'},
-    {value: 'works', label: 'Publications in total (high–low)', direction: 'desc'},
+    {value: 'works', label: 'Works in total (high–low)', direction: 'desc'},
 ] as const
 export type ExpertSort = (typeof EXPERT_SORT_OPTIONS)[number]['value']
 export const expertSortSchema = z.enum(['matches', 'funding', 'projects', 'works'])

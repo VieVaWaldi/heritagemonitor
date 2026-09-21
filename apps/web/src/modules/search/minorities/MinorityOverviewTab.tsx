@@ -52,14 +52,29 @@ export function MinorityOverviewTab({minority}: MinorityOverviewTabProps) {
                         <Text variant="h6">{minority.group_name_en}</Text>
                         {minority.is_seed && <Chip label="Seed group" size="small" color="secondary" />}
                     </Box>
-                    <Link
-                        href={wikidataUrl(minority.qid)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem'}}
-                    >
-                        Wikidata {minority.qid} <OpenInNewIcon fontSize="inherit" />
-                    </Link>
+                    {/* Wikipedia first: it is the page a reader actually wants,
+                        and the only one with prose. 68 of the 278 groups have no
+                        English article and show Wikidata alone. */}
+                    <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start'}}>
+                        {minority.wikipediaUrl && (
+                            <Link
+                                href={minority.wikipediaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem'}}
+                            >
+                                Wikipedia <OpenInNewIcon fontSize="inherit" />
+                            </Link>
+                        )}
+                        <Link
+                            href={wikidataUrl(minority.qid)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem'}}
+                        >
+                            Wikidata {minority.qid} <OpenInNewIcon fontSize="inherit" />
+                        </Link>
+                    </Box>
                 </Box>
 
                 {imageUrl && (
@@ -74,7 +89,7 @@ export function MinorityOverviewTab({minority}: MinorityOverviewTabProps) {
 
             <Field label="Research about this group">
                 <Text variant="body2">
-                    {formatCount(minority.project_count, 'project')} · {formatCount(minority.work_count, 'publication')} ·{' '}
+                    {formatCount(minority.project_count, 'project')} · {formatCount(minority.work_count, 'work')} ·{' '}
                     {formatCount(minority.org_count, 'organisation')}
                 </Text>
                 <Text variant="body2" color="text.secondary">

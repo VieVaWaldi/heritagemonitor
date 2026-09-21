@@ -45,6 +45,12 @@ export interface TopicsModalProps {
     expandedIds: ReadonlySet<string>
     onToggleExpanded: (id: string) => void
     loading: boolean
+    /**
+     * The counts shown are for a slightly older request. Rendered as a faint
+     * dim, never as a placeholder swap: replacing the tree is what made the
+     * dialog jump.
+     */
+    stale?: boolean
     selectedCount: number
     maxTopics: number
     /** Plural noun for the counted documents, e.g. "projects". */
@@ -243,6 +249,7 @@ export function TopicsModal({
     expandedIds,
     onToggleExpanded,
     loading,
+    stale,
     selectedCount,
     maxTopics,
     countNoun,
@@ -269,7 +276,17 @@ export function TopicsModal({
     const firstMatchId = findFirstMatch(tree, matchedIds, counts)
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" scroll="paper">
+        // A fixed tall paper: the content's height changes as topics are
+        // ticked, and a dialog that resized under the cursor moved the next
+        // checkbox out from under it.
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="sm"
+            scroll="paper"
+            slotProps={{paper: {sx: {height: '80vh'}}}}
+        >
             <DialogTitle sx={{pb: 1}}>Topics</DialogTitle>
 
             <DialogContent dividers sx={{p: 0}}>
@@ -313,7 +330,10 @@ export function TopicsModal({
                     )}
                 </Box>
 
-                <Box sx={{px: 2, pb: 2}}>
+                {/* Dims while newer counts are in flight, and keeps the tree
+                    exactly where it is — see useTopicBrowser's stale-while-
+                    revalidate note. */}
+                <Box sx={{px: 2, pb: 2, opacity: stale ? 0.65 : 1, transition: 'opacity 120ms'}}>
                     {loading && tree.length === 0 ? (
                         <Text variant="body2" color="text.secondary" sx={{py: 2}}>
                             Loading topics…

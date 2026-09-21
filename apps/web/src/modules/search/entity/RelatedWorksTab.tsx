@@ -15,7 +15,7 @@ export interface RelatedWorksTabProps {
 }
 
 /**
- * The publications of the open project or organisation, most cited first.
+ * The works of the open project or organisation, most cited first.
  * Rows deep-link into the works entity, where the full record and its
  * PDF/DOI button live — the same pattern as every other cross-entity tab.
  */
@@ -38,7 +38,7 @@ export function RelatedWorksTab({works, page, onPageChange, loading, onSelectWor
 
     return (
         <RelatedList
-            caption={`${formatResultCount(works)} publications, most cited first`}
+            caption={`${formatResultCount(works)} works, most cited first`}
             rows={rows}
             page={page}
             pageCount={works.pageCount}

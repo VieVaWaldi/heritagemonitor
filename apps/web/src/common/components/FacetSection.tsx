@@ -8,11 +8,15 @@ import Tooltip from '@mui/material/Tooltip'
 import {alpha} from '@mui/material/styles'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import type {ReactNode} from 'react'
 import {Text} from '@/common/text'
 import type {FilterOption} from './FilterMenuButton'
 
 export interface FacetSectionProps {
+    /** The card heading — the full descriptive title, see modules/search/entity/facetTitles. */
     label: string
+    /** Pinned above the checkbox list, e.g. the topic browser's button. */
+    header?: ReactNode
     options: FilterOption[]
     value: string[]
     onChange: (value: string[]) => void
@@ -28,7 +32,7 @@ const MAX_VISIBLE_OPTIONS = 6
 // FacetSidebar can stack several without them fusing into a single tall
 // block. Rows reuse FilterMenuButton's checkbox styling, just always
 // visible instead of tucked behind a click.
-export function FacetSection({label, options, value, onChange}: FacetSectionProps) {
+export function FacetSection({label, header, options, value, onChange}: FacetSectionProps) {
     function toggleOption(optionValue: string) {
         onChange(value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue])
     }
@@ -38,6 +42,7 @@ export function FacetSection({label, options, value, onChange}: FacetSectionProp
             <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 0.5}}>
                 {label}
             </Text>
+            {header && <Box sx={{mb: 1}}>{header}</Box>}
             <Box
                 sx={{
                     display: 'flex',

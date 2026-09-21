@@ -19,12 +19,12 @@ const EMPTY: WorkSearchResponse = {
 }
 
 /**
- * The publications of the selected project or organisation, most cited first.
+ * The works of the selected project or organisation, most cited first.
  *
  * One hook for both, because it is one endpoint shape (`/v1/<entity>/:id/works`)
  * answered by the same works search on the api side. Page in the URL as
  * `dpage`, fetched only while the tab is open — a large institution has tens
- * of thousands of publications.
+ * of thousands of works.
  */
 export function useRelatedWorks(entity: 'projects' | 'organisations', id: string | null, enabled: boolean) {
     const {page, setPage} = useUrlDetailPage()

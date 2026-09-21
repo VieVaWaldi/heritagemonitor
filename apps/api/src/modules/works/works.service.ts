@@ -139,7 +139,7 @@ export async function getWorkOrganisations(id: string, page: number): Promise<Wo
  * is theirs, the business is this module's.
  *
  * `q` and `c` are optional and come from the CALLING page: the experts page
- * asks for "this organisation's publications matching what I searched for",
+ * asks for "this organisation's works matching what I searched for",
  * which is the same request with the text left in.
  */
 export async function searchWorksFor(
@@ -163,7 +163,7 @@ export async function searchWorksFor(
 const COUNT_TIMEOUT_MS = 1_200
 
 /**
- * How many of an organisation's publications match a text query. Best effort:
+ * How many of an organisation's works match a text query. Best effort:
  * null on timeout or failure, and the UI simply omits the number.
  */
 export async function countWorksFor(

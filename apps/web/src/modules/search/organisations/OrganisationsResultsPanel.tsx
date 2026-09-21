@@ -265,7 +265,7 @@ export function OrganisationsResultsPanel() {
                         },
                         {
                             value: 'works',
-                            label: 'Publications',
+                            label: 'Works',
                             content: detail ? (
                                 <RelatedWorksTab
                                     works={works}
@@ -273,10 +273,10 @@ export function OrganisationsResultsPanel() {
                                     onPageChange={setWorksPage}
                                     loading={worksLoading}
                                     onSelectWork={openWork}
-                                    emptyMessage="No publications are linked to this organisation."
+                                    emptyMessage="No works are linked to this organisation."
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select an organisation to see its publications." />
+                                <EmptyTabMessage message="Select an organisation to see its works." />
                             ),
                         },
                     ]}

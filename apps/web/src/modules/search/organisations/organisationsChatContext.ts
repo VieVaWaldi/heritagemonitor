@@ -19,7 +19,7 @@ export function summarizeOrganisationRow(organisation: OrganisationRow): string 
         knownRegion(organisation.region),
         knownRorTypes(organisation.rorTypes).join(', ') || null,
         formatCount(organisation.project_count, 'project'),
-        formatCount(organisation.work_count, 'publication'),
+        formatCount(organisation.work_count, 'work'),
         formatOrganisationFunding(organisation.total_funding_eur),
         organisation.has_dch_project ? 'works on digital cultural heritage' : null,
     ].filter(Boolean)
@@ -39,7 +39,7 @@ export function selectedOrganisationSection(organisation: OrganisationDetail): P
         `Location: ${[organisation.countryCode, organisation.region, organisation.address_city].filter(Boolean).join(', ') || 'unknown'}`,
         organisation.hasGeo ? 'Has coordinates (can appear on maps).' : 'No coordinates (cannot appear on maps).',
         organisation.rorTypes.length ? `Type: ${organisation.rorTypes.join(', ')}` : null,
-        `Research: ${formatCount(organisation.project_count, 'project')}, ${formatCount(organisation.work_count, 'publication')}, ${formatCount(organisation.dch_project_count, 'digital cultural heritage project')}`,
+        `Research: ${formatCount(organisation.project_count, 'project')}, ${formatCount(organisation.work_count, 'work')}, ${formatCount(organisation.dch_project_count, 'digital cultural heritage project')}`,
         `Funding: ${formatOrganisationFunding(organisation.total_funding_eur)} — an equal-split share of its projects' budgets, not its own budget`,
         organisation.name_key ? `Duplicate-merge key: ${organisation.name_key} (the same institution can appear under several ids)` : null,
     ].filter(Boolean)

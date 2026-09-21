@@ -214,9 +214,10 @@ export function MinoritiesResultsPanel() {
                 />
             </Paper>
         ),
-        sidebarFooter: (
-            <TopicsFilterButton entity="minorities" countNoun="groups" variant="text" label="Browse all topics" />
-        ),
+        facetHeaders: {
+            topic: <TopicsFilterButton entity="minorities" countNoun="groups" variant="text" label="Browse all topics" />,
+        },
+        titleKey: 'minorities',
         filterBarExtra: <TopicsFilterButton entity="minorities" countNoun="groups" />,
     }
 
@@ -379,20 +380,20 @@ export function MinoritiesResultsPanel() {
                         },
                         {
                             value: 'works',
-                            label: 'Publications',
+                            label: 'Works',
                             content: detail ? (
                                 <RelatedList
-                                    caption={`${formatResultCount(worksTab.data)} publications, tagged via their linked project`}
+                                    caption={`${formatResultCount(worksTab.data)} works, tagged via their linked project`}
                                     rows={workRows}
                                     page={worksTab.page}
                                     pageCount={worksTab.data.pageCount}
                                     onPageChange={worksTab.setPage}
                                     loading={worksTab.loading}
-                                    emptyMessage="No publications in the index are linked to this group."
+                                    emptyMessage="No works in the index are linked to this group."
                                     onSelect={openWork}
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select a group to see its publications." />
+                                <EmptyTabMessage message="Select a group to see its works." />
                             ),
                         },
                         {

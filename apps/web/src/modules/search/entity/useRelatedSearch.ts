@@ -11,7 +11,7 @@ interface Parser<T> {
 /**
  * The one hook behind every "list belonging to the open document" tab: a
  * project's organisations, an organisation's projects, a work's projects, a
- * minority group's organisations, topics, funders, projects and publications.
+ * minority group's organisations, topics, funders, projects and works.
  *
  * They are all the same thing — a paginated request keyed to the selected id,
  * whose page lives in the URL as `dpage` and is cleared when another row or

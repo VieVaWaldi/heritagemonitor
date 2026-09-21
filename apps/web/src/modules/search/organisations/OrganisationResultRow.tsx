@@ -24,7 +24,7 @@ export function OrganisationResultRow({organisation, selected, onSelect}: Organi
         knownRegion(organisation.region),
         knownRorTypes(organisation.rorTypes).join(', ') || null,
         formatCount(organisation.project_count, 'project'),
-        formatCount(organisation.work_count, 'publication'),
+        formatCount(organisation.work_count, 'work'),
         formatOrganisationFunding(organisation.total_funding_eur),
     ]
         .filter(Boolean)

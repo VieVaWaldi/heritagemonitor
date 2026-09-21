@@ -79,7 +79,7 @@ export const ORGANISATION_SORT_OPTIONS = [
     {value: 'relevance', label: 'Relevance', direction: null},
     {value: 'funding', label: 'Funding (high–low)', direction: 'desc'},
     {value: 'projects', label: 'Projects (high–low)', direction: 'desc'},
-    {value: 'works', label: 'Publications (high–low)', direction: 'desc'},
+    {value: 'works', label: 'Works (high–low)', direction: 'desc'},
 ] as const
 export type OrganisationSort = (typeof ORGANISATION_SORT_OPTIONS)[number]['value']
 export const organisationSortSchema = z.enum(['relevance', 'funding', 'projects', 'works'])

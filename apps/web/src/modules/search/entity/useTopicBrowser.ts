@@ -98,8 +98,21 @@ export function useTopicBrowser(entity: TopicCountEntity, open: boolean) {
     const [manualExpandedIds, setManualExpandedIds] = useState<ReadonlySet<string>>(new Set())
 
     const countsKey = `${entity}?${searchParams}`
-    const counts = fetchedCounts?.key === countsKey ? fetchedCounts.counts : EMPTY_COUNTS
-    const loading = open && fetchedCounts?.key !== countsKey
+
+    // STALE-WHILE-REVALIDATE. Ticking a checkbox changes the page's params,
+    // which changes `countsKey`, which starts a new counts request. Showing
+    // EMPTY_COUNTS in the meantime hid every node (the modal hides nodes with
+    // no documents), so the dialog collapsed to nothing and sprang back a
+    // moment later — on every single click.
+    //
+    // So the previous counts stay on screen until the new ones land. They are
+    // a beat out of date for a few hundred milliseconds, which is invisible;
+    // the collapse was not.
+    const counts = fetchedCounts?.counts ?? EMPTY_COUNTS
+    /** True only before the FIRST counts arrive — the one time there is nothing to show. */
+    const loading = open && fetchedCounts === null
+    /** Counts on screen belong to an older request; a caller may dim them. */
+    const stale = open && fetchedCounts !== null && fetchedCounts.key !== countsKey
 
     useEffect(() => {
         if (!open) return
@@ -208,6 +221,7 @@ export function useTopicBrowser(entity: TopicCountEntity, open: boolean) {
         tree,
         counts,
         loading,
+        stale,
         selection: selection as TopicSelectionValue,
         selectedCount,
         atCap,

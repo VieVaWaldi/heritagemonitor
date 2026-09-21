@@ -7,6 +7,7 @@ import type {ReactNode} from 'react'
 import type {EntityKey} from '@/common/catalog'
 import {FacetSection, FilterBar, FilterMenuButton} from '@/common/components'
 import {FacetValuesMenuButton} from './FacetValuesMenuButton'
+import {facetTitle} from './facetTitles'
 import type {EntityFacet} from './useEntityFacets'
 
 export interface EntityFiltersProps {
@@ -19,8 +20,21 @@ export interface EntityFiltersProps {
     hasActiveFilters: boolean
     /** Rendered above the facet cards — e.g. the projects year control. */
     sidebarHeader?: ReactNode
-    /** Rendered below them — e.g. a "browse all topics" button. */
+    /** Rendered below them. */
     sidebarFooter?: ReactNode
+    /**
+     * Extra control pinned INSIDE one facet's card, above its checkboxes —
+     * keyed by the facet's URL param. The topic browser lives here rather than
+     * at the bottom of the column: it belongs to the Topic facet, and at the
+     * foot of a scrolling sidebar it was below the fold on every page.
+     */
+    facetHeaders?: Readonly<Record<string, ReactNode>>
+    /**
+     * Which page's wording the facet titles use — see ./facetTitles. Defaults
+     * to the entity, which is right for everything on `/search`; the use-case
+     * routes (experts, funding, minorities) pass their own key.
+     */
+    titleKey?: string
     /** Extra controls at the end of the filter bar, e.g. the topics browser. */
     filterBarExtra?: ReactNode
 }
@@ -34,7 +48,17 @@ export interface EntityFiltersProps {
  * noise) — unless something in it is still selected, which must stay visible
  * and un-tickable-away.
  */
-export function EntityFacetSidebar({facets, values, onFilterChange, sidebarHeader, sidebarFooter}: EntityFiltersProps) {
+export function EntityFacetSidebar({
+    entity,
+    facets,
+    values,
+    onFilterChange,
+    sidebarHeader,
+    sidebarFooter,
+    facetHeaders,
+    titleKey,
+}: EntityFiltersProps) {
+    const pageKey = titleKey ?? entity
     return (
         <>
             {sidebarHeader}
@@ -47,7 +71,8 @@ export function EntityFacetSidebar({facets, values, onFilterChange, sidebarHeade
                 .map((facet) => (
                     <FacetSection
                         key={facet.config.field}
-                        label={facet.config.label}
+                        label={facetTitle(pageKey, facet.config.param, facet.config.label)}
+                        header={facetHeaders?.[facet.config.param]}
                         options={facet.options}
                         value={values[facet.config.param] ?? []}
                         onChange={(next) => onFilterChange(facet.config.param, next)}

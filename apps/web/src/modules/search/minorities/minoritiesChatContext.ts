@@ -1,6 +1,6 @@
 import type {MinorityDto, MinorityFunder, MinorityTopic} from '@heritagemonitor/shared'
 import {SELECTED_ENTITY_CHARS, type PageContextSection, type PageContextSource} from '@/common/llmchat/pageContext'
-import {MINORITY_COUNT_DISCLAIMER, formatCount, formatPopulation, labelSourceClass, wikidataUrl} from './minorityFormat'
+import {MINORITY_COUNT_DISCLAIMER, formatCount, formatPopulation, labelSourceClass} from './minorityFormat'
 
 // What Lucy is told about the minorities page.
 
@@ -10,7 +10,7 @@ export function summarizeMinorityRow(minority: MinorityDto): string {
         minority.countries.join(', ') || 'no countries documented',
         formatPopulation(minority.population),
         formatCount(minority.project_count, 'project'),
-        formatCount(minority.work_count, 'publication'),
+        formatCount(minority.work_count, 'work'),
         minority.is_seed ? 'seed group of this research programme' : null,
     ].filter(Boolean)
     return `- [${minority.qid}] ${minority.group_name_en} (${parts.join(', ')})`
@@ -28,7 +28,7 @@ export function selectedMinoritySection(minority: MinorityDto): PageContextSecti
         minority.subclass_of.length ? `Subclass of: ${minority.subclass_of.join(', ')}` : null,
         minority.admin_territory.length ? `Admin territory: ${minority.admin_territory.join(', ')}` : null,
         minority.ancestral_home.length ? `Ancestral home: ${minority.ancestral_home.join(', ')}` : null,
-        `Research: ${formatCount(minority.project_count, 'project')}, ${formatCount(minority.work_count, 'publication')}, ${formatCount(minority.org_count, 'organisation')}, ${formatCount(minority.dch_project_count, 'digital cultural heritage project')}`,
+        `Research: ${formatCount(minority.project_count, 'project')}, ${formatCount(minority.work_count, 'work')}, ${formatCount(minority.org_count, 'organisation')}, ${formatCount(minority.dch_project_count, 'digital cultural heritage project')}`,
         // Lucy must never present these counts as measurements.
         `IMPORTANT: ${MINORITY_COUNT_DISCLAIMER}`,
         (minority.project_count ?? 0) === 0
@@ -79,8 +79,12 @@ export function minoritySources(selected: MinorityDto | null, rows: MinorityDto[
         sources.push({label, url})
     }
 
-    if (selected) add(`${selected.group_name_en} (Wikidata)`, wikidataUrl(selected.qid))
-    for (const row of rows) add(`${row.group_name_en} (Wikidata)`, wikidataUrl(row.qid))
+    // ONLY Wikipedia. A Wikidata page is a table of statements with almost no
+    // prose, so fetching one spends a turn to learn nothing; the article says
+    // who a group actually is. A group without an article gets no source at
+    // all rather than a Wikidata page as a consolation.
+    if (selected?.wikipediaUrl) add(`${selected.group_name_en} (Wikipedia)`, selected.wikipediaUrl)
+    for (const row of rows) if (row.wikipediaUrl) add(`${row.group_name_en} (Wikipedia)`, row.wikipediaUrl)
 
     return sources
 }

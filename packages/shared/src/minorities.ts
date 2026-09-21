@@ -83,6 +83,18 @@ export const minorityDtoSchema = z.object({
      * merged qids.
      */
     merged_qids: stringArray,
+
+    /**
+     * English Wikipedia article for this group, or null when it has none.
+     *
+     * NOT an index field: joined on by the api from reference data built from
+     * Wikidata sitelinks (210 of 278 groups have an article). Null is a real
+     * answer — those groups show Wikidata alone.
+     */
+    wikipediaUrl: z
+        .string()
+        .nullish()
+        .transform((value) => value ?? null),
 })
 export type MinorityDto = z.infer<typeof minorityDtoSchema>
 
@@ -127,7 +139,7 @@ export type MinorityFacetParam = MinorityFacetConfig['param']
 export const MINORITY_SORT_OPTIONS = [
     {value: 'relevance', label: 'Relevance', direction: null},
     {value: 'projects', label: 'Projects (high–low)', direction: 'desc'},
-    {value: 'works', label: 'Publications (high–low)', direction: 'desc'},
+    {value: 'works', label: 'Works (high–low)', direction: 'desc'},
     {value: 'population', label: 'Population (high–low)', direction: 'desc'},
     {value: 'name', label: 'Name (A–Z)', direction: 'asc'},
 ] as const

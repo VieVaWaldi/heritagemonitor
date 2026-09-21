@@ -182,7 +182,7 @@ export function WorksResultsPanel() {
                             page: data.page,
                             pageCount: data.pageCount,
                             count: data,
-                            entityNoun: 'publications',
+                            entityNoun: 'works',
                             urlParams: describeUrlParams(params, {labelValue: labelUrlValue}),
                             fuzzy: data.mode === 'fuzzy',
                             didYouMean: data.didYouMean,
@@ -207,7 +207,7 @@ export function WorksResultsPanel() {
                 ) : onlyIds.length > 0 ? (
                     <DeepLinkNotice
                         onlyIds={onlyIds}
-                        noun="publication"
+                        noun="work"
                         onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (
@@ -236,7 +236,7 @@ export function WorksResultsPanel() {
                     header={
                         <ResultsHeader
                             count={data}
-                            noun="publications"
+                            noun="works"
                             sortOptions={WORK_SORT_OPTIONS}
                             sort={sort}
                             onSortChange={setSort}
@@ -261,7 +261,7 @@ export function WorksResultsPanel() {
                             content: detail ? (
                                 <WorkOverviewTab work={detail} />
                             ) : (
-                                <EmptyTabMessage message={detailLoading ? 'Loading…' : 'Select a publication to see its details.'} />
+                                <EmptyTabMessage message={detailLoading ? 'Loading…' : 'Select a work to see its details.'} />
                             ),
                         },
                         {
@@ -276,7 +276,7 @@ export function WorksResultsPanel() {
                                     onSelectProject={openProject}
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select a publication to see its projects." />
+                                <EmptyTabMessage message="Select a work to see its projects." />
                             ),
                         },
                         {
@@ -291,7 +291,7 @@ export function WorksResultsPanel() {
                                     onSelectOrganisation={openOrganisation}
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select a publication to see its organisations." />
+                                <EmptyTabMessage message="Select a work to see its organisations." />
                             ),
                         },
                     ]}

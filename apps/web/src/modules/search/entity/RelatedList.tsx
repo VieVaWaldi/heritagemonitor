@@ -30,6 +30,13 @@ export interface RelatedListProps {
     emptyMessage: string
     /** Row click — always a deep link into that entity (see buildEntityLink). */
     onSelect: (id: string) => void
+    /**
+     * What of the surrounding page this list is (and is not) filtered by —
+     * built by ./relatedParams from the same table the request uses. Shown
+     * even when the list is empty, because "why is this empty" is exactly when
+     * it matters.
+     */
+    filterCaption?: string
 }
 
 const ROW_HEIGHT = 64
@@ -43,19 +50,41 @@ const ROW_HEIGHT = 64
  * What differs between them is only which fields become `primary`/`secondary`,
  * which each tab decides for itself, because only it knows its own domain.
  */
-export function RelatedList({caption, rows, page, pageCount, onPageChange, loading, emptyMessage, onSelect}: RelatedListProps) {
+export function RelatedList({
+    caption,
+    rows,
+    page,
+    pageCount,
+    onPageChange,
+    loading,
+    emptyMessage,
+    onSelect,
+    filterCaption,
+}: RelatedListProps) {
+    // Shown above the rows AND above the empty message: "why is this list
+    // empty" is the question the caption exists to answer.
+    const filterLine = filterCaption ? (
+        <Text variant="caption" color="text.secondary" sx={{display: 'block', px: 2.5, pt: 1}}>
+            {filterCaption}
+        </Text>
+    ) : null
+
     if (rows.length === 0) {
         return (
-            <Box sx={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2.5}}>
-                <Text variant="body2" color="text.secondary" sx={{textAlign: 'center'}}>
-                    {loading ? 'Loading…' : emptyMessage}
-                </Text>
+            <Box sx={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+                {filterLine}
+                <Box sx={{flex: '1 1 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2.5}}>
+                    <Text variant="body2" color="text.secondary" sx={{textAlign: 'center'}}>
+                        {loading ? 'Loading…' : emptyMessage}
+                    </Text>
+                </Box>
             </Box>
         )
     }
 
     return (
         <Box sx={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+            {filterLine}
             <Text variant="caption" color="text.secondary" sx={{px: 2.5, py: 1}}>
                 {caption}
             </Text>

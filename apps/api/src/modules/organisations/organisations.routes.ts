@@ -131,7 +131,7 @@ export async function organisationsRoutes(fastify: FastifyInstance) {
             }),
     )
 
-    // "About K of its publications match your text" on the experts page. A
+    // "About K of its works match your text" on the experts page. A
     // separate endpoint because it is wanted WITHOUT opening the tab, and a
     // best-effort number that may come back null.
     fastify.get<{Params: ByIdParams; Querystring: WorksQuery}>(

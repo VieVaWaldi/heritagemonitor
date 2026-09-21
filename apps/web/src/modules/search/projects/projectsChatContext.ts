@@ -21,7 +21,7 @@ export function summarizeProjectRow(project: ProjectRow): string {
         formatFunderProgramme(project.funder, project.programme),
         formatFunding(project.funded_amount_eur),
         formatCount(project.org_count, 'organisation'),
-        formatCount(project.work_count, 'publication'),
+        formatCount(project.work_count, 'work'),
         project.topic?.topic_name,
         project.is_ch ? 'digital cultural heritage' : null,
     ].filter(Boolean)
@@ -41,7 +41,7 @@ function summarizeSelectedProject(project: ProjectDetail): string {
         `Id: ${project.id}${project.grantId ? `, grant ${project.grantId}` : ''}`,
         `Funding: ${formatFunding(project.funded_amount_eur)} from ${formatFunderProgramme(project.funder, project.programme)}`,
         `Runs: ${project.startDate ?? '?'} to ${project.endDate ?? '?'}`,
-        `Scale: ${formatCount(project.org_count, 'organisation')}, ${formatCount(project.work_count, 'publication')}`,
+        `Scale: ${formatCount(project.org_count, 'organisation')}, ${formatCount(project.work_count, 'work')}`,
         project.topic
             ? `Topic: ${project.topic.topic_name} (${project.topic.subfield_name}, ${project.topic.field_name}, ${project.topic.domain_name})`
             : null,

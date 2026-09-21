@@ -24,7 +24,7 @@ export function selectedExpertSection(organisation: OrganisationDetail, matchedP
         matchedProjects != null
             ? `${matchedProjects} of its projects match the current search — this is what ranks it as an expert here.`
             : null,
-        `Lifetime totals: ${formatCount(organisation.project_count, 'project')}, ${formatCount(organisation.work_count, 'publication')}`,
+        `Lifetime totals: ${formatCount(organisation.project_count, 'project')}, ${formatCount(organisation.work_count, 'work')}`,
         `Funding: ${formatOrganisationFunding(organisation.total_funding_eur)} — an equal-split share of its projects' budgets, not its own budget`,
         `Location: ${[organisation.countryCode, organisation.region, organisation.address_city].filter(Boolean).join(', ') || 'unknown'}`,
         organisation.rorTypes.length ? `Type: ${organisation.rorTypes.join(', ')}` : null,

@@ -125,7 +125,7 @@ export function ProjectOverviewTab({project}: ProjectOverviewTabProps) {
 
             <Field label="Scale">
                 <Text variant="body2">
-                    {formatCount(project.org_count, 'organisation')} · {formatCount(project.work_count, 'publication')}
+                    {formatCount(project.org_count, 'organisation')} · {formatCount(project.work_count, 'work')}
                 </Text>
                 {coordinatorNames.length > 0 && (
                     <Text variant="body2" color="text.secondary">

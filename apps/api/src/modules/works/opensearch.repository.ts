@@ -87,7 +87,7 @@ export async function search(params: WorkSearchParams): Promise<SearchExecution<
 
 /**
  * How many works match, without fetching any. Used for "about K of this
- * organisation's publications match your text", which is a nice-to-have: it
+ * organisation's works match your text", which is a nice-to-have: it
  * carries its own short timeout and answers null rather than delaying a page.
  *
  * COST: on the real 50M-document index a `_count` with a broad text query is a

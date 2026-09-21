@@ -3,6 +3,7 @@ import {test} from 'node:test'
 // Imported straight from source: the codecs are deliberately free of React,
 // next/navigation and `@/` path aliases, so Node's own TypeScript support can
 // run them as-is. The hooks around them are the part that needs a browser.
+import {RELATED_RELATIONS, relatedFilterCaption, relatedParams} from '../src/modules/search/entity/relatedParams.ts'
 import {
     applyPatch,
     buildResetPatch,
@@ -178,14 +179,31 @@ test('a topic selection under the cap is read back unchanged', () => {
     assert.deepEqual(readTopicSelection(new URLSearchParams(written.toString())), selection)
 })
 
-test('changing the page or the result set clears the open row', () => {
+test('only the page, the query and the corpus clear the open row', () => {
     assert.equal(patchClearsSelection({page: 3}), true)
     assert.equal(patchClearsSelection({page: null}), true)
     assert.equal(patchClearsSelection({q: 'heritage'}), true)
-    assert.equal(patchClearsSelection({funder: ['EC']}), true)
     assert.equal(patchClearsSelection({c: 'dch'}), true)
-    assert.equal(patchClearsSelection({sort: 'budget'}), true)
-    assert.equal(patchClearsSelection({years: '2019-2025'}), true)
+})
+
+test('REGRESSION: narrowing a filter KEEPS the open row', () => {
+    // Filtering is exactly when a user wants to keep their place. Clearing the
+    // selection here made the thing being read vanish on every facet click.
+    // Whether the kept row still matches is checked separately, by
+    // modules/search/entity/useSelectionSurvival.
+    assert.equal(patchClearsSelection({funder: ['EC']}), false)
+    assert.equal(patchClearsSelection({years: '2019-2025'}), false)
+    assert.equal(patchClearsSelection({topic: ['10001']}), false)
+    assert.equal(patchClearsSelection({region: ['Nordic'], programme: ['H2020']}), false)
+    // Sorting reorders the same result set; the row is still in it.
+    assert.equal(patchClearsSelection({sort: 'budget'}), false)
+})
+
+test('a filter change still sends the list back to page 1', () => {
+    // Keeping the selection must not also keep a page that no longer exists —
+    // the two rules are independent.
+    assert.equal(patchInvalidatesPage({funder: ['EC']}), true)
+    assert.equal(patchInvalidatesPage({sort: 'budget'}), true)
 })
 
 test('a patch that picks a row itself keeps it — deep links must survive', () => {
@@ -257,8 +275,8 @@ test('applying the reset patch leaves exactly the kept params', () => {
     assert.equal(after.toString(), 'e=works&c=dch')
 })
 
-test('the publications toggle is a tab-level param that never touches the page query', () => {
-    // "Show all publications" must not rewrite `q`: the page's search still
+test('the works toggle is a tab-level param that never touches the page query', () => {
+    // "Show all works" must not rewrite `q`: the page's search still
     // ranks the experts, only the tab widens.
     const patch = {allWorks: '1'}
     assert.equal(patchClearsSelection(patch), false, 'it does not invalidate the open row')
@@ -268,4 +286,64 @@ test('the publications toggle is a tab-level param that never touches the page q
     assert.equal(after.get('allWorks'), '1')
     // …and it never reaches the api's search request.
     assert.equal(toApiSearchParams(after), 'q=heritage')
+})
+
+// --- tab-list parameter carrying (modules/search/entity/relatedParams) -------
+
+test('a projects tab carries the page project filters but not a name query', () => {
+    const params = new URLSearchParams('q=Sami&c=dch&funder=EC&topic=10001&page=3')
+    const carried = relatedParams('minorities:projects', params)
+
+    assert.equal(carried.get('c'), 'dch')
+    assert.equal(carried.get('funder'), 'EC')
+    assert.equal(carried.get('topic'), '10001')
+    // q on the minorities page searches GROUP names; sending it to the
+    // projects index would ask for projects whose text says "Sami".
+    assert.equal(carried.get('q'), null)
+    // `page` belongs to the outer list, not to this one (it has `dpage`).
+    assert.equal(carried.get('page'), null)
+})
+
+test('experts and funding DO carry q — there it is already a project search', () => {
+    const params = new URLSearchParams('q=heritage&c=dch')
+    assert.equal(relatedParams('experts:projects', params).get('q'), 'heritage')
+    assert.equal(relatedParams('funding:projects', params).get('q'), 'heritage')
+})
+
+test('the corpus carries into every relation', () => {
+    const params = new URLSearchParams('c=dch')
+    for (const relation of ['projects:works', 'organisations:projects', 'grants:organisations', 'works:projects']) {
+        assert.equal(relatedParams(relation, params).get('c'), 'dch', relation)
+    }
+})
+
+test('repeated values all carry, and blanks are dropped', () => {
+    const params = new URLSearchParams('funder=EC&funder=NIH&programme=')
+    const carried = relatedParams('grants:projects', params)
+    assert.deepEqual(carried.getAll('funder'), ['EC', 'NIH'])
+    assert.deepEqual(carried.getAll('programme'), [])
+})
+
+test('the caption states what carried and why the query did not', () => {
+    const caption = relatedFilterCaption('minorities:projects', new URLSearchParams('q=Sami&c=dch&funder=EC'))
+    assert.match(caption, /Filtered by:/)
+    assert.match(caption, /EC/)
+    assert.match(caption, /not applied: it searches group names, not projects/)
+})
+
+test('the caption mentions a param only when it is actually set', () => {
+    // No q on the page: nothing to explain away.
+    assert.doesNotMatch(relatedFilterCaption('minorities:projects', new URLSearchParams('c=dch')), /not applied/)
+    // No filters at all: no "Filtered by" clause either.
+    assert.equal(relatedFilterCaption('projects:organisations', new URLSearchParams()), '')
+})
+
+test('every relation that omits a param gives a reason for it', () => {
+    // The caption is generated from this table, so an omission with no reason
+    // would render as a dangling sentence.
+    for (const [relation, config] of Object.entries(RELATED_RELATIONS)) {
+        for (const [param, reason] of Object.entries(config.omit)) {
+            assert.ok(reason.length > 10, `${relation}/${param} needs a real reason`)
+        }
+    }
 })

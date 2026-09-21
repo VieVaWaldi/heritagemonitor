@@ -4,7 +4,6 @@ import type {MinorityDto} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import ListItemButton from '@mui/material/ListItemButton'
-import Tooltip from '@mui/material/Tooltip'
 import {Text} from '@/common/text'
 import {formatCount, formatCountries, formatPopulation, labelSourceClass} from './minorityFormat'
 
@@ -22,7 +21,7 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
         formatCountries(minority.countries),
         formatPopulation(minority.population),
         formatCount(minority.project_count, 'project'),
-        formatCount(minority.work_count, 'publication'),
+        formatCount(minority.work_count, 'work'),
     ]
         .filter(Boolean)
         .join(' · ')
@@ -46,11 +45,6 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
             {/* A group the project chose to study, rather than one harvested
                 from Wikidata — worth marking, and what the default order
                 ranks first. */}
-            {minority.is_seed && (
-                <Tooltip title="A group this research programme selected to study">
-                    <Chip label="Seed" size="small" color="secondary" variant="outlined" sx={{flexShrink: 0}} />
-                </Tooltip>
-            )}
             {minority.dch_project_count != null && minority.dch_project_count > 0 && (
                 <Chip label="DCH" size="small" color="secondary" variant="outlined" sx={{flexShrink: 0}} />
             )}

@@ -4,6 +4,7 @@ import {useEffect, useState, useTransition} from 'react'
 import type {EntityKey} from '@/common/catalog'
 import {apiGet} from '@/common/api/apiClient'
 import {useUrlSelection} from '@/common/url'
+import {useSelectionSurvival} from './useSelectionSurvival'
 
 // The detail half of every entity panel: which row is open (from the URL) and
 // the document behind it. Generic for the same reason useEntitySearch is —
@@ -28,7 +29,18 @@ export function useSelectedEntity<TDetail>(
     /** Ids of the rows currently listed — the first one is the default selection. */
     rowIds: string[],
 ): SelectedEntityState<TDetail> {
-    const {selectedId, select} = useUrlSelection(rowIds[0] ?? null)
+    const {selectedId: requestedId, select} = useUrlSelection(rowIds[0] ?? null)
+
+    // A facet change keeps the open row (see common/url's
+    // SELECTION_CLEARING_PARAMS). This is the other half of that rule: if the
+    // kept row no longer matches the filters, fall back to the first row that
+    // does, so the panel can never contradict the list beside it.
+    const survival = useSelectionSurvival({
+        entity,
+        selectedId: requestedId,
+        visibleInList: requestedId !== null && rowIds.includes(requestedId),
+    })
+    const selectedId = survival === 'dropped' ? (rowIds[0] ?? null) : requestedId
     // Stored with the id it belongs to, so "the detail of the row that is
     // open right now" is derived below rather than cleared and re-set: no
     // state write is needed for the "nothing selected" case, and the panel

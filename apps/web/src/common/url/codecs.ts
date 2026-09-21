@@ -36,7 +36,7 @@ export const SEARCH_PARAM = {
     stream: 'stream',
     region: 'region',
     /**
-     * Detail-panel toggle: show ALL of the open organisation's publications
+     * Detail-panel toggle: show ALL of the open organisation's works
      * rather than only those matching the search text. Tab-level, so it never
      * touches the page's own `q`.
      */
@@ -171,18 +171,39 @@ export function patchInvalidatesPage(patch: UrlPatch): boolean {
 }
 
 /**
- * True when a patch invalidates the open detail panel, so the selection has
- * to go back to "the first row of whatever is now listed".
+ * Params whose change drops the open row.
  *
- * A new page, filter, query, sort or corpus means the row that was open is
- * probably not on screen any more, and a detail panel showing something the
- * list no longer contains is confusing. The one exception is a patch that
- * sets `sel` ITSELF: a deep link (`?only=…&sel=…`) or a row click arrives as
- * one patch that changes both, and there the explicit selection must win.
+ * Deliberately SHORT. Narrowing a facet used to clear the selection too, which
+ * meant the thing you were reading vanished the moment you tried to narrow the
+ * list around it — the single most annoying behaviour on these pages, because
+ * filtering is exactly when you want to keep your place.
+ *
+ * These three genuinely invalidate it:
+ *  - `page`: the row is not on screen any more.
+ *  - `q`: a different search is a different subject; keeping the old row next
+ *    to new results reads as a bug.
+ *  - `c` (corpus): the row may not exist in the other corpus at all.
+ *
+ * A facet change keeps the selection, and the panel checks cheaply whether the
+ * row still matches (see useSelectionSurvival) — falling back to the first row
+ * only when it genuinely dropped out.
+ */
+export const SELECTION_CLEARING_PARAMS: ReadonlySet<string> = new Set([
+    SEARCH_PARAM.page,
+    SEARCH_PARAM.query,
+    SEARCH_PARAM.corpus,
+])
+
+/**
+ * True when a patch invalidates the open detail panel.
+ *
+ * The one exception is a patch that sets `sel` ITSELF: a deep link
+ * (`?only=…&sel=…`) or a row click arrives as one patch that changes both, and
+ * there the explicit selection must win.
  */
 export function patchClearsSelection(patch: UrlPatch): boolean {
     if (patch[SEARCH_PARAM.selection] !== undefined) return false
-    return patch[SEARCH_PARAM.page] !== undefined || patchInvalidatesPage(patch)
+    return Object.entries(patch).some(([name, value]) => value !== undefined && SELECTION_CLEARING_PARAMS.has(name))
 }
 
 /**
@@ -366,7 +387,7 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.only]: 'Restricted to id',
     [SEARCH_PARAM.tab]: 'Open tab',
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
-    [SEARCH_PARAM.allWorks]: 'Showing all publications (not only matching)',
+    [SEARCH_PARAM.allWorks]: 'Showing all works (not only matching)',
     [SEARCH_PARAM.view]: 'Map view (lat, lng, zoom)',
     [SEARCH_PARAM.layer]: 'Map layer',
     [SEARCH_PARAM.years]: 'Years',

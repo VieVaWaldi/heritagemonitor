@@ -74,6 +74,7 @@ export function TopicsFilterButton({entity, countNoun, variant = 'pill', label =
                 expandedIds={browser.expandedIds}
                 onToggleExpanded={browser.toggleExpanded}
                 loading={browser.loading}
+                stale={browser.stale}
                 selectedCount={browser.selectedCount}
                 maxTopics={browser.maxTopics}
                 countNoun={countNoun}

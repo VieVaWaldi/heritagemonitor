@@ -42,7 +42,7 @@ Never share these directly with users, only with the password.
 ### copy paste landing page
 
 For researchers, policy makers and minority communities.
-Use 3.7M projects, 50M publications and 400K organisations from OpenAIRE enriched with ROR and Cordis.
+Use 3.7M projects, 50M works and 400K organisations from OpenAIRE enriched with ROR and Cordis.
 Or you could
 Search across projects, works and organisations all linked together from the biggest data providers. Use AI to summarize the results or fetch PDFs. ...
 Have an idea?

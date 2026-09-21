@@ -23,6 +23,7 @@ import {
     writeDefaultPage,
 } from '../../common/search/defaultPageCache.js'
 import {AppError} from '../../plugins/errors.js'
+import {minorityWikipediaUrl} from '../../reference/minorityWikipedia.js'
 import {topicAncestors, topicNames, topicOf} from '../../reference/topics.js'
 import {getOrganisationsByIds} from '../organisations/organisations.service.js'
 import * as opensearchRepository from './opensearch.repository.js'
@@ -67,7 +68,9 @@ function toFilters(request: MinoritySearchRequest): query.MinorityFilters {
  * silently dropped every group without a population.
  */
 function toDto(raw: MinorityRawDoc): MinorityDto | null {
-    const result = minorityDtoSchema.safeParse(raw)
+    // The Wikipedia link is reference data, not an index field — joined on
+    // here so every caller of this function gets it (see reference/minorityWikipedia).
+    const result = minorityDtoSchema.safeParse({...raw, wikipediaUrl: minorityWikipediaUrl(raw?.qid ?? '')})
     if (result.success) return result.data
     console.warn(`Minority document '${raw?.qid ?? 'unknown'}' failed schema validation:`, result.error.issues)
     return null

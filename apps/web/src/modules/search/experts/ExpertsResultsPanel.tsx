@@ -133,7 +133,7 @@ export function ExpertsResultsPanel() {
         empty: EMPTY_PROJECTS,
         enabled: tab === 'projects',
     })
-    // The publications tab answers "what did they publish about THIS" by
+    // The works tab answers "what did they publish about THIS" by
     // default — the same text the expert ranking used — with an explicit way
     // to widen it to everything they ever published. The toggle is its own URL
     // param so it never touches the page's `q`.
@@ -149,7 +149,7 @@ export function ExpertsResultsPanel() {
         enabled: tab === 'works',
     })
 
-    // "About K of its publications match your text", wanted on the Overview
+    // "About K of its works match your text", wanted on the Overview
     // WITHOUT opening the tab. Best effort: the api answers null on timeout
     // and the line simply omits the number.
     const [matchingWorks, setMatchingWorks] = useState<{key: string; count: number | null} | null>(null)
@@ -193,7 +193,10 @@ export function ExpertsResultsPanel() {
         onReset: resetFilters,
         hasActiveFilters: activeCount > 0 || years !== null,
         sidebarHeader: <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} histogram={yearHistogram} />,
-        sidebarFooter: <TopicsFilterButton entity="experts" countNoun="projects" variant="text" label="Browse all topics" />,
+        facetHeaders: {
+            topic: <TopicsFilterButton entity="experts" countNoun="projects" variant="text" label="Browse all topics" />,
+        },
+        titleKey: 'experts',
         filterBarExtra: <TopicsFilterButton entity="experts" countNoun="projects" />,
     }
 
@@ -327,7 +330,7 @@ export function ExpertsResultsPanel() {
                                                 organisation&apos;s {(selectedRow.project_count ?? 0).toLocaleString('en-US')}{' '}
                                                 projects match your search
                                                 {matchingWorksCount != null
-                                                    ? `, and about ${matchingWorksCount.toLocaleString('en-US')} of its publications match your search text`
+                                                    ? `, and about ${matchingWorksCount.toLocaleString('en-US')} of its works match your search text`
                                                     : ''}
                                                 .
                                                 {selectedRow.mergedRecords > 1
@@ -370,7 +373,7 @@ export function ExpertsResultsPanel() {
                         },
                         {
                             value: 'works',
-                            label: 'Publications',
+                            label: 'Works',
                             content: detail ? (
                                 <Box sx={{height: '100%', display: 'flex', flexDirection: 'column'}}>
                                     <Box sx={{px: 2.5, pt: 1.5}}>
@@ -380,8 +383,8 @@ export function ExpertsResultsPanel() {
                                             color={showAllWorks ? 'primary' : 'default'}
                                             label={
                                                 showAllWorks
-                                                    ? 'Showing all publications — click to show only matching'
-                                                    : 'Show all publications of this organisation'
+                                                    ? 'Showing all works — click to show only matching'
+                                                    : 'Show all works of this organisation'
                                             }
                                             onClick={() => update({[SEARCH_PARAM.allWorks]: showAllWorks ? null : '1'})}
                                             disabled={!query}
@@ -391,8 +394,8 @@ export function ExpertsResultsPanel() {
                                 <RelatedList
                                     caption={
                                         worksQuery
-                                            ? `${formatResultCount(worksTab.data)} publications matching "${worksQuery}" in title, authors or venue — the projects above are matched separately, on their own text`
-                                            : `${formatResultCount(worksTab.data)} publications, most cited first (all of them, not only the matching ones)`
+                                            ? `${formatResultCount(worksTab.data)} works matching "${worksQuery}" in title, authors or venue — the projects above are matched separately, on their own text`
+                                            : `${formatResultCount(worksTab.data)} works, most cited first (all of them, not only the matching ones)`
                                     }
                                     rows={workRows}
                                     page={worksTab.page}
@@ -401,15 +404,15 @@ export function ExpertsResultsPanel() {
                                     loading={worksTab.loading}
                                     emptyMessage={
                                         worksQuery
-                                            ? 'None of this organisation\u2019s publications match your search text.'
-                                            : 'No publications are linked to this organisation.'
+                                            ? 'None of this organisation\u2019s works match your search text.'
+                                            : 'No works are linked to this organisation.'
                                     }
                                     onSelect={openWork}
                                 />
                                     </Box>
                                 </Box>
                             ) : (
-                                <EmptyTabMessage message="Select an organisation to see its publications." />
+                                <EmptyTabMessage message="Select an organisation to see its works." />
                             ),
                         },
                     ]}

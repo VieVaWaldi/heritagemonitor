@@ -166,17 +166,20 @@ export function ProjectsResultsPanel() {
             <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} histogram={yearHistogram} />
         ),
         // The sidebar facet is the quick list of the top topics; the browser
-        // is how you reach the other 4,000.
-        sidebarFooter: (
-            <>
-                <TopicsFilterButton entity="projects" countNoun="projects" variant="text" label="Browse all topics" />
-                {topicsAtCap && (
-                    <Text variant="caption" color="text.secondary" sx={{px: 1}}>
-                        Maximum of {maxTopics} topics selected — clear one to choose another.
-                    </Text>
-                )}
-            </>
-        ),
+        // is how you reach the other 4,000 — so it sits at the head of the
+        // Topic card, not at the foot of the column where it was below the fold.
+        facetHeaders: {
+            topic: (
+                <>
+                    <TopicsFilterButton entity="projects" countNoun="projects" variant="text" label="Browse all topics" />
+                    {topicsAtCap && (
+                        <Text variant="caption" color="text.secondary" sx={{display: 'block', px: 1}}>
+                            Maximum of {maxTopics} topics selected — clear one to choose another.
+                        </Text>
+                    )}
+                </>
+            ),
+        },
         filterBarExtra: <TopicsFilterButton entity="projects" countNoun="projects" />,
     }
 
@@ -319,7 +322,7 @@ export function ProjectsResultsPanel() {
                         },
                         {
                             value: 'works',
-                            label: 'Publications',
+                            label: 'Works',
                             content: detail ? (
                                 <RelatedWorksTab
                                     works={works}
@@ -327,10 +330,10 @@ export function ProjectsResultsPanel() {
                                     onPageChange={setWorksPage}
                                     loading={worksLoading}
                                     onSelectWork={openWork}
-                                    emptyMessage="No publications are linked to this project."
+                                    emptyMessage="No works are linked to this project."
                                 />
                             ) : (
-                                <EmptyTabMessage message="Select a project to see its publications." />
+                                <EmptyTabMessage message="Select a project to see its works." />
                             ),
                         },
                     ]}

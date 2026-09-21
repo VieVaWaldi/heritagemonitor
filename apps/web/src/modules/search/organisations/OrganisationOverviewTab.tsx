@@ -78,7 +78,7 @@ export function OrganisationOverviewTab({organisation}: OrganisationOverviewTabP
 
             <Field label="Research">
                 <Text variant="body2">
-                    {formatCount(organisation.project_count, 'project')} · {formatCount(organisation.work_count, 'publication')}
+                    {formatCount(organisation.project_count, 'project')} · {formatCount(organisation.work_count, 'work')}
                 </Text>
                 <Text variant="body2" color="text.secondary">
                     {formatCount(organisation.dch_project_count, 'digital cultural heritage project')}
