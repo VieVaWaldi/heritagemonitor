@@ -35,8 +35,6 @@ export const hexesVisualization: Visualization = {
                 createHexFundingLayer({
                     id: 'funding-hexes',
                     data: bins,
-                    lowColorHex: colors.primaryLight,
-                    highColorHex: colors.secondary,
                     highlightColorHex: colors.highlight,
                     selectedHex: selectedId ? (binByOrganisationId.get(selectedId)?.hex ?? null) : null,
                     // A hexagon holds several organisations; select its biggest one.

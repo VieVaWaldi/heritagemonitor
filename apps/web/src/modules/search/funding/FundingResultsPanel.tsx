@@ -38,6 +38,8 @@ import {
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {useEntityFacets} from '../entity/useEntityFacets'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
+import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
+import {CoordinatorsToggle, readCoordinatorsOnly} from '../entity/CoordinatorsToggle'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {FundingMapTab} from './FundingMapTab'
@@ -119,7 +121,7 @@ export function FundingResultsPanel() {
             update(
                 buildResetPatch(params, [SEARCH_PARAM.corpus, SEARCH_PARAM.tab, SEARCH_PARAM.view, SEARCH_PARAM.query]),
             ),
-        hasActiveFilters: activeCount > 0 || hasGeoOnly,
+        hasActiveFilters: activeCount > 0 || hasGeoOnly || readCoordinatorsOnly(params),
         sidebarHeader: (
             <Paper variant="outlined" sx={{p: 2}}>
                 <FormControlLabel
@@ -132,6 +134,7 @@ export function FundingResultsPanel() {
                     label={<Text variant="body2">Only organisations on the map</Text>}
                     sx={{ml: 0}}
                 />
+                <CoordinatorsToggle />
                 <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
                     {FUNDING_ROW_FILTER_NOTE}
                 </Text>
@@ -215,7 +218,7 @@ export function FundingResultsPanel() {
     usePageChatContextPublisher(pageContext)
 
     return (
-        <Box sx={{width: '80%', mx: 'auto', height: '100%', display: 'flex', gap: 3}}>
+        <Box sx={SEARCH_BLOCK_SX}>
             <FacetSidebar>
                 <EntityFacetSidebar {...filterProps} />
             </FacetSidebar>

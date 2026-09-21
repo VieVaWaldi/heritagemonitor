@@ -44,6 +44,7 @@ import {useEntitySearch} from '../entity/useEntitySearch'
 import {grantRelatedLists, relatedLazyContext} from '../entity/relatedContext'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
+import {grantTitle} from './grantFormat'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {GrantOrganisationsTab} from './GrantOrganisationsTab'
 import {GrantOverviewTab} from './GrantOverviewTab'
@@ -202,6 +203,7 @@ export function GrantsResultsPanel() {
                     <DeepLinkNotice
                         onlyIds={onlyIds}
                         noun="funding stream"
+                        names={data.hits.map((hit) => grantTitle(hit))}
                         onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (

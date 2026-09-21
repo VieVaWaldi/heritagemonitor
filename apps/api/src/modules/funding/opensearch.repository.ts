@@ -35,7 +35,38 @@ export interface FundedOrganisationsResult {
     projectFacets: Record<string, Record<string, number>>
 }
 
-export async function topFundedOrganisations(q: string, filters: query.ProjectFilters): Promise<FundedOrganisationsResult> {
+/**
+ * The aggregations of the funding ranking. Coordinators-only swaps the
+ * aggregated field and nothing else: buckets stay organisation ids, so the
+ * funding sum, the merge and the row filters downstream are unchanged. A
+ * project with no coordinator (everything outside the EC) has no value in
+ * `coordinator_ids` and so does not count.
+ */
+export function fundedOrganisationAggs(coordinatorsOnly: boolean): Record<string, unknown> {
+    return {
+        orgs: {
+            terms: {
+                field: coordinatorsOnly ? 'coordinator_ids' : 'org_ids',
+                size: FUNDING_TOP_ORGANISATIONS,
+                shard_size: FUNDING_TOP_ORGANISATIONS_SHARD_SIZE,
+                order: {funding: 'desc'},
+            },
+            aggs: {funding: {sum: {field: 'funded_eur_per_org'}}},
+        },
+        // Ride the same request: funder and programme narrow the PROJECTS
+        // going into the ranking, so their counts come from this query rather
+        // than from the ranked rows.
+        funder: query.termsAgg('funder', 25),
+        programme: query.termsAgg('programme', 25),
+    }
+}
+
+export async function topFundedOrganisations(
+    q: string,
+    filters: query.ProjectFilters,
+    /** Aggregate on the coordinating organisation instead of every partner (EC projects only). */
+    coordinatorsOnly = false,
+): Promise<FundedOrganisationsResult> {
     const {body} = await client.search({
         index: indices.projectsIndexName,
         body: query.projectsBody({
@@ -43,22 +74,7 @@ export async function topFundedOrganisations(q: string, filters: query.ProjectFi
             from: 0,
             size: 0,
             filters,
-            aggs: {
-                orgs: {
-                    terms: {
-                        field: 'org_ids',
-                        size: FUNDING_TOP_ORGANISATIONS,
-                        shard_size: FUNDING_TOP_ORGANISATIONS_SHARD_SIZE,
-                        order: {funding: 'desc'},
-                    },
-                    aggs: {funding: {sum: {field: 'funded_eur_per_org'}}},
-                },
-                // Ride the same request: funder and programme narrow the
-                // PROJECTS going into the ranking, so their counts come from
-                // this query rather than from the ranked rows.
-                funder: query.termsAgg('funder', 25),
-                programme: query.termsAgg('programme', 25),
-            },
+            aggs: fundedOrganisationAggs(coordinatorsOnly),
         }),
     })
 

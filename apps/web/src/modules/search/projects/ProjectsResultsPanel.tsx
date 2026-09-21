@@ -51,6 +51,7 @@ import {describeSearchState} from '../entity/searchState'
 import {useEntitySearch} from '../entity/useEntitySearch'
 import {YearFilter} from '@/common/components'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
+import {projectHeadline} from './projectFormat'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {ProjectOrganisationsTab} from './ProjectOrganisationsTab'
 import {ProjectOverviewTab} from './ProjectOverviewTab'
@@ -251,6 +252,7 @@ export function ProjectsResultsPanel() {
                     <DeepLinkNotice
                         onlyIds={onlyIds}
                         noun="project"
+                        names={data.hits.map((hit) => projectHeadline(hit))}
                         onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (

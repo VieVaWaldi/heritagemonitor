@@ -52,10 +52,16 @@ export interface ExpertAggregations {
  * distinct ones there are in total, and the same facets the projects page
  * shows — the filters here narrow projects, so their counts are projects'.
  */
-function expertAggs(): Record<string, unknown> {
+export function expertAggs(coordinatorsOnly: boolean): Record<string, unknown> {
+    // Coordinators-only swaps the aggregated field, nothing else: the buckets
+    // are still organisation ids counted in matching projects, so the merge,
+    // sorting and paging downstream do not know the difference. A project
+    // with no coordinator (everything outside the EC) has no value in
+    // `coordinator_ids` and so simply does not count.
+    const field = coordinatorsOnly ? 'coordinator_ids' : 'org_ids'
     return {
-        orgs: query.termsAgg('org_ids', EXPERT_LIST_LIMIT, {order: {_count: 'desc'}}),
-        organisationCount: {cardinality: {field: 'org_ids', precision_threshold: ORG_CARDINALITY_PRECISION}},
+        orgs: query.termsAgg(field, EXPERT_LIST_LIMIT, {order: {_count: 'desc'}}),
+        organisationCount: {cardinality: {field, precision_threshold: ORG_CARDINALITY_PRECISION}},
         ...Object.fromEntries(PROJECT_FACET_FIELDS.map((facet) => [facet.field, query.termsAgg(facet.field, facet.size)])),
         [PROJECT_YEAR_HISTOGRAM]: query.histogramAgg('year', 1),
     }
@@ -65,6 +71,8 @@ export interface ExpertSearchParams {
     q: string
     filters: query.ProjectFilters
     typoTolerant: boolean
+    /** Rank by coordinated projects only — see expertSearchRequestSchema. */
+    coordinatorsOnly: boolean
 }
 
 /**
@@ -78,7 +86,7 @@ export interface ExpertSearchParams {
  */
 export async function searchExpertProjects(params: ExpertSearchParams): Promise<SearchExecution<never>> {
     const {threshold, timeout} = query.TYPO_POLICY.projects
-    const common = {q: params.q, filters: params.filters, aggs: expertAggs()}
+    const common = {q: params.q, filters: params.filters, aggs: expertAggs(params.coordinatorsOnly)}
 
     return runSearch<never>({
         index: indices.projectsIndexName,

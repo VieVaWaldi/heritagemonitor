@@ -20,6 +20,7 @@ const fundingQueryProperties = {
     country: stringArrayProp,
     orgType: stringArrayProp,
     hasGeo: {type: 'string', enum: ['true']},
+    coordinators: {type: 'string', enum: ['true']},
 } as const
 
 export async function fundingRoutes(fastify: FastifyInstance) {

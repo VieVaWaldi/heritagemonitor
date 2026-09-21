@@ -11,6 +11,7 @@ import {
     HEX_REBIN_DEBOUNCE_MS,
     hexBinsFromOrganisations,
     hexResolutionForZoom,
+    snapHexZoom,
     MapControls,
     useDeckMapViewState,
     useVisualizationColors,
@@ -61,8 +62,8 @@ export function FundingMapTab({data, loading, selectedId, onSelect, initialView,
     const viewState = useDeckMapViewState(initialView ? {...DEFAULT_VIEW_STATE, ...initialView} : DEFAULT_VIEW_STATE)
 
     // The hexes' width and height follow the camera (see hexZoomFactor), so
-    // the layer needs the zoom. Rounded to one decimal and only written when
-    // that changes: the raw value fires on every animation frame, and
+    // the layer needs the zoom. Snapped to half a level (as the original does) and only
+    // written when that changes: the raw value fires on every animation frame, and
     // re-rendering the layer 60 times a second would rebuild its geometry.
     const [zoom, setZoom] = useState(initialView?.zoom ?? DEFAULT_VIEW_STATE.zoom)
 
@@ -93,8 +94,7 @@ export function FundingMapTab({data, loading, selectedId, onSelect, initialView,
                 id: 'funding-hexes',
                 data: bins,
                 zoom,
-                lowColorHex: colors.primaryLight,
-                highColorHex: colors.secondary,
+                isGlobe: viewState.isGlobe,
                 highlightColorHex: colors.highlight,
                 selectedHex: selectedId ? (binByOrganisationId.get(selectedId)?.hex ?? null) : null,
                 // A hexagon holds several organisations; select its best-funded
@@ -104,7 +104,7 @@ export function FundingMapTab({data, loading, selectedId, onSelect, initialView,
                 },
             }),
         ],
-        [bins, binByOrganisationId, colors, selectedId, onSelect, zoom],
+        [bins, binByOrganisationId, colors, selectedId, onSelect, zoom, viewState.isGlobe],
     )
 
     return (
@@ -126,8 +126,8 @@ export function FundingMapTab({data, loading, selectedId, onSelect, initialView,
                         onViewStateChange={(next) => {
                             viewState.onViewStateChange(next)
                             onViewChange({latitude: next.latitude, longitude: next.longitude, zoom: next.zoom})
-                            const rounded = Math.round(next.zoom * 10) / 10
-                            setZoom((current) => (current === rounded ? current : rounded))
+                            const snapped = snapHexZoom(next.zoom)
+                            setZoom((current) => (current === snapped ? current : snapped))
                         }}
                         isGlobe={viewState.isGlobe}
                         getTooltip={hexTooltip}

@@ -1,71 +1,138 @@
-// How the hex columns follow the camera.
+// How the funding hexes look and how they follow the camera. Every number that
+// tunes them lives in THIS file.
 //
-// Its own module, free of deck.gl imports, so the curve can be unit-tested
-// without pulling a WebGL bundle into Node's test runner.
+// Its own module, free of deck.gl imports, so it can be unit-tested without
+// pulling a WebGL bundle into Node's test runner.
 //
-// Ported from digicher_webinterface's ColumnLayer/HexagonLayer, which scaled
-// both radius and elevation by `1.6^(BASE_ZOOM - zoom)`: halve for every zoom
-// level in, double for every level out. Without it the columns are invisible
-// specks at continental zoom and 375 km walls you end up inside of when you
-// zoom to a city.
+// THE NUMBERS ARE COPIED from digicher_webinterface
+// (src/components/deckgl/layers/HexagonLayer.ts + baseLayerProps.ts), whose
+// hexes read as "way more granular, better zooming, more density":
+//
+//   radius          10 km at zoom 4.2, times 1.6^(4.2 - zoom)
+//   elevationScale  400 at zoom 4.2, times the same factor (x10 on the globe)
+//   elevationRange  [0, 3000]  (so the tallest hex is 3000 x 400 = 1,200 km at base zoom)
+//   coverage        0.8
+//   opacity         0.4
+//   colorRange      6-step yellow-to-dark-red ramp, quantized
+//   zoom            snapped to 0.5 steps before it reaches the layer
+//
+// That layer is deck.gl's HexagonLayer, whose `radius` is a continuous number
+// of metres. We bin ourselves into H3 cells (so a bin keeps its member
+// organisations for selection and detail), and H3 cells only come in discrete
+// sizes — so the radius is realised as the H3 resolution whose cell edge is
+// closest to it (hexResolutionForZoom).
 
 /** The zoom the geometry below is tuned for. */
 export const BASE_ZOOM = 4.2
 
-const ZOOM_SCALE_BASE = 1.6
-// Clamped at both ends: the raw curve reaches absurd values a few levels out
-// and collapses to nothing a few levels in.
-const MIN_ZOOM_FACTOR = 0.12
-const MAX_ZOOM_FACTOR = 3.5
+/** Hex radius in metres at BASE_ZOOM. */
+export const BASE_RADIUS_METERS = 10_000
 
+/** Elevation scale at BASE_ZOOM; multiplied by the zoom factor. */
+export const BASE_ELEVATION_SCALE = 400
+
+/** The scale's output range: the tallest hex has this elevation before BASE_ELEVATION_SCALE. */
+export const ELEVATION_RANGE_MAX = 3000
+
+/** Elevation is multiplied by this on the globe, where the planet's curve hides low columns. */
+export const GLOBE_ELEVATION_MULTIPLIER = 10
+
+/** Fraction of its cell a hexagon fills. */
+export const HEX_COVERAGE = 0.8
+
+export const HEX_OPACITY = 0.4
+
+/** Hovered hex tint, as in the original. */
+export const HEX_HIGHLIGHT_RGB: readonly [number, number, number] = [1, 200, 1]
+
+/**
+ * Colour ramp, low to high: ColorBrewer YlOrRd. A hex takes the step its
+ * funding falls in, relative to the tallest hex (equal-width steps, as deck's
+ * default 'quantize' scale does).
+ */
+export const HEX_COLOR_RANGE: ReadonlyArray<readonly [number, number, number]> = [
+    [255, 255, 178],
+    [254, 204, 92],
+    [253, 141, 60],
+    [240, 59, 32],
+    [189, 0, 38],
+    [128, 0, 38],
+]
+
+/**
+ * Elevation is linear in funding, as in the original (deck's default linear
+ * scale). 1 = linear; lower (e.g. 0.5) compresses the tallest hubs.
+ */
+export const HEX_ELEVATION_GAMMA = 1
+
+/** The zoom is snapped to this step before it drives the layer, so a pan never re-renders it. */
+export const HEX_ZOOM_STEP = 0.5
+
+/** Debounce before the map re-bins after the resolution the zoom asks for changed. */
+export const HEX_REBIN_DEBOUNCE_MS = 250
+
+const ZOOM_SCALE_BASE = 1.6
+// Safety net only: wide enough to leave the original curve alone over the
+// whole range the map can reach (zoom ~0 to ~15).
+const MIN_ZOOM_FACTOR = 0.02
+const MAX_ZOOM_FACTOR = 8
+
+/** `1.6^(BASE_ZOOM - zoom)`: shrinks per level zoomed in, grows per level out. */
 export function hexZoomFactor(zoom: number): number {
     const raw = Math.pow(ZOOM_SCALE_BASE, BASE_ZOOM - zoom)
     return Math.min(Math.max(raw, MIN_ZOOM_FACTOR), MAX_ZOOM_FACTOR)
 }
 
-// ---------------------------------------------------------------------------
-// Everything that tunes the look of the funding hexes lives in this file.
+export function snapHexZoom(zoom: number): number {
+    return Math.round(zoom / HEX_ZOOM_STEP) * HEX_ZOOM_STEP
+}
+
+/** The original's hex radius at this zoom, in metres. */
+export function hexRadiusMeters(zoom: number): number {
+    return BASE_RADIUS_METERS * hexZoomFactor(zoom)
+}
+
+/** Elevation multiplier for the layer's `elevationScale`. */
+export function hexElevationScale(zoom: number, isGlobe: boolean): number {
+    return BASE_ELEVATION_SCALE * hexZoomFactor(zoom) * (isGlobe ? GLOBE_ELEVATION_MULTIPLIER : 1)
+}
+
+/** The tallest hex's elevation in metres (before the layer's elevationScale). */
+export const MAX_ELEVATION_METERS = ELEVATION_RANGE_MAX
+
+/** Which colour step (0-based) a hex of `relative` funding (0..1, tallest = 1) takes. */
+export function hexColorStep(relative: number): number {
+    const steps = HEX_COLOR_RANGE.length
+    return Math.min(steps - 1, Math.max(0, Math.floor(relative * steps)))
+}
 
 /**
- * Tallest a hex can stand at the base zoom, in metres. Column heights stay
- * relative to each other (see SCALE_GAMMA in the layer); this is only the
- * ceiling. Doubled from 190 km so the tallest hub stands out clearly.
- *
- * Tuned TOGETHER with HEX_COVERAGE: height and width compound into the
- * apparent aspect ratio.
+ * Average H3 cell edge length in metres per resolution (H3's published
+ * table). An H3 hexagon's edge equals its circumradius, which is what
+ * deck.gl's HexagonLayer `radius` means.
  */
-export const MAX_ELEVATION_METERS = 380_000
-
-/**
- * How much of its H3 cell a hexagon fills. Constant now that the cell itself
- * shrinks as you zoom in (see HEX_RESOLUTION_BY_ZOOM), so the columns keep the
- * same on-screen proportions. Below about 0.45 they read as needles.
- */
-export const HEX_COVERAGE = 0.55
-
-/**
- * H3 resolution per zoom: finer hexes the closer you are. One resolution step
- * shrinks a cell's edge by ~2.65x, which is ~1.4 zoom levels, so the thresholds
- * are spaced to keep cells about the same size on screen. Zoom 4 (the default
- * continental view) is resolution 3, as before. Ascending by `minZoom`.
- */
-export const HEX_RESOLUTION_BY_ZOOM: ReadonlyArray<{minZoom: number; resolution: number}> = [
-    {minZoom: 0, resolution: 2},
-    {minZoom: 3, resolution: 3},
-    {minZoom: 5.2, resolution: 4},
-    {minZoom: 6.6, resolution: 5},
-    {minZoom: 8, resolution: 6},
-    {minZoom: 9.4, resolution: 7},
-    {minZoom: 10.8, resolution: 8},
+const H3_EDGE_METERS: ReadonlyArray<{resolution: number; edge: number}> = [
+    {resolution: 2, edge: 182_512.96},
+    {resolution: 3, edge: 68_979.22},
+    {resolution: 4, edge: 26_071.76},
+    {resolution: 5, edge: 9_854.09},
+    {resolution: 6, edge: 3_724.53},
+    {resolution: 7, edge: 1_406.48},
+    {resolution: 8, edge: 531.41},
+    {resolution: 9, edge: 200.79},
+    {resolution: 10, edge: 75.86},
 ]
 
-/** Debounce before the map re-bins after the resolution the zoom asks for changed. */
-export const HEX_REBIN_DEBOUNCE_MS = 250
-
+/**
+ * The H3 resolution whose cells are closest (in ratio) to the original's hex
+ * radius at this zoom. The base zoom lands on resolution 5 (~9.9 km edge for a
+ * 10 km radius); every ~1.9 zoom levels in is one resolution finer.
+ */
 export function hexResolutionForZoom(zoom: number): number {
-    let resolution = HEX_RESOLUTION_BY_ZOOM[0].resolution
-    for (const step of HEX_RESOLUTION_BY_ZOOM) {
-        if (zoom >= step.minZoom) resolution = step.resolution
+    const radius = hexRadiusMeters(zoom)
+    let best = H3_EDGE_METERS[0]
+    for (const candidate of H3_EDGE_METERS) {
+        if (Math.abs(Math.log(candidate.edge / radius)) < Math.abs(Math.log(best.edge / radius))) best = candidate
     }
-    return resolution
+    return best.resolution
 }

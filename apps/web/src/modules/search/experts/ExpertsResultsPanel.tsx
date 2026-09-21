@@ -19,6 +19,7 @@ import {
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Link from '@mui/material/Link'
+import Paper from '@mui/material/Paper'
 import {useRouter} from 'next/navigation'
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {apiGet} from '@/common/api/apiClient'
@@ -55,6 +56,7 @@ import {useEntitySearch} from '../entity/useEntitySearch'
 import {expertRelatedLists, relatedLazyContext} from '../entity/relatedContext'
 import {relatedPaths} from '../entity/relatedPaths'
 import {useRelatedSearch} from '../entity/useRelatedSearch'
+import {CoordinatorsToggle, readCoordinatorsOnly} from '../entity/CoordinatorsToggle'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {useTopicNames} from '../entity/useTopicBrowser'
@@ -182,6 +184,7 @@ export function ExpertsResultsPanel() {
         [facets, topicName],
     )
 
+    const coordinatorsOnly = readCoordinatorsOnly(params)
     const resetFilters = useCallback(
         () => update(buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus])),
         [params, update],
@@ -193,8 +196,15 @@ export function ExpertsResultsPanel() {
         values: filterValues,
         onFilterChange: (param, next) => setFilter(param as ProjectFacetParam, next),
         onReset: resetFilters,
-        hasActiveFilters: canReset(activeCount > 0 || years !== null, params),
-        sidebarHeader: <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} histogram={yearHistogram} />,
+        hasActiveFilters: canReset(activeCount > 0 || years !== null || readCoordinatorsOnly(params), params),
+        sidebarHeader: (
+            <>
+                <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} histogram={yearHistogram} />
+                <Paper variant="outlined" sx={{p: 2}}>
+                    <CoordinatorsToggle />
+                </Paper>
+            </>
+        ),
         facetHeaders: {
             topic: <TopicsFilterButton entity="experts" countNoun="projects" variant="text" label="Browse all topics" />,
         },
@@ -292,7 +302,7 @@ export function ExpertsResultsPanel() {
                     // saying so is better than an empty page 11.
                     <NoticeBar tone="note">
                         Ranking the top {EXPERT_LIST_LIMIT} organisations of about{' '}
-                        {data.estimatedTotalHits.toLocaleString('en-US')} that worked on matching projects. Narrow the search
+                        {data.estimatedTotalHits.toLocaleString('en-US')} that {coordinatorsOnly ? 'coordinated' : 'worked on'} matching projects. Narrow the search
                         to rank further down.
                     </NoticeBar>
                 ) : undefined}
@@ -312,7 +322,7 @@ export function ExpertsResultsPanel() {
                     items={data.hits}
                     getItemKey={(item) => item.id}
                     renderItem={(item) => (
-                        <ExpertResultRow expert={item} selected={item.id === selectedId} onSelect={select} />
+                        <ExpertResultRow expert={item} selected={item.id === selectedId} onSelect={select} coordinated={coordinatorsOnly} />
                     )}
                     page={page}
                     pageCount={data.pageCount}
@@ -334,7 +344,7 @@ export function ExpertsResultsPanel() {
                                             <NoticeBar tone="note">
                                                 {selectedRow.matchedProjects.toLocaleString('en-US')} of this
                                                 organisation&apos;s {(selectedRow.project_count ?? 0).toLocaleString('en-US')}{' '}
-                                                projects match your search
+                                                projects {coordinatorsOnly ? 'match your search and are coordinated by it' : 'match your search'}
                                                 {matchingWorksCount != null
                                                     ? `, and about ${matchingWorksCount.toLocaleString('en-US')} of its works match your search text`
                                                     : ''}

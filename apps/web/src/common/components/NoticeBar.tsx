@@ -1,9 +1,12 @@
 'use client'
 
 import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
 import {alpha} from '@mui/material/styles'
-import type {ReactNode} from 'react'
+import CloseIcon from '@mui/icons-material/Close'
+import {useCallback, useEffect, useRef, useState, type ReactNode} from 'react'
 import {Text} from '@/common/text'
+import {NOTICE_AUTO_DISMISS_MS, noticeKey} from './noticeKey'
 
 /**
  * Which of the app's own palette colours a notice speaks in. Deliberately not
@@ -28,6 +31,8 @@ export interface NoticeBarProps {
     action?: ReactNode
     /** Tighter padding and smaller text, for a strip inside a panel rather than above one. */
     compact?: boolean
+    /** Called when the notice goes away, by its close button or by the timer. */
+    onDismiss?: () => void
 }
 
 /**
@@ -35,8 +40,36 @@ export interface NoticeBarProps {
  * from palette tokens (`secondary.main`, `warning.main`) rather than fixed
  * colours, so it follows the theme into dark mode like everything else.
  */
-export function NoticeBar({tone = 'note', children, action, compact = false}: NoticeBarProps) {
+export function NoticeBar({tone = 'note', children, action, compact = false, onDismiss}: NoticeBarProps) {
     const color = TONE_COLOR[tone]
+
+    // Gold notices explain the page state and dismiss themselves after
+    // NOTICE_AUTO_DISMISS_MS, or with the close button. A warning is a
+    // problem, not commentary, so it stays until the cause is gone.
+    //
+    // Dismissed per CONTENT: the notice remembers which text it was dismissed
+    // as, so a caption or state that changes shows again (and restarts the
+    // clock) instead of staying gone.
+    const key = noticeKey(tone, children)
+    const dismissible = tone === 'note'
+    const [dismissedKey, setDismissedKey] = useState<string | null>(null)
+    // A ref, so an inline `onDismiss` from a re-rendering parent does not
+    // restart the timer on every render.
+    const onDismissRef = useRef(onDismiss)
+    useEffect(() => {
+        onDismissRef.current = onDismiss
+    })
+    const dismiss = useCallback(() => {
+        setDismissedKey(key)
+        onDismissRef.current?.()
+    }, [key])
+    useEffect(() => {
+        if (!dismissible) return
+        const timer = setTimeout(dismiss, NOTICE_AUTO_DISMISS_MS)
+        return () => clearTimeout(timer)
+    }, [dismissible, dismiss])
+
+    if (dismissible && dismissedKey === key) return null
 
     return (
         <Box
@@ -58,6 +91,11 @@ export function NoticeBar({tone = 'note', children, action, compact = false}: No
                 {children}
             </Text>
             {action}
+            {dismissible && (
+                <IconButton size="small" onClick={dismiss} aria-label="Dismiss notice" sx={{color: `${color}.dark`, flexShrink: 0, p: 0.25}}>
+                    <CloseIcon fontSize="inherit" />
+                </IconButton>
+            )}
         </Box>
     )
 }

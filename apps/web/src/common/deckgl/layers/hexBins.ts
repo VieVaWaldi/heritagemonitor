@@ -1,11 +1,12 @@
 import {latLngToCell} from 'h3-js'
 import type {MapOrganisation} from '../mapTypes'
+import {BASE_ZOOM, hexResolutionForZoom} from './hexScale.ts'
 
-// H3 resolution 3 (~100 km across): coarse enough that a country reads as a
-// handful of hexes at the default continental zoom, fine enough that Paris
-// and Lyon stay separate. All hexes in one H3HexagonLayer must share it. This
-// is the default; the funding map picks one per zoom (hexResolutionForZoom).
-export const HEX_RESOLUTION = 3
+// Imported with its .ts extension so Node's test runner can load this file.
+// The resolution at the default zoom. The funding map picks one per zoom
+// instead (hexResolutionForZoom); this is for callers with no camera, like the
+// demo. All hexes in one H3HexagonLayer must share one resolution.
+export const HEX_RESOLUTION = hexResolutionForZoom(BASE_ZOOM)
 
 export interface HexBin {
     hex: string

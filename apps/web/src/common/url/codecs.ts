@@ -43,6 +43,11 @@ export const SEARCH_PARAM = {
     allWorks: 'allWorks',
     /** Funding: only organisations that can be drawn on the map. */
     hasGeo: 'hasGeo',
+    /**
+     * Experts and funding: rank organisations by the projects they COORDINATE
+     * (`coordinator_ids`), not all they took part in. EC projects only.
+     */
+    coordinators: 'coordinators',
     /** Funding: ROR institution type of the organisation. */
     orgType: 'orgType',
     /** Organisation country code — a facet on the organisations and funding pages. */
@@ -413,6 +418,7 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
     [SEARCH_PARAM.allWorks]: 'Showing all works (not only matching)',
     [SEARCH_PARAM.hasGeo]: 'Only organisations with coordinates',
+    [SEARCH_PARAM.coordinators]: 'Only organisations coordinating the projects (EC projects only; ranks by coordinated projects)',
     [SEARCH_PARAM.orgType]: 'Organisation type',
     [SEARCH_PARAM.country]: 'Country',
     [SEARCH_PARAM.view]: 'Map view (lat, lng, zoom)',

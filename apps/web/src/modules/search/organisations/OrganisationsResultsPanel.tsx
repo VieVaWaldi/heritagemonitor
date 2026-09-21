@@ -46,6 +46,7 @@ import {describeSearchState, formatResultCount} from '../entity/searchState'
 import {useEntityFacets, labelFacetValue} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
+import {organisationName} from './organisationFormat'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {OrganisationOverviewTab} from './OrganisationOverviewTab'
 import {OrganisationProjectsTab} from './OrganisationProjectsTab'
@@ -204,6 +205,7 @@ export function OrganisationsResultsPanel() {
                     <DeepLinkNotice
                         onlyIds={onlyIds}
                         noun="organisation"
+                        names={data.hits.map((hit) => organisationName(hit))}
                         onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (

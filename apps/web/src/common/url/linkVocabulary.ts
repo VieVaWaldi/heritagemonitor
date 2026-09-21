@@ -19,6 +19,7 @@ const ALLOWED_VALUES: Partial<Record<SearchParamName, readonly string[]>> = {
     [SEARCH_PARAM.layer]: ['hexes'],
     [SEARCH_PARAM.allWorks]: ['true'],
     [SEARCH_PARAM.hasGeo]: ['true'],
+    [SEARCH_PARAM.coordinators]: ['true'],
 }
 
 /** Formats that are not obvious from the name alone. */

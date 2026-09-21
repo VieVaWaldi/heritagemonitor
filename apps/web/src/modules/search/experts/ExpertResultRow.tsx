@@ -13,11 +13,13 @@ export interface ExpertResultRowProps {
     expert: ExpertRow
     selected: boolean
     onSelect: (id: string) => void
+    /** Coordinators-only ranking: the count is of projects the organisation COORDINATES. */
+    coordinated?: boolean
 }
 
 const ROW_HEIGHT = 64
 
-export function ExpertResultRow({expert, selected, onSelect}: ExpertResultRowProps) {
+export function ExpertResultRow({expert, selected, onSelect, coordinated = false}: ExpertResultRowProps) {
     // The matching projects come first and are named as such: the lifetime
     // totals beside them are a different, much larger number, and confusing
     // the two is the one way this page can mislead.
@@ -60,9 +62,9 @@ export function ExpertResultRow({expert, selected, onSelect}: ExpertResultRowPro
             )}
             {expert.has_dch_project && <Chip label="DCH" size="small" color="secondary" variant="outlined" sx={{flexShrink: 0}} />}
 
-            <Tooltip title="Projects matching your current search">
+            <Tooltip title={coordinated ? 'Matching projects this organisation coordinates' : 'Projects matching your current search'}>
                 <Chip
-                    label={`${expert.matchedProjects.toLocaleString('en-US')} matching`}
+                    label={`${expert.matchedProjects.toLocaleString('en-US')} ${coordinated ? 'coordinated' : 'matching'}`}
                     size="small"
                     color="primary"
                     sx={{flexShrink: 0, minWidth: 96}}

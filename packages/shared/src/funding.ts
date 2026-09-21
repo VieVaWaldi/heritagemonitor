@@ -148,6 +148,12 @@ export const fundingRequestSchema = z.object({
     orgType: z.array(z.string()).optional(),
     /** Only organisations that can be drawn on the map. */
     hasGeo: z.enum(['true']).optional(),
+    /**
+     * Rank by the projects an organisation COORDINATES instead of all it took
+     * part in. Only EC projects record a coordinator (`coordinator_ids`), so
+     * this also drops every non-EC project from the ranking.
+     */
+    coordinators: z.enum(['true']).optional(),
 })
 
 /**

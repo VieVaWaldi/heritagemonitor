@@ -37,6 +37,7 @@ export async function expertsRoutes(fastify: FastifyInstance) {
                         org: stringArrayProp,
                         minority: stringArrayProp,
                         only: stringArrayProp,
+                        coordinators: {type: 'string', enum: ['true']},
                     },
                 },
             },

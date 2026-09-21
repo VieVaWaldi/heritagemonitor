@@ -95,6 +95,7 @@ async function rank(request: FundingRequest): Promise<FundingRanking> {
     const {organisations: buckets, projectFacets} = await opensearchRepository.topFundedOrganisations(
         request.q ?? '',
         toFilters(request),
+        request.coordinators === 'true',
     )
 
     // Without the table there are no names and no coordinates, so there is no

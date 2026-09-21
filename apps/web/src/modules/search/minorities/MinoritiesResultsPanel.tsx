@@ -308,6 +308,7 @@ export function MinoritiesResultsPanel() {
                     <DeepLinkNotice
                         onlyIds={onlyIds}
                         noun="group"
+                        names={data.hits.map((hit) => hit.group_name_en)}
                         onClear={() => update({[SEARCH_PARAM.only]: null, [SEARCH_PARAM.selection]: null})}
                     />
                 ) : data.mode === 'fuzzy' ? (

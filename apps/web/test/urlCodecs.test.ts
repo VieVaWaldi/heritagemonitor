@@ -381,9 +381,7 @@ test('every relation that omits a param gives a reason for it', () => {
 // --- funding map hex scaling (common/deckgl/layers/hexFundingLayer) ---------
 
 test('hex geometry shrinks as the camera zooms in and grows as it zooms out', () => {
-    // Ported from digicher_webinterface: halve per zoom level in, double out.
-    // Without it the columns are invisible specks at continental zoom and
-    // 375km walls you end up inside of at city zoom.
+    // Copied from digicher_webinterface: 1.6^(4.2 - zoom).
     const atBase = hexZoomFactor(4.2)
     assert.ok(Math.abs(atBase - 1) < 0.001, 'the base zoom is the tuned size')
     assert.ok(hexZoomFactor(7) < atBase, 'zoomed in is smaller')
@@ -393,8 +391,8 @@ test('hex geometry shrinks as the camera zooms in and grows as it zooms out', ()
 test('the zoom factor is clamped at both ends', () => {
     // The raw curve reaches absurd values a few levels out and collapses to
     // nothing a few levels in.
-    assert.ok(hexZoomFactor(0) <= 3.5)
-    assert.ok(hexZoomFactor(22) >= 0.12)
+    assert.ok(hexZoomFactor(-10) <= 8)
+    assert.ok(hexZoomFactor(40) >= 0.02)
 })
 
 // --- breadcrumb trail rules (common/url/breadcrumbTrail) --------------------

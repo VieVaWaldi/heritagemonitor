@@ -51,6 +51,12 @@ export const expertSortSchema = z.enum(['matches', 'funding', 'projects', 'works
  */
 export const expertSearchRequestSchema = projectSearchRequestSchema.omit({sort: true}).extend({
     sort: expertSortSchema.optional(),
+    /**
+     * Rank organisations by the projects they COORDINATE (`coordinator_ids`)
+     * rather than all they took part in; matches then count coordinated
+     * projects. Only EC projects record a coordinator.
+     */
+    coordinators: z.enum(['true']).optional(),
 })
 export type ExpertSearchRequest = z.infer<typeof expertSearchRequestSchema>
 

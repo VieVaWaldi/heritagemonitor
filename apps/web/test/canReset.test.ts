@@ -22,3 +22,10 @@ test('the reset patch clears the query and keeps the lens', () => {
     assert.equal(patch[SEARCH_PARAM.query], null)
     assert.equal(SEARCH_PARAM.entity in patch, false)
 })
+
+test('the coordinators param is described for Lucy and cleared by reset', async () => {
+    const {URL_PARAM_LABELS} = await import('../src/common/url/codecs.ts')
+    assert.ok(URL_PARAM_LABELS[SEARCH_PARAM.coordinators].length > 0)
+    const patch = buildResetPatch(new URLSearchParams('e=experts&c=dch&coordinators=true'), [SEARCH_PARAM.entity, SEARCH_PARAM.corpus])
+    assert.equal(patch[SEARCH_PARAM.coordinators], null)
+})

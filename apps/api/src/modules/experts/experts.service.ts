@@ -145,6 +145,7 @@ export async function searchExperts(request: ExpertSearchRequest): Promise<Exper
         q,
         filters: toFilters(request),
         typoTolerant: q.length > 0,
+        coordinatorsOnly: request.coordinators === 'true',
     })
     const {orgs, organisationCount, facets} = opensearchRepository.readExpertAggregations(result.aggregations)
 

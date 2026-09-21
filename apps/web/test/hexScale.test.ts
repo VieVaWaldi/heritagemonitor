@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import {
+    BASE_ELEVATION_SCALE,
+    ELEVATION_RANGE_MAX,
+    HEX_COLOR_RANGE,
     HEX_COVERAGE,
-    HEX_RESOLUTION_BY_ZOOM,
+    hexColorStep,
+    hexElevationScale,
+    hexRadiusMeters,
     hexResolutionForZoom,
-    MAX_ELEVATION_METERS,
+    snapHexZoom,
 } from '../src/common/deckgl/layers/hexScale.ts'
 import {hexBinsFromOrganisations, HEX_RESOLUTION} from '../src/common/deckgl/layers/hexBins.ts'
 
@@ -18,22 +23,36 @@ test('the resolution never decreases as you zoom in, and gets finer overall', ()
     assert.ok(hexResolutionForZoom(12) > hexResolutionForZoom(2))
 })
 
-test('the default continental zoom keeps the original resolution', () => {
+test('the default continental zoom uses the original 10 km radius, i.e. resolution 5', () => {
+    assert.ok(Math.abs(hexRadiusMeters(4.2) - 10_000) < 1)
+    assert.equal(hexResolutionForZoom(4.2), 5)
     assert.equal(hexResolutionForZoom(4), HEX_RESOLUTION)
-    assert.equal(hexResolutionForZoom(4.2), HEX_RESOLUTION)
 })
 
-test('the zoom table is ascending and starts at zoom 0', () => {
-    assert.equal(HEX_RESOLUTION_BY_ZOOM[0].minZoom, 0)
-    for (let i = 1; i < HEX_RESOLUTION_BY_ZOOM.length; i++) {
-        assert.ok(HEX_RESOLUTION_BY_ZOOM[i].minZoom > HEX_RESOLUTION_BY_ZOOM[i - 1].minZoom)
-        assert.ok(HEX_RESOLUTION_BY_ZOOM[i].resolution > HEX_RESOLUTION_BY_ZOOM[i - 1].resolution)
-    }
+test('zooming in reaches city-sized cells, zooming out stays coarse', () => {
+    assert.ok(hexResolutionForZoom(12) >= 9)
+    assert.ok(hexResolutionForZoom(2) <= 4)
 })
 
-test('the elevation ceiling is doubled (380 km) and coverage is a fraction', () => {
-    assert.equal(MAX_ELEVATION_METERS, 380_000)
-    assert.ok(HEX_COVERAGE > 0.45 && HEX_COVERAGE < 1)
+test('the copied original parameters', () => {
+    assert.equal(ELEVATION_RANGE_MAX, 3000)
+    assert.equal(BASE_ELEVATION_SCALE, 400)
+    assert.equal(HEX_COVERAGE, 0.8)
+    assert.equal(HEX_COLOR_RANGE.length, 6)
+    assert.equal(hexElevationScale(4.2, false), 400)
+    assert.equal(hexElevationScale(4.2, true), 4000)
+})
+
+test('colour steps are equal-width and the tallest hex takes the last step', () => {
+    assert.equal(hexColorStep(0), 0)
+    assert.equal(hexColorStep(0.5), 3)
+    assert.equal(hexColorStep(1), 5)
+})
+
+test('the zoom snaps to half levels', () => {
+    assert.equal(snapHexZoom(4.2), 4)
+    assert.equal(snapHexZoom(4.3), 4.5)
+    assert.equal(snapHexZoom(4.74), 4.5)
 })
 
 test('a finer resolution splits bins; funding is conserved either way', () => {
