@@ -260,6 +260,82 @@ export function topicSelectionPatch(selection: TopicSelection): UrlPatch {
     }
 }
 
+// --- describing the current state -------------------------------------------
+
+// What the current URL says, in words. Generated FROM the param vocabulary
+// rather than hand-listed per panel, so a filter added to SEARCH_PARAM shows
+// up in the chat context automatically instead of being silently missing —
+// the unit test for this file fails if a param has no label.
+
+/**
+ * A human name for every param the app reads or writes. Typed against
+ * `SearchParamName`, so adding a param to SEARCH_PARAM without a label is a
+ * compile error, not a quiet omission.
+ */
+export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
+    [SEARCH_PARAM.query]: 'Search text',
+    [SEARCH_PARAM.entity]: 'Entity',
+    [SEARCH_PARAM.corpus]: 'Corpus',
+    [SEARCH_PARAM.page]: 'Page',
+    [SEARCH_PARAM.sort]: 'Sort',
+    [SEARCH_PARAM.selection]: 'Selected id',
+    [SEARCH_PARAM.only]: 'Restricted to id',
+    [SEARCH_PARAM.tab]: 'Open tab',
+    [SEARCH_PARAM.detailPage]: 'Page within the open tab',
+    [SEARCH_PARAM.years]: 'Years',
+    [SEARCH_PARAM.theme]: 'Theme',
+    [SEARCH_PARAM.pillar]: 'Pillar',
+    [SEARCH_PARAM.funder]: 'Funder',
+    [SEARCH_PARAM.programme]: 'Programme',
+    [SEARCH_PARAM.region]: 'Region',
+    [SEARCH_PARAM.topic]: 'Topic',
+    [SEARCH_PARAM.subfield]: 'Subfield',
+    [SEARCH_PARAM.field]: 'Field',
+}
+
+export interface DescribedParam {
+    param: string
+    label: string
+    values: string[]
+}
+
+export interface DescribeParamsOptions {
+    /**
+     * Turns a raw value into something readable — a topic id into its name, a
+     * corpus key into its full name. Defaults to the raw value.
+     */
+    labelValue?: (param: string, value: string) => string
+    /** Params to leave out, e.g. ones already stated in the sentence around this list. */
+    omit?: readonly string[]
+}
+
+/**
+ * Every param actually present in the URL, with a human label and readable
+ * values. Unknown params (a hand-edited link, a param from a newer version)
+ * are reported under their own name rather than dropped: Lucy seeing
+ * "maxEdges = 40" is better than her believing nothing is set.
+ */
+export function describeUrlParams(params: URLSearchParams, options: DescribeParamsOptions = {}): DescribedParam[] {
+    const {labelValue = (_param, value) => value, omit = []} = options
+    const omitted = new Set(omit)
+
+    const described: DescribedParam[] = []
+    for (const param of new Set(params.keys())) {
+        if (omitted.has(param)) continue
+        const values = params.getAll(param).filter((value) => value.trim() !== '')
+        if (values.length === 0) continue
+        described.push({
+            param,
+            label: URL_PARAM_LABELS[param as SearchParamName] ?? param,
+            values: values.map((value) => labelValue(param, value)),
+        })
+    }
+
+    // Stable order, so the same page state always produces the same context
+    // string (and therefore does not look like a change to anything watching).
+    return described.sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0))
+}
+
 // --- links between routes ---------------------------------------------------
 
 export interface SearchUrlParams {
@@ -273,6 +349,35 @@ export interface SearchUrlParams {
     /** Open this id's detail panel on arrival. */
     selection?: string
     tab?: string
+}
+
+/**
+ * The link from a row of one entity to that document in another entity's list:
+ * "this project's coordinator" -> the organisations list showing exactly that
+ * organisation, already open.
+ *
+ * `only` AND `sel` together, deliberately: `only` restricts the list to the
+ * one document (so the page is about it, not about a search that happens to
+ * contain it), `sel` opens its detail panel. Every other filter is dropped —
+ * a funder filter from a project search means nothing on an organisation —
+ * while the corpus is kept, because it is the lens the user chose, not a
+ * filter they set for this particular search.
+ *
+ * One helper for all of them, so projects, organisations and (in a later
+ * slice) works cannot drift into three slightly different link formats.
+ */
+export function buildEntityLink({
+    entity,
+    id,
+    corpus,
+    route = '/search',
+}: {
+    entity: string
+    id: string
+    corpus?: string
+    route?: string
+}): string {
+    return buildSearchUrl({route, entity, only: id, selection: id, corpus})
 }
 
 /**

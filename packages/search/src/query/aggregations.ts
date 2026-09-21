@@ -4,6 +4,8 @@ export interface TermsAggregation {
         size: number
         shard_size: number
         order?: Record<string, 'asc' | 'desc'>
+        /** Lucene regexp restricting which values are returned — see ./facetValues.ts. */
+        include?: string
     }
 }
 

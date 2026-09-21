@@ -17,9 +17,11 @@ export interface DualSliderProps {
     /** Fires continuously while dragging — for live preview, not for committing. */
     onChange: (value: [number, number]) => void
     /**
-     * Fires once the drag ends (MUI's `onChangeCommitted`), so a caller that
-     * writes somewhere expensive — the URL, an api request — can do it once
-     * per gesture instead of once per pixel. Defaults to `onChange`.
+     * Fires once per finished ACTION rather than per pixel: releasing the
+     * drag, stepping the number fields (their +/- buttons and arrow keys),
+     * leaving a field or pressing Enter in it, and stopping playback. A
+     * caller that writes somewhere expensive — the URL, an api request — uses
+     * this; `onChange` stays the live preview. Defaults to `onChange`.
      */
     onChangeCommitted?: (value: [number, number]) => void
     step?: number
@@ -88,6 +90,13 @@ export function DualSlider({
         }
     }, [])
 
+    // Every path that finishes an action funnels through here, so no control
+    // can silently be the one that updates the preview but not the URL.
+    const commit = useCallback(
+        (value: [number, number]) => (onChangeCommitted ?? onChange)(value),
+        [onChange, onChangeCommitted],
+    )
+
     const handleSliderChange = useCallback(
         (_event: Event, newValue: number | number[]) => {
             const val = newValue as [number, number]
@@ -110,11 +119,12 @@ export function DualSlider({
                 if (clampedNum === num) {
                     const newValue: [number, number] = [num, localValue[1]]
                     setLocalValue(newValue)
-                    onChange(newValue)
+                    // A spinner click or an arrow key is one whole action.
+                    commit(newValue)
                 }
             }
         },
-        [localValue, step, min, onChange],
+        [localValue, step, min, commit],
     )
 
     const handleToInputChange = useCallback(
@@ -128,11 +138,11 @@ export function DualSlider({
                 if (clampedNum === num) {
                     const newValue: [number, number] = [localValue[0], num]
                     setLocalValue(newValue)
-                    onChange(newValue)
+                    commit(newValue)
                 }
             }
         },
-        [localValue, step, max, onChange],
+        [localValue, step, max, commit],
     )
 
     const handleFromInputBlur = useCallback(() => {
@@ -142,8 +152,8 @@ export function DualSlider({
         const newValue: [number, number] = [num, localValue[1]]
         setLocalValue(newValue)
         setFromInput(String(num))
-        onChange(newValue)
-    }, [fromInput, min, localValue, onChange])
+        commit(newValue)
+    }, [fromInput, min, localValue, commit])
 
     const handleToInputBlur = useCallback(() => {
         let num = parseInt(toInput, 10)
@@ -152,8 +162,8 @@ export function DualSlider({
         const newValue: [number, number] = [localValue[0], num]
         setLocalValue(newValue)
         setToInput(String(num))
-        onChange(newValue)
-    }, [toInput, max, localValue, onChange])
+        commit(newValue)
+    }, [toInput, max, localValue, commit])
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent, type: 'from' | 'to') => {
@@ -170,18 +180,22 @@ export function DualSlider({
             if (intervalRef.current) clearInterval(intervalRef.current)
             intervalRef.current = null
             setIsPlaying(false)
+            // Playback scrubs live through `onChange` and commits once, here:
+            // committing every tick would mean a request and a history entry
+            // per second.
+            commit(localValue)
         } else {
             setIsPlaying(true)
             intervalRef.current = setInterval(() => tickRef.current(), playIntervalMs)
         }
-    }, [isPlaying, playIntervalMs])
+    }, [isPlaying, playIntervalMs, commit, localValue])
 
     return (
         <Box sx={{width: '100%'}}>
             <Slider
                 value={localValue}
                 onChange={handleSliderChange}
-                onChangeCommitted={(_event, newValue) => onChangeCommitted?.(newValue as [number, number])}
+                onChangeCommitted={(_event, newValue) => commit(newValue as [number, number])}
                 min={min}
                 max={max}
                 step={step}

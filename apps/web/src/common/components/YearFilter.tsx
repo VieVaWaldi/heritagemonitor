@@ -4,8 +4,6 @@ import type {YearRange} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
-import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import {useState} from 'react'
 import {Text} from '@/common/text'
@@ -15,8 +13,6 @@ export interface YearFilterProps {
     /** The range currently filtered on, or null for "all years". */
     value: YearRange | null
     onChange: (value: YearRange | null) => void
-    /** Converts a preset into a range — "last n years", current year included. */
-    onLastNYears: (n: number) => void
     min: number
     max: number
     /**
@@ -27,14 +23,7 @@ export interface YearFilterProps {
     histogram?: Record<string, number>
 }
 
-/** Presets offered as one-click chips; anything else goes through "last n". */
-const PRESETS = [1, 2, 3, 5] as const
-
 const HISTOGRAM_HEIGHT = 40
-
-function presetLabel(years: number): string {
-    return years === 1 ? 'Last year' : `Last ${years} years`
-}
 
 /**
  * The histogram behind the slider: one bar per year, height relative to the
@@ -80,14 +69,12 @@ function YearHistogram({histogram, min, max, selected}: {histogram: Record<strin
  * experts, funding and the networks later, which is why it lives in
  * common/components rather than in the projects module).
  *
- * Three ways to say the same thing, all ending in one range: preset chips,
- * a "last n years" number field, and the slider for a custom span. A preset
- * is stored as the range it means, never as "last 2 years", so a copied link
- * still means those years next January.
+ * The histogram and the slider ARE the control: the shape of the data shows
+ * where a range is worth putting, and dragging says it directly. (Preset
+ * chips — "last 2 years" and friends — were tried and dropped: they answered
+ * a question the histogram already answers better.)
  */
-export function YearFilter({value, onChange, onLastNYears, min, max, histogram}: YearFilterProps) {
-    const [customYears, setCustomYears] = useState('')
-
+export function YearFilter({value, onChange, min, max, histogram}: YearFilterProps) {
     // The slider's live position while a drag is in progress. The committed
     // value (and therefore the URL, the api request and the history entry)
     // only changes when the drag ends — dragging across 80 years would
@@ -103,11 +90,6 @@ export function YearFilter({value, onChange, onLastNYears, min, max, histogram}:
         // The full span means "no year filter" rather than a filter that
         // happens to match everything — it keeps the URL and the chip clean.
         onChange(from <= min && to >= max ? null : {from, to})
-    }
-
-    function applyCustom(text: string) {
-        const n = Number(text)
-        if (Number.isInteger(n) && n >= 1 && n <= max - min + 1) onLastNYears(n)
     }
 
     return (
@@ -126,32 +108,6 @@ export function YearFilter({value, onChange, onLastNYears, min, max, histogram}:
                     />
                 )}
             </Box>
-
-            <Stack direction="row" sx={{flexWrap: 'wrap', gap: 0.75, mb: 1.5}}>
-                {PRESETS.map((years) => (
-                    <Chip
-                        key={years}
-                        label={presetLabel(years)}
-                        size="small"
-                        variant="outlined"
-                        onClick={() => onLastNYears(years)}
-                    />
-                ))}
-                <TextField
-                    value={customYears}
-                    onChange={(event) => setCustomYears(event.target.value.replace(/\D/gu, ''))}
-                    onKeyDown={(event) => {
-                        if (event.key === 'Enter') applyCustom(customYears)
-                    }}
-                    onBlur={() => applyCustom(customYears)}
-                    placeholder="n"
-                    size="small"
-                    inputMode="numeric"
-                    aria-label="Last n years"
-                    sx={{width: 84, '& .MuiInputBase-input': {py: 0.5, fontSize: '0.8125rem'}}}
-                    slotProps={{input: {endAdornment: <Text variant="caption" color="text.secondary">yrs</Text>}}}
-                />
-            </Stack>
 
             {histogram && Object.keys(histogram).length > 0 && (
                 <YearHistogram histogram={histogram} min={min} max={max} selected={previewRange} />

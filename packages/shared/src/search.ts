@@ -124,6 +124,43 @@ export const entitySuggestResponseSchema = z.object({
 })
 export type EntitySuggestResponse = z.infer<typeof entitySuggestResponseSchema>
 
+/**
+ * What one faceted field needs, for any entity: the index field to aggregate,
+ * the URL param that filters on it, the label to show, how many buckets to
+ * ask for, and whether its values are too many to ship whole (then the UI
+ * uses the facet-values type-ahead instead of a checkbox list).
+ *
+ * Each entity declares its own `as const` list; this type is what lets the
+ * web's facet shaping and filter UI be written once for all of them.
+ */
+export interface FacetConfig {
+    readonly field: string
+    readonly param: string
+    readonly label: string
+    readonly size: number
+    readonly searchable: boolean
+}
+
+// --- facet value type-ahead -------------------------------------------------
+
+/**
+ * One value of a faceted field, with the count it has under the request's
+ * current query and filters. Same shape the UI's filter options use.
+ */
+export const facetValueSchema = z.object({
+    value: z.string(),
+    label: z.string(),
+    count: z.number(),
+})
+export type FacetValue = z.infer<typeof facetValueSchema>
+
+export const facetValuesResponseSchema = z.object({
+    /** The URL param this list belongs to, echoed so a late response can be matched up. */
+    field: z.string(),
+    values: z.array(facetValueSchema),
+})
+export type FacetValuesResponse = z.infer<typeof facetValuesResponseSchema>
+
 // --- year range -------------------------------------------------------------
 
 /**
@@ -162,15 +199,6 @@ export function parseYearRange(value: string | null | undefined, today: Date = n
     const from = Math.min(Math.max(Number(match[1]), min), max)
     const to = Math.min(Math.max(Number(match[2]), min), max)
     return from <= to ? {from, to} : null
-}
-
-/**
- * "Last n years" INCLUDING the current one: n = 1 is this year alone
- * (decision: year presets include the current year).
- */
-export function lastNYears(n: number, today: Date = new Date()): YearRange {
-    const to = today.getUTCFullYear()
-    return {from: to - Math.max(1, n) + 1, to}
 }
 
 // --- topics -----------------------------------------------------------------

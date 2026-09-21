@@ -63,6 +63,12 @@ export const projectRowSchema = z.object({
     work_count: nullableNumber,
     topic_id: nullableString,
     topic: projectTopicSchema.nullable(),
+    /**
+     * Only EC projects record a coordinator; empty elsewhere. On the ROW (not
+     * just the detail) because an organisation's projects tab marks which of
+     * them that organisation coordinates.
+     */
+    coordinator_ids: stringArray,
     doi: nullableString,
     grantId: nullableString,
     openaireId: nullableString,
@@ -102,8 +108,6 @@ export const projectDetailSchema = projectRowSchema.extend({
     org_names: stringArray,
     org_regions: stringArray,
     org_countries: stringArray,
-    /** Only EC projects have a known coordinator; empty elsewhere. */
-    coordinator_ids: stringArray,
     funder_names: stringArray,
     funding_stream_ids: stringArray,
 })
@@ -136,6 +140,8 @@ export const projectSearchRequestSchema = baseSearchRequestSchema.extend({
     topic: z.array(z.string()).optional(),
     subfield: z.array(z.string()).optional(),
     field: z.array(z.string()).optional(),
+    /** Any-of: projects involving at least one of these organisations. */
+    org: z.array(z.string()).optional(),
 })
 export type ProjectSearchRequest = z.infer<typeof projectSearchRequestSchema>
 
@@ -184,3 +190,17 @@ export type ProjectOrganisation = z.infer<typeof projectOrganisationSchema>
 
 export const projectOrganisationsResponseSchema = paginatedResponseSchema(projectOrganisationSchema)
 export type ProjectOrganisationsResponse = z.infer<typeof projectOrganisationsResponseSchema>
+
+// --- the other direction: one organisation's projects -----------------------
+
+/**
+ * A project as listed on an ORGANISATION's projects tab: the ordinary row,
+ * plus whether that organisation is the one coordinating it.
+ */
+export const organisationProjectSchema = projectRowSchema.extend({
+    isCoordinator: z.boolean(),
+})
+export type OrganisationProject = z.infer<typeof organisationProjectSchema>
+
+export const organisationProjectsResponseSchema = searchResponseSchema(organisationProjectSchema)
+export type OrganisationProjectsResponse = z.infer<typeof organisationProjectsResponseSchema>

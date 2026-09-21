@@ -6,11 +6,14 @@
 export {
     EMPTY_TOPIC_SELECTION,
     MAX_VALUES_PER_PARAM,
+    URL_PARAM_LABELS,
     PAGE_PRESERVING_PARAMS,
     SEARCH_PARAM,
     WEB_ONLY_PARAMS,
     applyPatch,
+    buildEntityLink,
     buildSearchUrl,
+    describeUrlParams,
     patchClearsDetailPage,
     patchClearsSelection,
     patchInvalidatesPage,
@@ -28,7 +31,15 @@ export {
     topicSelectionSize,
     yearsPatchValue,
 } from './codecs'
-export type {SearchParamName, SearchUrlParams, TopicSelection, UrlParamValue, UrlPatch} from './codecs'
+export type {
+    DescribeParamsOptions,
+    DescribedParam,
+    SearchParamName,
+    SearchUrlParams,
+    TopicSelection,
+    UrlParamValue,
+    UrlPatch,
+} from './codecs'
 
 export {useUrlState} from './useUrlState'
 export type {UrlHistoryMode, UrlState, UrlUpdateOptions} from './useUrlState'

@@ -1,13 +1,20 @@
 import {
     CORPUS_KEYS,
     type EntitySuggestResponse,
+    type FacetValuesResponse,
     type ProjectDetail,
     type ProjectOrganisationsResponse,
     type ProjectSearchRequest,
     type ProjectSearchResponse,
 } from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
-import {getProjectById, getProjectOrganisations, searchProjects, suggestProjects} from './projects.service.js'
+import {
+    getProjectById,
+    getProjectFacetValues,
+    getProjectOrganisations,
+    searchProjects,
+    suggestProjects,
+} from './projects.service.js'
 
 // Transport layer: HTTP concerns only, no business logic. See
 // apps/api/RULES.md rule 9 (plain functions over controller classes) and
@@ -25,6 +32,17 @@ interface SuggestQuery {
     q?: string
 }
 
+/**
+ * The search's own params (so the counts match what the list would show) plus
+ * which facet to look in and what is being typed there.
+ *
+ * Deliberately NOT called `field`/`q`: both names are already search params
+ * of their own (`field` is a topic-tree level, `q` is the search text), and
+ * the two are independent — filtering "H2020" inside a search for "heritage"
+ * needs both at once.
+ */
+type FacetValuesQuery = ProjectSearchRequest & {facet?: string; facetQ?: string; size?: number}
+
 interface PagedQuery {
     page?: number
 }
@@ -39,6 +57,28 @@ const stringArrayProp = {type: 'array', items: {type: 'string'}} as const
 // common/search/runSearch.ts with a message that says so.
 const pageProp = {type: 'integer', minimum: 1, default: 1} as const
 
+// One definition, used by /projects/search and /projects/facet-values: the
+// value lists must be aggregated under exactly the params the search ran with.
+const projectSearchQueryProperties = {
+    q: {type: 'string'},
+    c: {type: 'string', enum: [...CORPUS_KEYS]},
+    page: pageProp,
+    sort: {type: 'string', enum: ['relevance', 'budget']},
+    // `2019-2025`. A malformed value drops the year filter (see the service)
+    // rather than failing the page.
+    years: {type: 'string'},
+    theme: stringArrayProp,
+    pillar: stringArrayProp,
+    funder: stringArrayProp,
+    programme: stringArrayProp,
+    region: stringArrayProp,
+    topic: stringArrayProp,
+    subfield: stringArrayProp,
+    field: stringArrayProp,
+    org: stringArrayProp,
+    only: stringArrayProp,
+} as const
+
 export async function projectsRoutes(fastify: FastifyInstance) {
     // ProjectSearchRequest (from @heritagemonitor/shared) is the TS type for
     // this querystring; the JSON schema below stays hand-written because it is
@@ -47,29 +87,7 @@ export async function projectsRoutes(fastify: FastifyInstance) {
     fastify.get<{Querystring: ProjectSearchRequest}>(
         '/projects/search',
         {
-            schema: {
-                querystring: {
-                    type: 'object',
-                    properties: {
-                        q: {type: 'string'},
-                        c: {type: 'string', enum: [...CORPUS_KEYS]},
-                        page: pageProp,
-                        sort: {type: 'string', enum: ['relevance', 'budget']},
-                        // `2019-2025`. A malformed value drops the year filter
-                        // (see the service) rather than failing the page.
-                        years: {type: 'string'},
-                        theme: stringArrayProp,
-                        pillar: stringArrayProp,
-                        funder: stringArrayProp,
-                        programme: stringArrayProp,
-                        region: stringArrayProp,
-                        topic: stringArrayProp,
-                        subfield: stringArrayProp,
-                        field: stringArrayProp,
-                        only: stringArrayProp,
-                    },
-                },
-            },
+            schema: {querystring: {type: 'object', properties: projectSearchQueryProperties}},
         },
         async (request): Promise<ProjectSearchResponse> => searchProjects(request.query),
     )
@@ -80,6 +98,25 @@ export async function projectsRoutes(fastify: FastifyInstance) {
         '/projects/suggest',
         {schema: {querystring: {type: 'object', properties: {q: {type: 'string'}}}}},
         async (request): Promise<EntitySuggestResponse> => suggestProjects(request.query.q ?? ''),
+    )
+
+    fastify.get<{Querystring: FacetValuesQuery}>(
+        '/projects/facet-values',
+        {
+            schema: {
+                querystring: {
+                    type: 'object',
+                    required: ['facet'],
+                    properties: {
+                        ...projectSearchQueryProperties,
+                        facet: {type: 'string'},
+                        facetQ: {type: 'string'},
+                        size: {type: 'integer', minimum: 1, maximum: 100, default: 20},
+                    },
+                },
+            },
+        },
+        async (request): Promise<FacetValuesResponse> => getProjectFacetValues(request.query),
     )
 
     fastify.get<{Params: ByIdParams}>(

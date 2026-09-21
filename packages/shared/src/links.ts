@@ -92,3 +92,38 @@ export function projectLinks(project: ProjectLinkFields): ExternalLink[] {
 
     return links
 }
+
+export interface OrganisationLinkFields {
+    rorId?: string | null
+    websiteUrl?: string | null
+    openaireId?: string | null
+    wikiId?: string | null
+}
+
+/**
+ * Outbound links for one organisation. ROR is the canonical identifier for
+ * research institutions and is stored bare (`04k9mqs81`) or already as a URL,
+ * so both forms are normalised here.
+ */
+export function organisationLinks(organisation: OrganisationLinkFields): ExternalLink[] {
+    const links: ExternalLink[] = []
+
+    const rorId = organisation.rorId?.trim().replace(/^https?:\/\/ror\.org\//iu, '')
+    if (rorId) links.push({label: 'ROR', url: `https://ror.org/${encodeURIComponent(rorId)}`})
+
+    const website = httpUrlOrNull(organisation.websiteUrl)
+    if (website) links.push({label: 'Website', url: website})
+
+    const openaireId = organisation.openaireId?.trim()
+    if (openaireId) {
+        links.push({
+            label: 'OpenAIRE',
+            url: `https://explore.openaire.eu/search/organization?organizationId=${encodeURIComponent(openaireId)}`,
+        })
+    }
+
+    const wikiId = organisation.wikiId?.trim()
+    if (wikiId) links.push({label: 'Wikidata', url: `https://www.wikidata.org/wiki/${encodeURIComponent(wikiId)}`})
+
+    return links
+}

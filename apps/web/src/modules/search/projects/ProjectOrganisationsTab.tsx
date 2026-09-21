@@ -3,7 +3,7 @@
 import type {ProjectOrganisation, ProjectOrganisationsResponse} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
-import ListItem from '@mui/material/ListItem'
+import ListItemButton from '@mui/material/ListItemButton'
 import List from '@mui/material/List'
 import Pagination from '@mui/material/Pagination'
 import PlaceIcon from '@mui/icons-material/Place'
@@ -15,6 +15,8 @@ export interface ProjectOrganisationsTabProps {
     page: number
     onPageChange: (page: number) => void
     loading: boolean
+    /** Opens this organisation on the organisations entity — see buildEntityLink. */
+    onSelectOrganisation: (organisationId: string) => void
 }
 
 const ROW_HEIGHT = 64
@@ -35,11 +37,11 @@ function organisationMeta(organisation: ProjectOrganisation): string {
  * (the order the index itself stores them in — see the api's
  * getProjectOrganisations).
  *
- * Rows are not clickable yet: the organisations entity of /search does not
- * exist, so a link would go nowhere. Once it does, a row becomes a
- * buildSearchUrl deep link (`?e=organisations&only=<id>&sel=<id>`).
+ * A row is a link INTO the organisations entity (`?e=organisations&only=<id>&sel=<id>`):
+ * showing an organisation's own page inside the projects page would be the
+ * wrong place for it, and the deep link keeps one entity per screen.
  */
-export function ProjectOrganisationsTab({organisations, page, onPageChange, loading}: ProjectOrganisationsTabProps) {
+export function ProjectOrganisationsTab({organisations, page, onPageChange, loading, onSelectOrganisation}: ProjectOrganisationsTabProps) {
     if (organisations.hits.length === 0) {
         return (
             <Box sx={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2.5}}>
@@ -58,13 +60,14 @@ export function ProjectOrganisationsTab({organisations, page, onPageChange, load
 
             <List disablePadding sx={{flex: '1 1 auto', overflowY: 'auto'}}>
                 {organisations.hits.map((organisation) => (
-                    <ListItem
+                    <ListItemButton
                         key={organisation.id}
                         divider
+                        onClick={() => onSelectOrganisation(organisation.id)}
                         sx={{height: ROW_HEIGHT, display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5}}
                     >
                         <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column'}}>
-                            <Text variant="body2" truncate sx={{fontWeight: 500}}>
+                            <Text variant="body2" truncate sx={{color: 'primary.main', fontWeight: 500}}>
                                 {organisation.legalName ?? organisation.legalShortName ?? organisation.id}
                             </Text>
                             <Text variant="caption" truncate color="text.secondary">
@@ -83,7 +86,7 @@ export function ProjectOrganisationsTab({organisations, page, onPageChange, load
                         {organisation.isCoordinator && (
                             <Chip label="Coordinator" size="small" color="primary" variant="outlined" sx={{flexShrink: 0}} />
                         )}
-                    </ListItem>
+                    </ListItemButton>
                 ))}
             </List>
 

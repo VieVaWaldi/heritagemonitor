@@ -12,8 +12,10 @@ import {
     projectRowSchema,
     type EntitySuggestResponse,
     type FacetDistribution,
+    type FacetValuesResponse,
     type FacetLabels,
     type ProjectDetail,
+    type OrganisationProjectsResponse,
     type ProjectOrganisation,
     type ProjectOrganisationsResponse,
     type ProjectRow,
@@ -68,6 +70,7 @@ function toFilters(request: ProjectSearchRequest): query.ProjectFilters {
         topic: request.topic,
         subfield: request.subfield,
         field: request.field,
+        org: request.org,
         only: request.only,
     }
 }
@@ -128,6 +131,91 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
         hits: result.documents.map(toRow).filter((row): row is ProjectRow => row !== null),
         facetDistribution,
         facetLabels: facetLabelsFor(facetDistribution),
+        estimatedTotalHits: result.total,
+        totalCapped: result.totalCapped,
+        approxTotal: result.approxTotal,
+        mode: result.mode,
+        didYouMean: result.didYouMean,
+        page: result.page,
+        pageCount: result.pageCount,
+    }
+}
+
+/**
+ * Which facets can be typed into, by URL param name. A whitelist, not a
+ * pass-through: `field` reaches an aggregation, so an arbitrary value would
+ * let a caller aggregate any field of the index (including high-cardinality
+ * ones that would hurt). Only the keyword facets the UI actually offers are
+ * listed, and `topic_id` is excluded because its values are ids — typing
+ * "arch" there would match nothing (the topics modal searches names instead).
+ */
+const SEARCHABLE_FACETS = new Map<string, string>(
+    PROJECT_FACET_FIELDS.filter((facet) => facet.field !== 'topic_id').map((facet) => [facet.param, facet.field]),
+)
+
+const DEFAULT_FACET_VALUES_SIZE = 20
+
+/**
+ * Type-ahead over one facet's values, under the same query, corpus and
+ * filters as the search itself — so the counts shown next to each value are
+ * the counts the user would actually get.
+ */
+export async function getProjectFacetValues(
+    request: ProjectSearchRequest & {facet?: string; facetQ?: string; size?: number},
+): Promise<FacetValuesResponse> {
+    const field = SEARCHABLE_FACETS.get(request.facet ?? '')
+    if (!field) {
+        throw new AppError(
+            `Unknown facet '${request.facet}'. Searchable facets: ${[...SEARCHABLE_FACETS.keys()].join(', ')}.`,
+            400,
+        )
+    }
+
+    const buckets = await opensearchRepository.facetValues({
+        field,
+        q: request.facetQ ?? '',
+        size: request.size ?? DEFAULT_FACET_VALUES_SIZE,
+        filters: toFilters(request),
+        textQuery: request.q ?? '',
+    })
+
+    return {
+        field: request.facet!,
+        values: buckets.map((bucket) => {
+            const value = bucket.key_as_string ?? String(bucket.key)
+            return {value, label: value, count: bucket.doc_count}
+        }),
+    }
+}
+
+/**
+ * The projects one organisation worked on, as the organisations module's
+ * projects tab lists them. Lives here, not there: ranking projects and mapping
+ * project documents is this module's business, and the other module reaches it
+ * through this function rather than through the projects index
+ * (apps/api/RULES.md rule 4).
+ *
+ * `isCoordinator` is per project — the same organisation coordinates some of
+ * its projects and merely participates in others.
+ */
+export async function searchOrganisationProjects(organisationId: string, page: number): Promise<OrganisationProjectsResponse> {
+    const result = await opensearchRepository.search({
+        q: '',
+        page,
+        // Biggest first: the question behind this tab is "what does this
+        // institution actually do", and money is the best available proxy.
+        sort: 'budget',
+        filters: {org: [organisationId]},
+        typoTolerant: false,
+    })
+
+    return {
+        hits: result.documents
+            .map(toRow)
+            .filter((row): row is ProjectRow => row !== null)
+            .map((row) => ({...row, isCoordinator: row.coordinator_ids.includes(organisationId)})),
+        facetDistribution: {},
+        facetLabels: {},
         estimatedTotalHits: result.total,
         totalCapped: result.totalCapped,
         approxTotal: result.approxTotal,

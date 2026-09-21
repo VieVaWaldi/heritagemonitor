@@ -1,4 +1,5 @@
 import {MAX_PAGE} from '@heritagemonitor/shared'
+import type {DescribedParam} from '@/common/url'
 
 // Formatting and wording of "what is currently on screen", shared by the
 // results header (for the user) and the chat context (for Lucy), so the two
@@ -51,11 +52,6 @@ export function formatResultCount({estimatedTotalHits, totalCapped, approxTotal}
     return `${estimatedTotalHits.toLocaleString('en-US')}+`
 }
 
-export interface ActiveFilterDescription {
-    label: string
-    values: string[]
-}
-
 export interface SearchStateDescription {
     query: string
     corpusName: string
@@ -64,8 +60,13 @@ export interface SearchStateDescription {
     pageCount: number
     count: ResultCount
     entityNoun: string
-    /** Only what is actually set — an empty list means "no filters". */
-    filters: ActiveFilterDescription[]
+    /**
+     * Everything the URL currently carries, from common/url's
+     * describeUrlParams — filters, but also the sort, the open tab, a deep
+     * link's `only`, and anything added later. Generated from the param
+     * vocabulary so a new filter cannot be forgotten here.
+     */
+    urlParams: DescribedParam[]
     /** True when the api had to fall back to typo tolerance. */
     fuzzy?: boolean
     didYouMean?: string[]
@@ -84,7 +85,7 @@ export function describeSearchState({
     pageCount,
     count,
     entityNoun,
-    filters,
+    urlParams,
     fuzzy,
     didYouMean,
 }: SearchStateDescription): string {
@@ -96,11 +97,10 @@ export function describeSearchState({
         `${formatResultCount(count)} matching ${entityNoun}`,
     ]
 
-    const active = filters.filter((filter) => filter.values.length > 0)
     parts.push(
-        active.length > 0
-            ? `filters: ${active.map((filter) => `${filter.label} = ${filter.values.join(', ')}`).join('; ')}`
-            : 'no filters applied',
+        urlParams.length > 0
+            ? `all active page parameters: ${urlParams.map((entry) => `${entry.label} = ${entry.values.join(', ')}`).join('; ')}`
+            : 'no filters or other parameters set',
     )
 
     const sentence = `The user is looking at the ${entityNoun} results for ${parts.join(', ')}.`

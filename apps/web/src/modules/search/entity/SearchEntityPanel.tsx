@@ -5,6 +5,7 @@ import type {ComponentType} from 'react'
 import {ENTITIES, type EntityKey} from '@/common/catalog'
 import {Text} from '@/common/text'
 import {useUrlEntity} from '@/common/url'
+import {OrganisationsResultsPanel} from '../organisations/OrganisationsResultsPanel'
 import {ProjectsResultsPanel} from '../projects/ProjectsResultsPanel'
 
 /**
@@ -18,6 +19,7 @@ import {ProjectsResultsPanel} from '../projects/ProjectsResultsPanel'
  */
 const PANEL_BY_ENTITY: Partial<Record<EntityKey, ComponentType>> = {
     projects: ProjectsResultsPanel,
+    organisations: OrganisationsResultsPanel,
 }
 
 export function SearchEntityPanel() {

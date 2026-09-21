@@ -13,7 +13,7 @@ const DEBOUNCE_MS = 200
  * no type-ahead by design (50M rows, no `search_as_you_type` field), and the
  * rest arrive with their own slices.
  */
-const ENTITIES_WITH_SUGGEST: ReadonlySet<EntityKey> = new Set<EntityKey>(['projects', 'minorities'])
+const ENTITIES_WITH_SUGGEST: ReadonlySet<EntityKey> = new Set<EntityKey>(['projects', 'organisations', 'minorities'])
 
 export function entityHasSuggestions(entity: EntityKey): boolean {
     return ENTITIES_WITH_SUGGEST.has(entity)

@@ -106,6 +106,8 @@ const ROW_SOURCE = [
     'org_count',
     'work_count',
     'topic_id',
+    // Marks which project an organisation coordinates on its projects tab.
+    'coordinator_ids',
     // Needed by projectLinks (DOI / CORDIS / OpenAIRE / website) for every
     // listed row, not only the selected one. All four are stored-only
     // (`index: false`) and short.
@@ -174,6 +176,33 @@ export async function getById(id: string): Promise<ProjectRawDoc | null> {
 /** Full documents for one page of a project's `org_ids`, in the order given. */
 export async function getOrganisations(ids: string[]): Promise<OrganisationRawDoc[]> {
     return mgetDocuments<OrganisationRawDoc>(indices.organisationsIndexName, ids, ORGANISATION_SOURCE)
+}
+
+export interface FacetValuesParams {
+    field: string
+    q: string
+    size: number
+    filters: query.ProjectFilters
+    textQuery: string
+}
+
+/**
+ * The values of one facet under the caller's current search, filtered by what
+ * they are typing. `size: 0` — only the aggregation is wanted, never the hits.
+ */
+export async function facetValues(params: FacetValuesParams): Promise<query.TermsBucket[]> {
+    const {body} = await client.search({
+        index: indices.projectsIndexName,
+        body: query.projectsBody({
+            q: params.textQuery,
+            from: 0,
+            size: 0,
+            filters: params.filters,
+            aggs: {values: query.facetValuesAgg(params.field, {q: params.q, size: params.size})},
+        }),
+    })
+    const aggregations = body.aggregations as unknown as Record<string, query.TermsAggregationResult> | undefined
+    return aggregations?.values?.buckets ?? []
 }
 
 export interface ProjectSuggestionDoc {

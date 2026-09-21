@@ -38,7 +38,7 @@ const baseState = {
     pageCount: 12,
     count: {estimatedTotalHits: 238, totalCapped: false, approxTotal: null},
     entityNoun: 'projects',
-    filters: [],
+    urlParams: [],
 }
 
 test('the state sentence names the query, corpus, sort, page and total', () => {
@@ -48,20 +48,25 @@ test('the state sentence names the query, corpus, sort, page and total', () => {
     assert.match(sentence, /sorted by Budget/)
     assert.match(sentence, /page 2 of 12/)
     assert.match(sentence, /238 matching projects/)
-    assert.match(sentence, /no filters applied/)
+    assert.match(sentence, /no filters or other parameters set/)
 })
 
-test('active filters are spelled out, empty ones are not', () => {
+test('every active URL parameter is spelled out', () => {
     const sentence = describeSearchState({
         ...baseState,
-        filters: [
-            {label: 'Funder', values: ['EC', 'UKRI']},
-            {label: 'Theme', values: []},
-            {label: 'Years', values: ['2019-2025']},
+        urlParams: [
+            {param: 'funder', label: 'Funder', values: ['EC', 'UKRI']},
+            {param: 'years', label: 'Years', values: ['2019-2025']},
+            {param: 'tab', label: 'Open tab', values: ['organisations']},
         ],
     })
-    assert.match(sentence, /filters: Funder = EC, UKRI; Years = 2019-2025/)
-    assert.doesNotMatch(sentence, /Theme/)
+    assert.match(sentence, /Funder = EC, UKRI/)
+    assert.match(sentence, /Years = 2019-2025/)
+    assert.match(sentence, /Open tab = organisations/)
+})
+
+test('a page with nothing set says so', () => {
+    assert.match(describeSearchState(baseState), /no filters or other parameters set/)
 })
 
 test('typo-tolerant results are labelled as such, with the suggestion', () => {
