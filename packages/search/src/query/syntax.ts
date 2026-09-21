@@ -94,4 +94,9 @@ export function sqs(q: string, fields: readonly string[]): SimpleQueryStringClau
 export const PROJECT_FIELDS = ['acronym^5', 'title^3', 'summary', 'keywords', 'grantId', 'org_names^0.5'] as const
 export const WORK_FIELDS = ['title^3', 'authors', 'container_name^0.5'] as const
 export const ORG_FIELDS = ['legalName^3', 'legalShortName^2', 'alternativeNames'] as const
-export const GRANT_FIELDS = ['description', 'id'] as const
+// `funder_name` is not in export/queries.py's list, which predates the funding
+// stream browser: without it "European Commission" matches nothing, because a
+// stream's description names the programme ("Horizon 2020 Framework
+// Programme - ...") and never the body that runs it. `id` stays in so that a
+// pasted stream id finds its own row.
+export const GRANT_FIELDS = ['description^2', 'funder_name', 'id'] as const

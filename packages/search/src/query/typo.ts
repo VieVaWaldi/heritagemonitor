@@ -99,10 +99,13 @@ export interface TypoPolicy {
  * Per-index policy, measured in hm_pipeline (export/queries.py's `TYPO`).
  * Works is the expensive one on the HDD VM, hence its tighter budget.
  */
-export const TYPO_POLICY: Record<'projects' | 'organisations' | 'works', TypoPolicy> = {
+export const TYPO_POLICY: Record<'projects' | 'organisations' | 'works' | 'grants', TypoPolicy> = {
     projects: {threshold: 5, maxExpansions: 20, timeout: '2s', suggestField: 'title'},
     organisations: {threshold: 5, maxExpansions: 20, timeout: '2s', suggestField: 'legalName'},
     works: {threshold: 3, maxExpansions: 20, timeout: '1500ms', suggestField: 'title'},
+    // 6,119 documents, so the fuzzy rerun is cheap whatever it expands to and
+    // the budget can be generous. `description` is the only analysed field.
+    grants: {threshold: 5, maxExpansions: 20, timeout: '2s', suggestField: 'description'},
 }
 
 /** The `did_you_mean` options of a response's suggest block, in rank order, de-duplicated. */

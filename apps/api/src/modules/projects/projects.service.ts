@@ -74,6 +74,7 @@ function toFilters(request: ProjectSearchRequest): query.ProjectFilters {
         pillar: request.pillar,
         funder: request.funder,
         programme: request.programme,
+        stream: request.stream,
         region: request.region,
         topic: request.topic,
         subfield: request.subfield,
@@ -287,6 +288,23 @@ export async function searchOrganisationProjects(organisationId: string, page: n
         page: result.page,
         pageCount: result.pageCount,
     }
+}
+
+/**
+ * Who ran the projects matching a set of filters, most projects first.
+ *
+ * Exposed as a service function because other modules need it (the grants
+ * module's Organisations tab): the projects index and its filter vocabulary
+ * are this module's business, and going through here rather than querying it
+ * from outside is what keeps the modules separable (apps/api/RULES.md rule 4).
+ * The caller gets ids and counts; resolving them to organisations is theirs.
+ */
+export async function topProjectOrganisations(
+    request: ProjectSearchRequest,
+    limit: number,
+): Promise<Array<{id: string; projects: number}>> {
+    const buckets = await opensearchRepository.topOrganisations(request.q ?? '', toFilters(request), limit)
+    return buckets.map((bucket) => ({id: String(bucket.key_as_string ?? bucket.key), projects: bucket.doc_count}))
 }
 
 export async function getProjectById(id: string): Promise<ProjectDetail> {

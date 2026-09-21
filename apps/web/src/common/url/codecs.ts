@@ -26,6 +26,14 @@ export const SEARCH_PARAM = {
     pillar: 'pillar',
     funder: 'funder',
     programme: 'programme',
+    /** Grants facet: the country (or `EU`) whose money a funding stream is. */
+    jurisdiction: 'jurisdiction',
+    /**
+     * Funding-stream ids (`funder::programme[::action]`). Not a facet anywhere
+     * — it is how a funding stream's own projects are asked for, from the
+     * grants entity's Projects tab and from a link into the projects list.
+     */
+    stream: 'stream',
     region: 'region',
     /**
      * Detail-panel toggle: show ALL of the open organisation's publications
@@ -316,6 +324,8 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.pillar]: 'Pillar',
     [SEARCH_PARAM.funder]: 'Funder',
     [SEARCH_PARAM.programme]: 'Programme',
+    [SEARCH_PARAM.jurisdiction]: 'Jurisdiction',
+    [SEARCH_PARAM.stream]: 'Funding stream',
     [SEARCH_PARAM.region]: 'Region',
     [SEARCH_PARAM.topic]: 'Topic',
     [SEARCH_PARAM.subfield]: 'Subfield',
@@ -378,6 +388,8 @@ export interface SearchUrlParams {
     /** Open this id's detail panel on arrival. */
     selection?: string
     tab?: string
+    /** Restrict the destination list to one funding stream's projects. */
+    stream?: string
 }
 
 /**
@@ -415,7 +427,7 @@ export function buildEntityLink({
  * Built on the same param names and the same writer as every in-page update,
  * so a link can never produce a URL the reading side does not understand.
  */
-export function buildSearchUrl({route, query, entity, corpus, only, selection, tab}: SearchUrlParams): string {
+export function buildSearchUrl({route, query, entity, corpus, only, selection, tab, stream}: SearchUrlParams): string {
     const params = applyPatch(new URLSearchParams(), {
         [SEARCH_PARAM.query]: query ?? null,
         [SEARCH_PARAM.entity]: entity ?? null,
@@ -423,6 +435,7 @@ export function buildSearchUrl({route, query, entity, corpus, only, selection, t
         [SEARCH_PARAM.only]: only ?? null,
         [SEARCH_PARAM.selection]: selection ?? null,
         [SEARCH_PARAM.tab]: tab ?? null,
+        [SEARCH_PARAM.stream]: stream ?? null,
     })
     const queryString = params.toString()
     return queryString ? `${route}?${queryString}` : route

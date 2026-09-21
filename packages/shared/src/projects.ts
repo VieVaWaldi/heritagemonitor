@@ -135,6 +135,12 @@ export const projectSearchRequestSchema = baseSearchRequestSchema.extend({
     pillar: z.array(z.string()).optional(),
     funder: z.array(z.string()).optional(),
     programme: z.array(z.string()).optional(),
+    /**
+     * Funding-stream ids (`funder::programme[::action]`), matched against
+     * `funding_stream_ids`. Not a facet — it is how a grant's Projects tab
+     * asks for its own projects, so it only ever arrives from a deep link.
+     */
+    stream: z.array(z.string()).optional(),
     region: z.array(z.string()).optional(),
     /** Topic-tree selections, three levels, capped at MAX_URL_TOPICS in total. */
     topic: z.array(z.string()).optional(),

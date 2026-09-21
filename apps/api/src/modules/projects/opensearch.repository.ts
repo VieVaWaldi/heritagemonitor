@@ -200,6 +200,30 @@ export async function topicCounts(
     return (body.aggregations ?? {}) as unknown as Record<string, query.TermsAggregationResult>
 }
 
+/**
+ * The organisations that appear most often across the projects a filter
+ * matches, as `org_ids` buckets. `size: 0` — the projects themselves are not
+ * wanted, only who ran them.
+ */
+export async function topOrganisations(
+    q: string,
+    filters: query.ProjectFilters,
+    limit: number,
+): Promise<query.TermsBucket[]> {
+    const {body} = await client.search({
+        index: indices.projectsIndexName,
+        body: query.projectsBody({
+            q,
+            from: 0,
+            size: 0,
+            filters,
+            aggs: {orgs: query.termsAgg('org_ids', limit, {order: {_count: 'desc'}})},
+        }),
+    })
+    const aggregations = body.aggregations as unknown as Record<string, query.TermsAggregationResult> | undefined
+    return aggregations?.orgs?.buckets ?? []
+}
+
 /** Row-shaped project documents for the ids given, in that order. */
 export async function getProjectsByIds(ids: string[]): Promise<ProjectRawDoc[]> {
     return mgetDocuments<ProjectRawDoc>(indices.projectsIndexName, ids, ROW_SOURCE)

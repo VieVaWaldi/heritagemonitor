@@ -73,6 +73,7 @@ const projectSearchQueryProperties = {
     pillar: stringArrayProp,
     funder: stringArrayProp,
     programme: stringArrayProp,
+    stream: stringArrayProp,
     region: stringArrayProp,
     topic: stringArrayProp,
     subfield: stringArrayProp,

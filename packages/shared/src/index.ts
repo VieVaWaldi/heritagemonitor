@@ -1,6 +1,7 @@
 export * from './chatSources.js'
 export * from './demo.js'
 export * from './experts.js'
+export * from './grants.js'
 export * from './health.js'
 export * from './links.js'
 export * from './llmchat.js'

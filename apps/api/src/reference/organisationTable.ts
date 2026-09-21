@@ -191,7 +191,9 @@ async function load(): Promise<void> {
     const funding: number[] = []
     const hasDch: number[] = []
 
-    let searchAfter: unknown[] | undefined
+    // The client types a sort cursor as plain field values, which is what
+    // sorting on `_doc` yields (one document number).
+    let searchAfter: Array<string | number> | undefined
 
     for (;;) {
         const {body} = await client.search({
@@ -205,7 +207,7 @@ async function load(): Promise<void> {
             },
         })
 
-        const hits = body.hits.hits as unknown as Array<{_source?: OrganisationScanDoc; sort?: unknown[]}>
+        const hits = body.hits.hits as unknown as Array<{_source?: OrganisationScanDoc; sort?: Array<string | number>}>
         if (hits.length === 0) break
 
         for (const hit of hits) {
