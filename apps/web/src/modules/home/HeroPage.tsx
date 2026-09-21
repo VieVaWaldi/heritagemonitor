@@ -7,7 +7,7 @@ import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ActionBar} from '@/common/components'
 import {useCorpus} from '@/common/catalog'
-import {buildSearchUrl} from '@/common/url'
+import {buildEntityLink, buildSearchUrl} from '@/common/url'
 import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
 import type {EntitySuggestion} from '@heritagemonitor/shared'
 import {useEntitySuggestions} from '@/common/hooks/useEntitySuggestions'
@@ -62,11 +62,17 @@ export function HeroPage() {
         )
     }
 
-    // A suggestion that carries an id lands on the results page with that
-    // document already open, rather than on a text search for its name.
+    // A suggestion that carries an id lands on a list of only that document,
+    // open, rather than on a text search for its name.
     function handleSuggestionSelect(suggestion: EntitySuggestion) {
+        if (suggestion.id && activeRoute) {
+            // Only that document, selected — see buildEntityLink. Not a text
+            // search for its name, which would list everything similar too.
+            router.push(buildEntityLink({entity: selectedEntity, id: suggestion.id, corpus: selectedCorpus, route: activeRoute}))
+            return
+        }
         setSearchValue(suggestion.label)
-        handleSearchSubmit(suggestion.label, suggestion.id)
+        handleSearchSubmit(suggestion.label)
     }
 
     const slots: HeroLayoutSlots = {

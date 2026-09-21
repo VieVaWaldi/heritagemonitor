@@ -4,7 +4,7 @@ import type {EntitySuggestion} from '@heritagemonitor/shared'
 import {useCallback} from 'react'
 import {ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
 import {useEntitySuggestions} from '@/common/hooks/useEntitySuggestions'
-import {SEARCH_PARAM, useUrlEntity, useUrlQueryDraft} from '@/common/url'
+import {buildFocusPatch, useUrlEntity, useUrlQueryDraft, useUrlState} from '@/common/url'
 
 const DEFAULT_ENTITY: EntityKey = 'projects'
 
@@ -44,13 +44,17 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
     // a flag on the use case — see useEntitySuggestions.
     const suggestions = useEntitySuggestions(selectedEntity, draft)
 
-    // Picking a suggestion submits its text AND opens that exact document
-    // when the suggestion carries an id, in one update so the new `sel`
-    // survives the query change (see useUrlState's selection rules).
+    // Picking a suggestion with an id opens a list of ONLY that document,
+    // selected (the same result as buildEntityLink; see buildFocusPatch) — not
+    // a text search for its name, which also lists everything that merely
+    // resembles it. The text is cleared, so the box does not pretend to be
+    // the search. A suggestion without an id falls back to searching its text,
+    // as pressing Enter does.
+    const {params} = useUrlState()
     const handleSuggestionSelect = useCallback(
         (suggestion: EntitySuggestion) =>
-            submit(suggestion.label, suggestion.id ? {[SEARCH_PARAM.selection]: suggestion.id} : undefined),
-        [submit],
+            suggestion.id ? submit('', buildFocusPatch(params, suggestion.id)) : submit(suggestion.label),
+        [submit, params],
     )
 
     return {

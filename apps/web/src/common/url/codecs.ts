@@ -526,6 +526,23 @@ export function buildEntityLink({
 }
 
 /**
+ * The patch behind picking an autocomplete suggestion on a page that is
+ * already open: the same result as following `buildEntityLink` — the list
+ * restricted to that one document (`only`), its detail open (`sel`) — applied
+ * in place. Everything else the user had narrowed with (text, facets, page,
+ * sort) goes, exactly as in the link form, because a facet left on could hide
+ * the very document just picked. The entity and the corpus are the lens and
+ * stay.
+ */
+export function buildFocusPatch(params: URLSearchParams, id: string): UrlPatch {
+    return {
+        ...buildResetPatch(params, [SEARCH_PARAM.entity, SEARCH_PARAM.corpus]),
+        [SEARCH_PARAM.only]: id,
+        [SEARCH_PARAM.selection]: id,
+    }
+}
+
+/**
  * The one builder for a link from one route to another (a project's
  * organisation row -> `/search?e=organisations&only=<id>&sel=<id>&c=dch`).
  * Built on the same param names and the same writer as every in-page update,

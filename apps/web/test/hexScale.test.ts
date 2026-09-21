@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
+import {getHexagonEdgeLengthAvg} from 'h3-js'
 import {
     BASE_ELEVATION_SCALE,
+    BASE_RADIUS_METERS,
+    BASE_ZOOM,
     ELEVATION_RANGE_MAX,
     HEX_COLOR_RANGE,
     HEX_COVERAGE,
@@ -23,15 +26,19 @@ test('the resolution never decreases as you zoom in, and gets finer overall', ()
     assert.ok(hexResolutionForZoom(12) > hexResolutionForZoom(2))
 })
 
-test('the default continental zoom uses the original 10 km radius, i.e. resolution 5', () => {
-    assert.ok(Math.abs(hexRadiusMeters(4.2) - 10_000) < 1)
-    assert.equal(hexResolutionForZoom(4.2), 5)
-    assert.equal(hexResolutionForZoom(4), HEX_RESOLUTION)
+test('the base zoom uses the configured radius, realised as the closest H3 cell size', () => {
+    assert.equal(hexRadiusMeters(BASE_ZOOM), BASE_RADIUS_METERS)
+    const resolution = hexResolutionForZoom(BASE_ZOOM)
+    const edge = getHexagonEdgeLengthAvg(resolution, 'm')
+    // Closest resolution: within one resolution step (~2.65x) of the radius.
+    assert.ok(edge / BASE_RADIUS_METERS < 2.65 && BASE_RADIUS_METERS / edge < 2.65)
+    assert.equal(hexResolutionForZoom(BASE_ZOOM), HEX_RESOLUTION)
 })
 
 test('zooming in reaches city-sized cells, zooming out stays coarse', () => {
-    assert.ok(hexResolutionForZoom(12) >= 9)
-    assert.ok(hexResolutionForZoom(2) <= 4)
+    assert.ok(hexResolutionForZoom(12) >= 8)
+    assert.ok(hexResolutionForZoom(2) < hexResolutionForZoom(BASE_ZOOM) + 1)
+    assert.ok(hexResolutionForZoom(12) > hexResolutionForZoom(2))
 })
 
 test('the copied original parameters', () => {

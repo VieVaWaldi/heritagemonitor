@@ -8,6 +8,7 @@ export {
     MAX_VALUES_PER_PARAM,
     URL_PARAM_LABELS,
     PAGE_PRESERVING_PARAMS,
+    buildFocusPatch,
     canReset,
     SELECTION_CLEARING_PARAMS,
     SEARCH_PARAM,

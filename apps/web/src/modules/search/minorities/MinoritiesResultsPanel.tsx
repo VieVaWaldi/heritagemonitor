@@ -66,7 +66,7 @@ import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {MinorityOverviewTab} from './MinorityOverviewTab'
 import {MinorityResultRow} from './MinorityResultRow'
 import {MinoritySubgroupsTab} from './MinoritySubgroupsTab'
-import {MINORITY_COUNT_DISCLAIMER, formatCount} from './minorityFormat'
+import {MINORITY_COUNT_DISCLAIMER, formatCount, isTabNarrowed, ofTotalSuffix} from './minorityFormat'
 import {
     minorityFundersSection,
     minoritySources,
@@ -347,7 +347,7 @@ export function MinoritiesResultsPanel() {
                     items={data.hits}
                     getItemKey={(item) => item.qid}
                     renderItem={(item) => (
-                        <MinorityResultRow minority={item} selected={item.qid === selectedId} onSelect={select} />
+                        <MinorityResultRow minority={item} selected={item.qid === selectedId} onSelect={select} corpus={corpus} />
                     )}
                     page={page}
                     pageCount={data.pageCount}
@@ -382,7 +382,7 @@ export function MinoritiesResultsPanel() {
                             label: 'Projects',
                             content: detail ? (
                                 <RelatedList
-                                    caption={`${formatResultCount(projectsTab.data)} projects mention this group — ${MINORITY_COUNT_DISCLAIMER}`}
+                                    caption={`${formatResultCount(projectsTab.data)} projects mention this group${ofTotalSuffix(projectsTab.data.estimatedTotalHits, detail.project_count, isTabNarrowed('minorities:projects', params))} — ${MINORITY_COUNT_DISCLAIMER}`}
                                     filterCaption={projectsRelated.caption}
                                     rows={projectRows}
                                     page={projectsTab.page}
@@ -401,7 +401,7 @@ export function MinoritiesResultsPanel() {
                             label: 'Works',
                             content: detail ? (
                                 <RelatedList
-                                    caption={`${formatResultCount(worksTab.data)} works, tagged via their linked project`}
+                                    caption={`${formatResultCount(worksTab.data)} works${ofTotalSuffix(worksTab.data.estimatedTotalHits, detail.work_count, isTabNarrowed('minorities:works', params))}, tagged via their linked project`}
                                     filterCaption={worksRelated.caption}
                                     rows={workRows}
                                     page={worksTab.page}
@@ -420,7 +420,7 @@ export function MinoritiesResultsPanel() {
                             label: 'Organisations',
                             content: detail ? (
                                 <RelatedList
-                                    caption={`${organisationsTab.data.estimatedTotalHits} organisations worked on this group's projects, most projects first`}
+                                    caption={`${organisationsTab.data.estimatedTotalHits} organisations${ofTotalSuffix(organisationsTab.data.estimatedTotalHits, detail.org_count, isTabNarrowed('minorities:organisations', params))} worked on this group's projects, most projects first`}
                                     filterCaption={organisationsRelated.caption}
                                     rows={organisationsTab.data.hits.map((organisation) => ({
                                         id: organisation.id,

@@ -5,22 +5,24 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import ListItemButton from '@mui/material/ListItemButton'
 import {Text} from '@/common/text'
-import {formatCount, formatCountries, formatPopulation, labelSourceClass} from './minorityFormat'
+import {formatCount, formatCountries, formatPopulation, formatRowProjectCount, labelSourceClass} from './minorityFormat'
 
 export interface MinorityResultRowProps {
     minority: MinorityDto
     selected: boolean
     onSelect: (qid: string) => void
+    /** The active corpus: the DCH corpus shows the DCH project count. */
+    corpus?: string
 }
 
 const ROW_HEIGHT = 64
 
-export function MinorityResultRow({minority, selected, onSelect}: MinorityResultRowProps) {
+export function MinorityResultRow({minority, selected, onSelect, corpus}: MinorityResultRowProps) {
     const meta = [
         labelSourceClass(minority.source_class[0] ?? ''),
         formatCountries(minority.countries),
         formatPopulation(minority.population),
-        formatCount(minority.project_count, 'project'),
+        formatRowProjectCount(minority, corpus),
         formatCount(minority.work_count, 'work'),
     ]
         .filter(Boolean)
