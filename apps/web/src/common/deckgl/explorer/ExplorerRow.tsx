@@ -3,7 +3,7 @@
 import Box from '@mui/material/Box'
 import ListItemButton from '@mui/material/ListItemButton'
 import {Text} from '@/common/text'
-import type {ExplorerItem} from './explorerTypes'
+import type {ExplorerItem} from '../mapTypes'
 
 // Same fixed height as SearchResultRow: long titles truncate instead of growing the row.
 const ROW_HEIGHT = 64

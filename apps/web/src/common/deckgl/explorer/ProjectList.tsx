@@ -6,7 +6,7 @@ import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import {Text} from '@/common/text'
 import {formatDateRange, formatFunding} from '../format'
-import type {ProjectSummary} from '../organisations'
+import type {ProjectSummary} from '../mapTypes'
 
 export interface ProjectListProps {
     projects: ProjectSummary[]

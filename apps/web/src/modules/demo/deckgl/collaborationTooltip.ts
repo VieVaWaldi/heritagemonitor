@@ -13,10 +13,14 @@ export function collaborationTooltip(info: PickingInfo): string | null {
         return `${count} shared project${count === 1 ? '' : 's'}`
     }
 
-    if ('edgeCount' in object && 'projectCount' in object) {
-        const edgeCount = object.edgeCount as number
-        const projectCount = object.projectCount as number
-        return `${edgeCount} collaboration${edgeCount === 1 ? '' : 's'}, ${projectCount} shared project${projectCount === 1 ? '' : 's'}`
+    if ('linkCount' in object) {
+        const linkCount = object.linkCount as number
+        return `${linkCount} collaboration${linkCount === 1 ? '' : 's'}`
+    }
+
+    if ('weight' in object && 'source' in object) {
+        const weight = object.weight as number
+        return `${weight} shared project${weight === 1 ? '' : 's'}`
     }
 
     return null

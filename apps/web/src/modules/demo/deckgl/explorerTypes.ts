@@ -1,33 +1,11 @@
-import type {Layer} from '@deck.gl/core'
 import type {CollaborationEdge} from '@heritagemonitor/shared'
-import type {ReactNode} from 'react'
+import type {VisualizationModel} from '@/common/deckgl'
 
-export interface VisualizationThemeColors {
-    primary: string
-    primaryLight: string
-    secondary: string
-    highlight: string
-}
-
-// What the paginated list and the detail tab need from any visualization's
-// items, whatever their underlying type (an edge, an organisation, ...).
-// Each visualization closes over its own typed data, so nothing here is generic.
-export interface ExplorerItem {
-    id: string
-    title: string
-    subtitle: string
-    renderDetail: (select: (id: string) => void) => ReactNode
-}
-
-export interface MapSelection {
-    selectedId: string | null
-    onSelect: (id: string) => void
-}
-
-export interface VisualizationModel {
-    items: ExplorerItem[]
-    createLayers: (colors: VisualizationThemeColors, selection: MapSelection) => Layer[]
-}
+// What a demo visualization is. The generic halves — ExplorerItem,
+// MapSelection, VisualizationThemeColors, VisualizationModel — moved to
+// @/common/deckgl when the funding page started using them; what is left here
+// is the one piece that is genuinely about this demo: a visualization is
+// something that reshapes the SAME CollaborationEdge[] into a model.
 
 export interface Visualization {
     id: string

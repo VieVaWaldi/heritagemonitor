@@ -1,8 +1,10 @@
+import {CORPUS_KEYS} from '@heritagemonitor/shared'
 import cors from '@fastify/cors'
 import Fastify, {LogController} from 'fastify'
-import {registerDefaultPageWarmUp, runWarmUp} from './common/search/warmUp.js'
+import {registerDefaultPageWarmUp, registerWarmUp, runWarmUp} from './common/search/warmUp.js'
 import {demoRoutes} from "./modules/demo/demo.routes.js";
 import {expertsRoutes} from "./modules/experts/experts.routes.js";
+import {fundingRoutes} from "./modules/funding/funding.routes.js";
 import {grantsRoutes} from "./modules/grants/grants.routes.js";
 import {healthRoutes} from "./modules/health/health.routes.js";
 import {llmchatRoutes} from "./modules/llmchat/llmchat.routes.js";
@@ -12,6 +14,7 @@ import {organisationsRoutes} from "./modules/organisations/organisations.routes.
 import {projectsRoutes} from "./modules/projects/projects.routes.js";
 import {topicsRoutes} from "./modules/topics/topics.routes.js";
 import {worksRoutes} from "./modules/works/works.routes.js";
+import {getFundingMap} from "./modules/funding/funding.service.js";
 import {searchGrants} from "./modules/grants/grants.service.js";
 import {searchOrganisations} from "./modules/organisations/organisations.service.js";
 import {searchProjects} from "./modules/projects/projects.service.js";
@@ -58,6 +61,7 @@ fastify.register(async (v1) => {
     v1.register(topicsRoutes)
     v1.register(expertsRoutes)
     v1.register(grantsRoutes)
+    v1.register(fundingRoutes)
     v1.register(demoRoutes)
 }, {prefix: '/v1'})
 
@@ -68,6 +72,13 @@ registerDefaultPageWarmUp('projects', searchProjects)
 registerDefaultPageWarmUp('organisations', searchOrganisations)
 registerDefaultPageWarmUp('works', searchWorks)
 registerDefaultPageWarmUp('grants', searchGrants)
+
+// The funding map is the heaviest first paint in the app — a 500-bucket
+// aggregation over every matching project, and the default tab of
+// /search/funding. Warmed per corpus so the first visitor does not pay for it.
+for (const corpus of CORPUS_KEYS) {
+    registerWarmUp({name: `funding-map:${corpus}`, run: () => getFundingMap({c: corpus})})
+}
 
 const start = async () => {
     try {

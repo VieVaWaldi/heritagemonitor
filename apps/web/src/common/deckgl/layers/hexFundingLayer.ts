@@ -1,6 +1,6 @@
 import type {PickingInfo} from '@deck.gl/core'
 import {H3HexagonLayer} from '@deck.gl/geo-layers'
-import {hexToRgb, lerpRgb} from './colorUtils'
+import {hexToRgb, lerpRgb} from '../colors'
 import type {HexBin} from './hexBins'
 
 const MAX_ELEVATION_METERS = 250_000

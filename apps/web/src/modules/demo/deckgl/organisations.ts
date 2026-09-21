@@ -1,27 +1,10 @@
 import type {CollaborationEdge} from '@heritagemonitor/shared'
+import type {MapOrganisation} from '@/common/deckgl'
 
-export interface ProjectSummary {
-    id: string
-    title: string
-    startDate: string | null
-    endDate: string | null
-    frameworkProgrammes: string[]
-    /** What this project cost the organisation(s) the list belongs to */
-    cost: number
-}
-
-export interface Organisation {
-    id: string
-    name: string
-    country: string | null
-    type: string | null
-    sme: boolean | null
-    geolocation: [number, number]
-    /** Distinct projects, each counted once however many partners it was shared with */
-    projects: ProjectSummary[]
-    /** Sum of this organisation's own cost over `projects` */
-    funding: number
-}
+// ADAPTER: CollaborationEdge[] (this demo's API payload) -> MapOrganisation[]
+// (what @/common/deckgl's binning, layers, rows and cards all speak). The
+// funding page has its own adapter to the same target type; neither knows
+// about the other's payload.
 
 // Same edge, seen from each side — keeps the two participant field
 // families (institution_* / collaborator_*) out of everything downstream.
@@ -51,8 +34,8 @@ function sides(edge: CollaborationEdge) {
 // One organisation per distinct id, biggest funding first. An org's projects
 // repeat on every edge it's on, so they're de-duplicated by project id here —
 // that is what makes `funding` an exact sum rather than a double count.
-export function organisationsFromEdges(edges: CollaborationEdge[]): Organisation[] {
-    const byId = new Map<string, Organisation>()
+export function organisationsFromEdges(edges: CollaborationEdge[]): MapOrganisation[] {
+    const byId = new Map<string, MapOrganisation>()
     const seenProjects = new Map<string, Set<string>>()
 
     for (const edge of edges) {

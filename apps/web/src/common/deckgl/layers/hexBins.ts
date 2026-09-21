@@ -1,5 +1,5 @@
 import {latLngToCell} from 'h3-js'
-import type {Organisation} from './organisations'
+import type {MapOrganisation} from '../mapTypes'
 
 // H3 resolution 3 (~100 km across): coarse enough that a country reads as a
 // handful of hexes at the default continental zoom, fine enough that Paris
@@ -9,13 +9,13 @@ export const HEX_RESOLUTION = 3
 export interface HexBin {
     hex: string
     /** Biggest funding first — same order as the input organisations */
-    organisations: Organisation[]
+    organisations: MapOrganisation[]
     funding: number
 }
 
 // We bin ourselves instead of using deck.gl's HexagonLayer aggregation, so
 // the bin keeps its member organisations (for selection and detail).
-export function hexBinsFromOrganisations(organisations: Organisation[]): HexBin[] {
+export function hexBinsFromOrganisations(organisations: MapOrganisation[]): HexBin[] {
     const byHex = new Map<string, HexBin>()
 
     for (const org of organisations) {

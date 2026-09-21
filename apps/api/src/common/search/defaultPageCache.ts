@@ -74,7 +74,7 @@ export function writeDefaultPage<T>(key: string, value: T): void {
 /** Test seam: the cache is process-wide, so a test must be able to empty it. */
 export function clearDefaultPageCache(): void {
     for (let page = 1; page <= MAX_CACHED_DEFAULT_PAGE; page += 1) {
-        for (const entity of ['projects', 'organisations', 'works', 'grants']) {
+        for (const entity of ['projects', 'organisations', 'works', 'grants', 'funding', 'funding:map']) {
             for (const corpus of ['all', 'science', 'dch']) {
                 for (const sort of ['default', 'relevance', 'budget', 'citations', 'funding', 'projects', 'works', 'dchProjects']) {
                     cache.del(`default:${entity}:${corpus}:${sort}:${page}`)
