@@ -16,11 +16,13 @@ const demoCollaborationIndexMapping = {
     mappings: {
         properties: {
             institution_id: {type: 'keyword'},
+            institution_name: {type: 'text'},
             institution_geolocation: {type: 'geo_point'},
             institution_country: {type: 'keyword'},
             institution_type: {type: 'keyword'},
             institution_sme: {type: 'boolean'},
             collaborator_id: {type: 'keyword'},
+            collaborator_name: {type: 'text'},
             collaborator_geolocation: {type: 'geo_point'},
             collaborator_country: {type: 'keyword'},
             collaborator_type: {type: 'keyword'},
@@ -30,8 +32,11 @@ const demoCollaborationIndexMapping = {
                 type: 'nested',
                 properties: {
                     project_id: {type: 'keyword'},
+                    title: {type: 'text'},
                     total_cost: {type: 'float'},
                     combined_institution_cost: {type: 'float'},
+                    institution_cost: {type: 'float'},
+                    collaborator_cost: {type: 'float'},
                     start_date: {type: 'date'},
                     end_date: {type: 'date'},
                     framework_programmes: {type: 'keyword'},

@@ -13,8 +13,11 @@ const SEED_FILE_URL = new URL('./seed/collaboration-edges.json', import.meta.url
 
 interface RawCollaborationProject {
     project_id: string
+    title: string
     total_cost: number | null
     combined_institution_cost: number | null
+    institution_cost: number
+    collaborator_cost: number
     start_date: string | null
     end_date: string | null
     framework_programmes: string[] | null
@@ -22,11 +25,13 @@ interface RawCollaborationProject {
 
 interface RawCollaborationEdge {
     institution_id: string
+    institution_name: string
     institution_geolocation: [number, number]
     institution_country: string | null
     institution_type: string | null
     institution_sme: boolean | null
     collaborator_id: string
+    collaborator_name: string
     collaborator_geolocation: [number, number]
     collaborator_country: string | null
     collaborator_type: string | null

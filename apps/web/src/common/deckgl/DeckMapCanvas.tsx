@@ -15,14 +15,22 @@ import DeckGL from '@deck.gl/react'
 import Map from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import {useTheme} from '@mui/material/styles'
+import {useIsMobile} from '@/common/hooks/useIsMobile'
 import {useMapboxStyle} from './useMapboxStyle'
 import {MapStatusOverlay} from './MapStatusOverlay'
+import {TamedMapController} from './TamedMapController'
 import type {CommandedViewState} from './useDeckMapViewState'
 import type {ViewState} from './types'
 
-// The only file in this package that imports @deck.gl/* or react-map-gl —
-// everything else (useDeckMapViewState, MapControls, MapStatusOverlay) is
-// plain React/MUI, per apps/web/RULES.md #4 (wrap external components).
+// Inertia = the map keeps gliding after a drag is released. Module-level so
+// deck.gl sees the same controller object every render.
+const CONTROLLER = {inertia: true}
+const MOBILE_CONTROLLER = {type: TamedMapController, inertia: true}
+
+// The only files in this package that import @deck.gl/* or react-map-gl are
+// this one and TamedMapController — everything else (useDeckMapViewState,
+// MapControls, MapStatusOverlay) is plain React/MUI, per apps/web/RULES.md
+// #4 (wrap external components).
 //
 // Sized by its parent: renders at 100%/100%, so the caller controls the
 // footprint via a normal MUI Box with an explicit height — this is what
@@ -56,6 +64,7 @@ export function DeckMapCanvas({
 }: DeckMapCanvasProps) {
     const theme = useTheme()
     const isDark = theme.palette.mode === 'dark'
+    const isMobile = useIsMobile()
     const [zoom, setZoom] = useState(initialViewState.zoom)
     const mapboxStyle = useMapboxStyle(zoom, isDark)
 
@@ -96,7 +105,7 @@ export function DeckMapCanvas({
                 }}
                 views={isGlobe ? new GlobeView({id: 'globe'}) : new MapView({id: 'mercator'})}
                 layers={isGlobe ? [...globeBackgroundLayers, ...layers] : layers}
-                controller
+                controller={isMobile && !isGlobe ? MOBILE_CONTROLLER : CONTROLLER}
                 onClick={onClick}
                 getTooltip={getTooltip}
                 getCursor={({isDragging, isHovering}) => (isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab')}
