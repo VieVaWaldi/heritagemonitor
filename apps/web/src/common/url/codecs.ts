@@ -41,6 +41,10 @@ export const SEARCH_PARAM = {
      * touches the page's own `q`.
      */
     allWorks: 'allWorks',
+    /** Map camera: `lat,lng,zoom` at 4 decimals. See readMapView. */
+    view: 'view',
+    /** Which map visualization is showing (`hexes`, ...). */
+    layer: 'layer',
     /** Topic-tree selections; three levels sharing one cap, see readTopicSelection. */
     topic: 'topic',
     subfield: 'subfield',
@@ -225,6 +229,50 @@ export function yearsPatchValue(range: YearRange | null): string | null {
     return range ? formatYearRange(range) : null
 }
 
+// --- map view ---------------------------------------------------------------
+
+/**
+ * The map camera as one `view=lat,lng,zoom` param, in the format the old app
+ * used so its links keep working.
+ *
+ * One param rather than three because a camera is one thing: three separate
+ * params can arrive half-updated mid-pan and put the map somewhere neither
+ * the user nor the link meant. Four decimals is ~11 m — past what any zoom
+ * level here can show, and short enough to keep the URL readable.
+ *
+ * Anything unparseable returns null and the map falls back to its own default,
+ * because the value comes from a URL a user may have edited by hand.
+ */
+export interface MapView {
+    latitude: number
+    longitude: number
+    zoom: number
+}
+
+const VIEW_DECIMALS = 4
+
+export function readMapView(params: URLSearchParams): MapView | null {
+    const raw = params.get(SEARCH_PARAM.view)
+    if (!raw) return null
+
+    const parts = raw.split(',')
+    if (parts.length !== 3) return null
+
+    const [latitude, longitude, zoom] = parts.map(Number)
+    // All three valid or the whole thing is dropped — a camera with a good
+    // latitude and a NaN zoom is not a usable camera.
+    if (![latitude, longitude, zoom].every(Number.isFinite)) return null
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || zoom < 0 || zoom > 24) return null
+
+    return {latitude, longitude, zoom}
+}
+
+export function mapViewPatchValue(view: MapView | null): string | null {
+    if (!view) return null
+    const {latitude, longitude, zoom} = view
+    return [latitude, longitude, zoom].map((value) => value.toFixed(VIEW_DECIMALS)).join(',')
+}
+
 // --- topics -----------------------------------------------------------------
 
 export interface TopicSelection {
@@ -319,6 +367,8 @@ export const URL_PARAM_LABELS: Record<SearchParamName, string> = {
     [SEARCH_PARAM.tab]: 'Open tab',
     [SEARCH_PARAM.detailPage]: 'Page within the open tab',
     [SEARCH_PARAM.allWorks]: 'Showing all publications (not only matching)',
+    [SEARCH_PARAM.view]: 'Map view (lat, lng, zoom)',
+    [SEARCH_PARAM.layer]: 'Map layer',
     [SEARCH_PARAM.years]: 'Years',
     [SEARCH_PARAM.theme]: 'Theme',
     [SEARCH_PARAM.pillar]: 'Pillar',

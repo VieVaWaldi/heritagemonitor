@@ -10,6 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import type {ReactNode} from 'react'
 import {NoticeBar} from '@/common/components'
 import {Text} from '@/common/text'
+import {buildSearchUrl, useUrlCorpus} from '@/common/url'
 import {formatCount, formatGrantFunding, grantTitle, heritageShare} from './grantFormat'
 
 export interface GrantOverviewTabProps {
@@ -56,6 +57,7 @@ function Hierarchy({grant}: {grant: GrantDetail}) {
  * portal URL cannot be derived from a code without guessing.
  */
 export function GrantOverviewTab({grant}: GrantOverviewTabProps) {
+    const {corpus} = useUrlCorpus()
     const share = heritageShare(grant)
 
     return (
@@ -90,17 +92,19 @@ export function GrantOverviewTab({grant}: GrantOverviewTabProps) {
                 </Text>
             </Field>
 
-            {/* TODO(step 8b): enable once the funding page exists. Disabled
-                rather than hidden so the affordance is visible and its absence
-                is explained — but it is NOT a link, because there is nothing
-                at the other end yet. */}
-            <Tooltip title="The funding explorer is not built yet.">
-                <span>
-                    <Button variant="outlined" size="small" disabled>
-                        Explore funding of this programme
-                    </Button>
-                </span>
-            </Tooltip>
+            {/* Hands the stream to the funding page, which filters its ranking
+                and its map by it. Built with buildSearchUrl rather than a
+                string so the id — which contains `::` and spaces — is encoded
+                by the same writer every other link in the app uses
+                (apps/web/RULES.md #11). */}
+            <Button
+                variant="outlined"
+                size="small"
+                href={buildSearchUrl({route: '/search/funding', stream: grant.id, corpus})}
+                sx={{alignSelf: 'flex-start'}}
+            >
+                Explore funding of this programme
+            </Button>
 
             <Field label="Stream id">
                 <Text variant="caption" color="text.secondary" sx={{wordBreak: 'break-all'}}>

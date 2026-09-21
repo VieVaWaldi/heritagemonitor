@@ -15,12 +15,14 @@ export {
     buildResetPatch,
     buildSearchUrl,
     describeUrlParams,
+    mapViewPatchValue,
     patchClearsDetailPage,
     patchClearsSelection,
     patchInvalidatesPage,
     readId,
     readList,
     readOneOf,
+    readMapView,
     readOptionalOneOf,
     readPage,
     readText,
@@ -35,6 +37,7 @@ export {
 export type {
     DescribeParamsOptions,
     DescribedParam,
+    MapView,
     SearchParamName,
     SearchUrlParams,
     TopicSelection,
@@ -50,6 +53,7 @@ export {useUrlDetailPage} from './useUrlDetailPage'
 export {useUrlEntity} from './useUrlEntity'
 export {useUrlFilters} from './useUrlFilters'
 export type {UrlFilterValues} from './useUrlFilters'
+export {useUrlMapView} from './useUrlMapView'
 export {useUrlPage} from './useUrlPage'
 export {useUrlQueryDraft} from './useUrlQueryDraft'
 export {useUrlSelection} from './useUrlSelection'
