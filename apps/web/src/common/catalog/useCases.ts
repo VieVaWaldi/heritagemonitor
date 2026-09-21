@@ -62,7 +62,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Search',
         title: 'Search, download & AI chat',
         description:
-            'Search across projects, works and organisations all linked together from the biggest data providers. Use AI to summarize the results or fetch PDFs. ... ',
+            'Search 3.9M projects, 50M works, 494K organisations and their funding streams, all linked to each other. Filter by topic, funder, programme, region and year, then open any result to see everything connected to it.',
         examples: ['digicher', 'conservation', 'BIM', 'photogrammetry AND heritage preservation -consumer'],
         action: {
             entity: 'projects',
@@ -79,7 +79,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Find Experts',
         title: 'Find someone to help you',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'Find the organisations that have actually done the most work on your subject, ranked by how many matching projects they ran. Open one to see those projects, its works and how much funding reached it.',
         examples: ['3D scanning specialist', 'heritage conservation architect', 'digitisation consultant'],
         action: {
             entity: 'experts',
@@ -95,7 +95,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Map Minorities',
         title: 'Map research by minorities',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'Browse minority groups and see which projects, works, organisations and research topics are about them. Filter by country, language, religion or topic to find who is studying a community and what they have produced.',
         examples: ['Roma heritage', 'indigenous knowledge systems', 'minority language archives'],
         action: {
             entity: 'minorities',
@@ -111,7 +111,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Track Funding',
         title: 'Map research by funding',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'See where research money actually lands on a map of the best-funded organisations for your search. Explore the funding streams behind it and narrow everything to one programme, country or institution type.',
         examples: ['Horizon Europe heritage grant', 'national conservation fund', 'UNESCO heritage grant'],
         action: {
             entity: 'grants',
@@ -127,7 +127,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Visualise Collaborations',
         title: 'Map who works with whom',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'Draw the network of who works with whom, as arcs between organisations that shared a project. Centre it on one institution or on a whole query to see which partnerships a research area is built on.',
         defaultSubUseCaseKey: 'organisationNetwork',
         subUseCases: [
             {

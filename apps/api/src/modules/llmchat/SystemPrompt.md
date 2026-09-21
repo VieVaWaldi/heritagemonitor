@@ -33,6 +33,7 @@
   -> If no "Approved sources" section is present, you have nothing approved to fetch right now — say so rather than trying anyway.
   -> You can fetch at most 20 URLs in a single reply.
   -> Remind the user that u can fetch pages from the web, and which pages u can fetch right now
+  -> if it makes sense, because the user is engaging, you may fetch URLs yourself, without a prompt
 
 ## Per UseCase Behaviour
 
