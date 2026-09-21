@@ -1,35 +1,46 @@
-import {MINORITY_SOURCE_CLASS_LABELS} from '@heritagemonitor/shared'
+import {MINORITY_SOURCE_CLASS_LABELS, type MinorityDto} from '@heritagemonitor/shared'
 
-// Formatting/labelling helpers shared by every minorities/ component —
-// kept here rather than duplicated across MinorityResultRow/
-// MinorityOverviewTab, since both need the same population/source_class
-// presentation.
+// Presentation of minority fields, in one place so the row, the overview tab
+// and the chat context phrase the same thing the same way.
+
+/**
+ * The honest caveat that belongs anywhere counts are shown. The tags come
+ * from matching group names and keywords against project text, so they
+ * over-count common words (Russians 2,242 projects, Turkish 1,676) — the
+ * numbers are a starting point for looking, not a measurement.
+ */
+export const MINORITY_COUNT_DISCLAIMER =
+    'Counts come from keyword matching between project text and group names, so they include false positives — treat them as a place to start looking, not as a measurement.'
 
 export function labelSourceClass(value: string): string {
-    return MINORITY_SOURCE_CLASS_LABELS[value] ?? value
+    return MINORITY_SOURCE_CLASS_LABELS[value] ?? value.charAt(0).toUpperCase() + value.slice(1)
 }
-
-// Wikidata's own redirect helper — resolves straight to the English
-// Wikipedia article when one is linked, which reads far better than the
-// raw Wikidata item page. Falls back to a small Wikidata "no linked page"
-// page on the rare group with no enwiki sitelink, rather than a dead link.
-export function wikipediaUrl(qid: string): string {
-    return `https://www.wikidata.org/wiki/Special:GoToLinkedPage/enwiki/${qid}`
-}
-
-const COUNTRIES_CAP = 3
-
-export function formatCountries(countries: string[]): string {
-    if (countries.length === 0) return 'No countries documented'
-    if (countries.length <= COUNTRIES_CAP) return countries.join(', ')
-    return `${countries.slice(0, COUNTRIES_CAP).join(', ')} +${countries.length - COUNTRIES_CAP} more`
-}
-
-// The population range spans 7 to 133,000,000 — compact notation ("133M")
-// keeps the row/panel readable across that whole spread instead of a long
-// grouped-digit string.
-const populationFormatter = new Intl.NumberFormat('en', {notation: 'compact', maximumFractionDigits: 1})
 
 export function formatPopulation(population: number | null): string {
-    return population == null ? 'Population not documented' : populationFormatter.format(population)
+    if (population == null) return 'population unknown'
+    return `${Math.round(population).toLocaleString('en-US')} people`
+}
+
+export function formatCountries(countries: string[]): string {
+    if (countries.length === 0) return 'no countries documented'
+    if (countries.length <= 3) return countries.join(', ')
+    return `${countries.slice(0, 3).join(', ')} +${countries.length - 3} more`
+}
+
+export function formatCount(count: number | null, singular: string, plural = `${singular}s`): string {
+    const value = count ?? 0
+    return `${value.toLocaleString('en-US')} ${value === 1 ? singular : plural}`
+}
+
+/**
+ * Wikidata is where every group comes from, so its entity page always exists
+ * and always serves its own content — unlike a Wikipedia title guessed from a
+ * name, which is why the qid page is what the UI and Lucy both get.
+ */
+export function wikidataUrl(qid: string): string {
+    return `https://www.wikidata.org/wiki/${encodeURIComponent(qid)}`
+}
+
+export function minorityName(minority: MinorityDto): string {
+    return minority.group_name_en
 }

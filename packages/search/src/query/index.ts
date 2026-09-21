@@ -7,6 +7,7 @@
 export * from './aggregations.js'
 export * from './corpus.js'
 export * from './facetValues.js'
+export * from './minorities.js'
 export * from './organisations.js'
 export * from './pagination.js'
 export * from './projects.js'

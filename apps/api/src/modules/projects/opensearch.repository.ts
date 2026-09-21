@@ -173,6 +173,33 @@ export async function getById(id: string): Promise<ProjectRawDoc | null> {
     return getDocument<ProjectRawDoc>(indices.projectsIndexName, id)
 }
 
+/**
+ * Counts per topic-tree node for a query + filters. `size: 0` — only the three
+ * aggregations are wanted, never the hits.
+ */
+export async function topicCounts(
+    q: string,
+    filters: query.ProjectFilters,
+): Promise<Record<string, query.TermsAggregationResult>> {
+    const {body} = await client.search({
+        index: indices.projectsIndexName,
+        body: query.projectsBody({
+            q,
+            from: 0,
+            size: 0,
+            filters,
+            aggs: {
+                // Sized to the whole vocabulary: the modal hides nodes with no
+                // matches, which it can only do if it was told about all of them.
+                topic: query.termsAgg('topic_id', 5_000),
+                subfield: query.termsAgg('subfield_id', 500),
+                field: query.termsAgg('field_id', 100),
+            },
+        }),
+    })
+    return (body.aggregations ?? {}) as unknown as Record<string, query.TermsAggregationResult>
+}
+
 /** Row-shaped project documents for the ids given, in that order. */
 export async function getProjectsByIds(ids: string[]): Promise<ProjectRawDoc[]> {
     return mgetDocuments<ProjectRawDoc>(indices.projectsIndexName, ids, ROW_SOURCE)

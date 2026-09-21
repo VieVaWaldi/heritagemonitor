@@ -1,4 +1,11 @@
-import {httpUrlOrNull, organisationLinks, type OrganisationDetail, type OrganisationProject, type OrganisationRow} from '@heritagemonitor/shared'
+import {
+    fetchableSources,
+    httpUrlOrNull,
+    organisationLinks,
+    type OrganisationDetail,
+    type OrganisationProject,
+    type OrganisationRow,
+} from '@heritagemonitor/shared'
 import {SELECTED_ENTITY_CHARS, type PageContextSection, type PageContextSource} from '@/common/llmchat/pageContext'
 import {formatCount, formatOrganisationFunding, knownRegion, knownRorTypes, organisationName} from './organisationFormat'
 
@@ -82,8 +89,11 @@ export function organisationSources(
         sources.push({label, url})
     }
 
+    // Website and ROR first, both of which serve their own content.
     if (selected) {
-        for (const link of organisationLinks(selected)) add(`${organisationName(selected)} (${link.label})`, link.url)
+        for (const link of fetchableSources(organisationLinks(selected))) {
+            add(`${organisationName(selected)} (${link.label})`, link.url)
+        }
     }
     for (const row of rows) {
         const website = httpUrlOrNull(row.websiteUrl)

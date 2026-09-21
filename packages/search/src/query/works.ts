@@ -20,6 +20,7 @@ export interface WorkFilters {
     publisher?: string[]
     project?: string[]
     org?: string[]
+    minority?: string[]
     /** Deep link. `works.id` is `index: false`, so this MUST go through `_id`. */
     only?: string[]
 }
@@ -35,6 +36,7 @@ export function workFilters(filters: WorkFilters = {}): QueryClause[] {
         [filters.publisher, 'publisher'],
         [filters.project, 'project_ids'],
         [filters.org, 'organisation_ids'],
+        [filters.minority, 'minority_qids'],
     ]
     for (const [values, field] of terms) {
         if (values?.length) clauses.push({terms: {[field]: values}})

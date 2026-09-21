@@ -1,162 +1,155 @@
-import {client, indices} from '@heritagemonitor/search'
-import type {KnownSubgroup} from '@heritagemonitor/shared'
+import {client, getDocument, indices, query} from '@heritagemonitor/search'
+import {MINORITY_FACET_FIELDS, SEARCH_PAGE_SIZE, type SearchMode} from '@heritagemonitor/shared'
+import {runSearch, type SearchExecution} from '../../common/search/runSearch.js'
 
-// Repository layer: raw OpenSearch access only, no business logic (query
-// building, DTO mapping) — that lives in minorities.service.ts.
+// Repository layer: raw OpenSearch access only. Bodies come from
+// @heritagemonitor/search's query package. See apps/api/RULES.md rule 3.
 
-// Fields hm_pipeline's index_opensearch.py maps as text+keyword multi-fields
-// (analyzed for search, `.keyword` sub-field for exact-match filter/sort/
-// facet) — has to stay in sync with that mapping. Everything else requested
-// as a filter/facet/sort field (source_class, admin_territory,
-// ancestral_home, population, has_subgroups) is mapped keyword/numeric/
-// boolean directly, no `.keyword` suffix needed.
-const KEYWORD_MULTIFIELDS = new Set(['group_name_en', 'countries', 'religions', 'native_languages', 'subclass_of'])
-
-function keywordField(field: string): string {
-    return KEYWORD_MULTIFIELDS.has(field) ? `${field}.keyword` : field
-}
-
-// Query-time field boosts (a hit on the group's own name should always
-// outrank one that only matched via a language/country/religion name) —
-// OpenSearch has no index-setting equivalent for this, so it lives here
-// instead of in hm_pipeline's mapping. Order/weights mirror
-// index_opensearch.py's field-boost rationale.
-const SEARCH_FIELD_BOOSTS = ['group_name_en^5', 'search_keywords^4', 'native_languages^2', 'countries^2', 'religions', 'subclass_of']
-
-function buildTextQuery(q: string) {
-    if (!q.trim()) return {match_all: {}}
-
-    return {
-        bool: {
-            should: [
-                {multi_match: {query: q, fields: SEARCH_FIELD_BOOSTS}},
-                // known_subgroups.name is `nested` (an array of {name, qid}
-                // structs) — a plain multi_match can't reach into it, so it
-                // needs its own nested query clause. No boost given here;
-                // OpenSearch's default scoring for this clause is a
-                // reasonable stand-in for now.
-                {nested: {path: 'known_subgroups', query: {match: {'known_subgroups.name': q}}}},
-            ],
-            minimum_should_match: 1,
-        },
-    }
-}
-
-export interface MinorityFilterClause {
-    field: string
-    values: string[]
-}
-
-function buildFilters(filters: MinorityFilterClause[], hasSubgroups?: boolean): Record<string, unknown>[] {
-    const clauses: Record<string, unknown>[] = filters
-        .filter((f) => f.values.length > 0)
-        .map((f) => ({terms: {[keywordField(f.field)]: f.values}}))
-
-    if (hasSubgroups != null) clauses.push({term: {has_subgroups: hasSubgroups}})
-
-    return clauses
-}
-
-const FACET_SIZE = 100
-
-function buildAggs(facetFields: string[]) {
-    return Object.fromEntries(facetFields.map((field) => [field, {terms: {field: keywordField(field), size: FACET_SIZE}}]))
-}
-
-export interface MinoritiesSearchParams {
-    q: string
-    filters?: MinorityFilterClause[]
-    hasSubgroups?: boolean
-    facetFields?: string[]
-    sort?: {field: string; order: 'asc' | 'desc'}
-    limit: number
-    offset: number
-}
-
-interface MinorityRawDoc {
+/**
+ * The `minorities` index document. `project_title_blob` is indexed but
+ * excluded from `_source` (it exists to be searched, never shown), so it is
+ * deliberately not modelled here.
+ */
+export interface MinorityRawDoc {
     qid: string
     group_name_en: string
-    countries: string[]
-    source_class: string[]
-    population: number | null
-    religions: string[]
-    native_languages: string[]
-    subclass_of: string[]
-    admin_territory: string[]
-    ancestral_home: string[]
-    known_subgroups: KnownSubgroup[]
-    search_keywords: string[]
-    has_subgroups: boolean
+    countries?: string[]
+    source_class?: string[]
+    population?: number
+    religions?: string[]
+    native_languages?: string[]
+    subclass_of?: string[]
+    admin_territory?: string[]
+    ancestral_home?: string[]
+    known_subgroups?: Array<{name: string; qid: string}>
+    search_keywords?: string[]
+    has_subgroups?: boolean
+    is_seed?: boolean
+    project_count?: number
+    dch_project_count?: number
+    org_count?: number
+    work_count?: number
+    topic_ids?: string[]
+    topic_counts?: Array<{topic_id: string; n: number}>
+    merged_qids?: string[]
 }
 
-export interface TermsBucket {
-    key: string | number | boolean
-    key_as_string?: string
-    doc_count: number
+/**
+ * Keyed by the LOGICAL field name so the response's facet keys match the
+ * shared facet config, while the aggregation itself runs on the exact
+ * sub-field where the index maps one (see `exactField`).
+ */
+function facetAggs(): Record<string, unknown> {
+    return Object.fromEntries(
+        MINORITY_FACET_FIELDS.map((facet) => [facet.field, query.termsAgg(query.exactField(facet.field), facet.size)]),
+    )
 }
 
-// The client's generated types get `hits.hits`'s element type wrong (an
-// operator-precedence bug: `Hit & {_source?: T}[]` parses as
-// `Hit & ({_source?: T}[])`, not `(Hit & {_source?: T})[]`, so indexing loses
-// `_id`) — cast to what the OpenSearch REST API actually returns. See
-// apps/api/src/modules/health/opensearch.repository.ts's note.
-interface MinorityHit {
-    _id: string
-    _source?: MinorityRawDoc
+export interface MinoritySearchParams {
+    q: string
+    page: number
+    sort?: query.MinoritySort
+    filters: query.MinorityFilters
+    typoTolerant: boolean
+    /** Groups found by the two-step project probe — see probeProjectsForQids. */
+    boostQids: string[]
 }
 
-export async function search({q, filters = [], hasSubgroups, facetFields = [], sort, limit, offset}: MinoritiesSearchParams) {
-    const {body} = await client.search({
-        index: indices.minoritiesIndexName,
-        body: {
-            track_total_hits: true,
-            query: {
-                bool: {
-                    must: buildTextQuery(q),
-                    filter: buildFilters(filters, hasSubgroups),
-                },
-            },
-            aggs: buildAggs(facetFields),
-            sort: sort ? [{[keywordField(sort.field)]: sort.order}] : undefined,
-            from: offset,
-            size: limit,
-        },
-    })
-
-    const hits = body.hits.hits as unknown as MinorityHit[]
-    const total = typeof body.hits.total === 'object' ? (body.hits.total?.value ?? 0) : (body.hits.total ?? 0)
-    const aggregations = (body.aggregations ?? {}) as Record<string, {buckets: TermsBucket[]}>
-
-    return {
-        hits: hits.map((hit) => hit._source).filter((doc): doc is MinorityRawDoc => doc != null),
-        total,
-        aggregations,
+export async function search(params: MinoritySearchParams): Promise<SearchExecution<MinorityRawDoc>> {
+    // 278 documents: the typo budget that matters here is the organisations
+    // one (a name search), not the works one.
+    const {threshold, timeout} = query.TYPO_POLICY.organisations
+    const common = {
+        q: params.q,
+        sort: params.sort,
+        filters: params.filters,
+        aggs: facetAggs(),
+        boostQids: params.boostQids,
     }
+
+    return runSearch<MinorityRawDoc>({
+        index: indices.minoritiesIndexName,
+        page: params.page,
+        size: SEARCH_PAGE_SIZE,
+        body: (window) => query.minoritiesBody({...common, from: window.from, size: window.size}),
+        ...(params.typoTolerant
+            ? {
+                  fallback: {
+                      threshold,
+                      body: (window: query.PageWindow) =>
+                          query.minoritiesBody({...common, from: window.from, size: window.size, mode: 'fuzzy', suggest: true, timeout}),
+                  },
+              }
+            : {}),
+        countBody: (mode: SearchMode) => query.minoritiesCountBody({q: params.q, filters: params.filters, mode}),
+    })
 }
 
-// group_name_en/search_keywords only, with match_phrase_prefix instead of
-// the ranked multi_match `search()` uses — an approximation of true
-// instant-search, since the index has no edge_ngram field for that (would
-// need a mapping change on hm_pipeline's side, not just here).
-export async function suggest(q: string, limit: number) {
+/**
+ * Counts per topic for the GROUPS a search matches. The minorities index
+ * stores leaf `topic_ids` only — no subfield or field column — so the caller
+ * rolls these up to the higher levels itself.
+ */
+export async function topicCounts(q: string, filters: query.MinorityFilters, boostQids: string[]): Promise<query.TermsBucket[]> {
     const {body} = await client.search({
         index: indices.minoritiesIndexName,
-        body: {
-            query: {
-                bool: {
-                    should: [{match_phrase_prefix: {group_name_en: q}}, {match_phrase_prefix: {search_keywords: q}}],
-                    minimum_should_match: 1,
-                },
-            },
-            size: limit,
-        },
+        body: query.minoritiesBody({
+            q,
+            from: 0,
+            size: 0,
+            filters,
+            boostQids,
+            aggs: {topics: query.termsAgg('topic_ids', 5_000)},
+        }),
     })
-
-    const hits = body.hits.hits as unknown as MinorityHit[]
-    return hits.map((hit) => hit._source).filter((doc): doc is MinorityRawDoc => doc != null)
+    const aggregations = body.aggregations as unknown as Record<string, query.TermsAggregationResult> | undefined
+    return aggregations?.topics?.buckets ?? []
 }
 
-export async function getById(qid: string) {
-    const {body} = await client.get({index: indices.minoritiesIndexName, id: qid})
-    return body._source as MinorityRawDoc
+export async function getByQid(qid: string): Promise<MinorityRawDoc | null> {
+    return getDocument<MinorityRawDoc>(indices.minoritiesIndexName, qid)
+}
+
+/**
+ * Step one of the two-step search: the minority qids of the PROJECTS that
+ * match this text. See `minorityProjectProbeBody` for why the group documents
+ * alone are not enough.
+ */
+export async function probeProjectsForQids(q: string, size: number): Promise<string[]> {
+    const {body} = await client.search({index: indices.projectsIndexName, body: query.minorityProjectProbeBody(q, size)})
+    const aggregations = body.aggregations as unknown as Record<string, query.TermsAggregationResult> | undefined
+    return (aggregations?.qids?.buckets ?? []).map((bucket) => String(bucket.key_as_string ?? bucket.key))
+}
+
+/** Organisations that worked on this group's projects, by number of projects. */
+export async function organisationBuckets(qids: string[], size: number): Promise<query.TermsBucket[]> {
+    const {body} = await client.search({index: indices.projectsIndexName, body: query.minorityOrganisationsBody(qids, size)})
+    const aggregations = body.aggregations as unknown as Record<string, query.TermsAggregationResult> | undefined
+    return aggregations?.orgs?.buckets ?? []
+}
+
+interface FunderBucket extends query.TermsBucket {
+    programmes?: query.TermsAggregationResult
+}
+
+/** Funders behind this group's projects, each with its top programmes. */
+export async function funderBuckets(qids: string[], size: number): Promise<FunderBucket[]> {
+    const {body} = await client.search({index: indices.projectsIndexName, body: query.minorityFundingBody(qids, size)})
+    const aggregations = body.aggregations as unknown as Record<string, {buckets: FunderBucket[]}> | undefined
+    return aggregations?.funders?.buckets ?? []
+}
+
+export interface MinoritySuggestionDoc {
+    qid: string
+    group_name_en: string
+    project_count?: number
+}
+
+export async function suggest(prefix: string, size: number): Promise<MinoritySuggestionDoc[]> {
+    const {body} = await client.search({
+        index: indices.minoritiesIndexName,
+        body: query.minorityAutocompleteBody(prefix, size),
+    })
+    const hits = body.hits.hits as unknown as Array<{_source?: MinoritySuggestionDoc}>
+    return hits.map((hit) => hit._source).filter((doc): doc is MinoritySuggestionDoc => doc != null)
 }

@@ -1,4 +1,12 @@
-import {httpUrlOrNull, projectLinks, type ProjectDetail, type ProjectOrganisation, type ProjectRow} from '@heritagemonitor/shared'
+import {
+    bestFetchableSource,
+    fetchableSources,
+    httpUrlOrNull,
+    projectLinks,
+    type ProjectDetail,
+    type ProjectOrganisation,
+    type ProjectRow,
+} from '@heritagemonitor/shared'
 import {SELECTED_ENTITY_CHARS, type PageContextSection, type PageContextSource} from '@/common/llmchat/pageContext'
 import {formatCount, formatFunderProgramme, formatFunding, formatYear, projectHeadline} from './projectFormat'
 
@@ -99,10 +107,11 @@ export function projectSources(
         sources.push({label, url})
     }
 
-    // The selected project first: it is what a question is most likely about,
-    // and it is the one whose every link is worth offering.
+    // The selected project first: it is what a question is most likely about.
+    // `fetchableSources` drops its doi.org link when CORDIS or OpenAIRE can
+    // serve the same project — a DOI redirects off the fetch allowlist.
     if (selected) {
-        for (const link of projectLinks(selected)) add(`${projectHeadline(selected)} (${link.label})`, link.url)
+        for (const link of fetchableSources(projectLinks(selected))) add(`${projectHeadline(selected)} (${link.label})`, link.url)
     }
     // Then the organisations on screen, when their tab is open: their own
     // websites are what "tell me about these partners" needs.
@@ -111,11 +120,10 @@ export function projectSources(
         if (website) add(`${organisation.legalName ?? organisation.id} (website)`, website)
     }
 
-    // Then the best single link per listed row, so "summarise these projects"
-    // has something to fetch for each of them. First link wins: projectLinks
-    // returns them in descending usefulness (DOI, CORDIS, OpenAIRE, website).
+    // Then the best FETCHABLE link per listed row, so "summarise these
+    // projects" has something to fetch for each of them.
     for (const row of rows) {
-        const best = projectLinks(row)[0]
+        const best = bestFetchableSource(projectLinks(row))
         if (best) add(`${projectHeadline(row)} (${best.label})`, best.url)
     }
 

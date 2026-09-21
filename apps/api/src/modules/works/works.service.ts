@@ -52,6 +52,7 @@ function toFilters(request: WorkSearchRequest): query.WorkFilters {
         publisher: request.publisher,
         project: request.project,
         org: request.org,
+        minority: request.minority,
         only: request.only,
     }
 }

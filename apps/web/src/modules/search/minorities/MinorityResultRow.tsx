@@ -2,11 +2,11 @@
 
 import type {MinorityDto} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import ListItemButton from '@mui/material/ListItemButton'
-import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import Tooltip from '@mui/material/Tooltip'
 import {Text} from '@/common/text'
-import {formatCountries, formatPopulation, labelSourceClass, wikipediaUrl} from './minorityFormat'
+import {formatCount, formatCountries, formatPopulation, labelSourceClass} from './minorityFormat'
 
 export interface MinorityResultRowProps {
     minority: MinorityDto
@@ -14,10 +14,6 @@ export interface MinorityResultRowProps {
     onSelect: (qid: string) => void
 }
 
-// Same two-line row shape as ../components/SearchResultRow (title/meta/
-// action-button) — kept as its own copy rather than shared, same reasoning
-// as that component's own comment: the two are expected to keep diverging
-// (this one is clickable and links out to Wikipedia instead of a PDF).
 const ROW_HEIGHT = 64
 
 export function MinorityResultRow({minority, selected, onSelect}: MinorityResultRowProps) {
@@ -25,6 +21,8 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
         labelSourceClass(minority.source_class[0] ?? ''),
         formatCountries(minority.countries),
         formatPopulation(minority.population),
+        formatCount(minority.project_count, 'project'),
+        formatCount(minority.work_count, 'publication'),
     ]
         .filter(Boolean)
         .join(' · ')
@@ -34,7 +32,7 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
             divider
             selected={selected}
             onClick={() => onSelect(minority.qid)}
-            sx={{height: ROW_HEIGHT, display: 'flex', alignItems: 'center', gap: 2, px: 2.5}}
+            sx={{height: ROW_HEIGHT, display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5}}
         >
             <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column'}}>
                 <Text variant="body1" truncate sx={{color: 'primary.main', fontWeight: 500}}>
@@ -45,19 +43,17 @@ export function MinorityResultRow({minority, selected, onSelect}: MinorityResult
                 </Text>
             </Box>
 
-            <Button
-                component="a"
-                href={wikipediaUrl(minority.qid)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                variant="outlined"
-                size="small"
-                endIcon={<OpenInNewIcon fontSize="small" />}
-                sx={{minWidth: 96, flexShrink: 0}}
-            >
-                Wikipedia
-            </Button>
+            {/* A group the project chose to study, rather than one harvested
+                from Wikidata — worth marking, and what the default order
+                ranks first. */}
+            {minority.is_seed && (
+                <Tooltip title="A group this research programme selected to study">
+                    <Chip label="Seed" size="small" color="secondary" variant="outlined" sx={{flexShrink: 0}} />
+                </Tooltip>
+            )}
+            {minority.dch_project_count != null && minority.dch_project_count > 0 && (
+                <Chip label="DCH" size="small" color="secondary" variant="outlined" sx={{flexShrink: 0}} />
+            )}
         </ListItemButton>
     )
 }

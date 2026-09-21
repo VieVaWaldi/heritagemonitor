@@ -21,6 +21,7 @@ import {
     type ProjectRow,
     type ProjectSearchRequest,
     type ProjectSearchResponse,
+    type TopicCountsResponse,
     type WorkProjectsResponse,
 } from '@heritagemonitor/shared'
 import {
@@ -78,6 +79,7 @@ function toFilters(request: ProjectSearchRequest): query.ProjectFilters {
         subfield: request.subfield,
         field: request.field,
         org: request.org,
+        minority: request.minority,
         only: request.only,
     }
 }
@@ -161,6 +163,25 @@ export async function searchProjects(request: ProjectSearchRequest): Promise<Pro
 
     if (cacheable) writeDefaultPage(cacheKey, response)
     return response
+}
+
+/**
+ * Topic-tree counts for the projects the caller's CURRENT search matches.
+ *
+ * The caller's own topic/subfield/field selection is stripped first: counting
+ * under it would show zero everywhere else and make the next choice
+ * impossible — the browser has to answer "what ELSE is in here".
+ */
+export async function aggregateProjectTopicCounts(request: ProjectSearchRequest): Promise<TopicCountsResponse> {
+    const {topic: _topic, subfield: _subfield, field: _field, ...withoutTopics} = request
+    const aggregations = await opensearchRepository.topicCounts(request.q ?? '', toFilters(withoutTopics))
+
+    const level = (name: string): Record<string, number> =>
+        Object.fromEntries(
+            (aggregations[name]?.buckets ?? []).map((bucket) => [String(bucket.key_as_string ?? bucket.key), bucket.doc_count]),
+        )
+
+    return {field: level('field'), subfield: level('subfield'), topic: level('topic')}
 }
 
 /**

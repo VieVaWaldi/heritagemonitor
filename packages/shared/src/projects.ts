@@ -142,6 +142,8 @@ export const projectSearchRequestSchema = baseSearchRequestSchema.extend({
     field: z.array(z.string()).optional(),
     /** Any-of: projects involving at least one of these organisations. */
     org: z.array(z.string()).optional(),
+    /** Wikidata ids of minority groups a project is tagged with. */
+    minority: z.array(z.string()).optional(),
 })
 export type ProjectSearchRequest = z.infer<typeof projectSearchRequestSchema>
 

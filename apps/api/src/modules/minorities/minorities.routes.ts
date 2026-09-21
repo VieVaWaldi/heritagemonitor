@@ -1,30 +1,48 @@
-import type {EntitySuggestResponse, MinorityDto, MinoritySearchRequest, MinoritySearchResponse} from '@heritagemonitor/shared'
+import {
+    CORPUS_KEYS,
+    type EntitySuggestResponse,
+    type MinorityDto,
+    type MinorityFundersResponse,
+    type MinoritySearchRequest,
+    type MinoritySearchResponse,
+    type MinorityTopicsResponse,
+    type WorkOrganisationsResponse,
+} from '@heritagemonitor/shared'
 import type {FastifyInstance} from 'fastify'
-import {getMinorityById, searchMinorities, suggestMinorities} from './minorities.service.js'
+import {
+    getMinorityByQid,
+    getMinorityFunders,
+    getMinorityOrganisations,
+    getMinorityTopics,
+    searchMinorities,
+    suggestMinorities,
+} from './minorities.service.js'
 
-// Transport layer: HTTP concerns only, no business logic here. See
-// apps/api/RULES.md rule 9 (plain functions over controller classes) and
-// rule 14 (modules own their own routes).
+// Transport layer: HTTP concerns only. Querystring names are the web's URL
+// params, one for one (see apps/web/src/common/url).
+//
+// There is no `/minorities/:qid/projects` or `/works`: both are searches over
+// those indexes with a `minority` filter, so the web calls
+// `/v1/projects/search?minority=<qid>` and `/v1/works/search?minority=<qid>`
+// directly — the same endpoints, the same ranking and filters as anywhere
+// else, rather than two proxies that would drift from them.
+
+interface ByQidParams {
+    qid: string
+}
 
 interface SuggestQuery {
     q?: string
 }
 
-interface ByIdParams {
-    qid: string
+interface PagedQuery {
+    page?: number
 }
 
-// Ajv's `coerceTypes` (on by default in Fastify) turns a single
-// `?countries=France` into `["France"]` here too, so callers don't need to
-// special-case the one-value case vs. repeated `?countries=France&countries=Italy`.
 const stringArrayProp = {type: 'array', items: {type: 'string'}} as const
+const pageProp = {type: 'integer', minimum: 1, default: 1} as const
 
 export async function minoritiesRoutes(fastify: FastifyInstance) {
-    // MinoritySearchRequest (from @heritagemonitor/shared) is the TS type
-    // for this querystring — the JSON-schema below stays hand-written
-    // separately since that's what drives Fastify/Ajv's runtime coercion
-    // (e.g. a single ?countries=France into ["France"]), a transport-layer
-    // concern the shared zod schema doesn't need to duplicate.
     fastify.get<{Querystring: MinoritySearchRequest}>(
         '/minorities/search',
         {
@@ -33,42 +51,59 @@ export async function minoritiesRoutes(fastify: FastifyInstance) {
                     type: 'object',
                     properties: {
                         q: {type: 'string'},
-                        countries: stringArrayProp,
-                        source_class: stringArrayProp,
-                        religions: stringArrayProp,
-                        native_languages: stringArrayProp,
-                        subclass_of: stringArrayProp,
-                        admin_territory: stringArrayProp,
-                        ancestral_home: stringArrayProp,
-                        has_subgroups: {type: 'boolean'},
-                        sort: {
-                            type: 'string',
-                            enum: ['group_name_en:asc', 'group_name_en:desc', 'population:asc', 'population:desc'],
-                        },
-                        page: {type: 'integer', minimum: 1, default: 1},
+                        c: {type: 'string', enum: [...CORPUS_KEYS]},
+                        page: pageProp,
+                        sort: {type: 'string', enum: ['relevance', 'projects', 'works', 'population', 'name']},
+                        country: stringArrayProp,
+                        topic: stringArrayProp,
+                        type: stringArrayProp,
+                        religion: stringArrayProp,
+                        language: stringArrayProp,
+                        subclass: stringArrayProp,
+                        territory: stringArrayProp,
+                        home: stringArrayProp,
+                        hasSubgroups: {type: 'boolean'},
+                        only: stringArrayProp,
                     },
                 },
             },
         },
-        async (request): Promise<MinoritySearchResponse> => {
-            const {q, page, has_subgroups, sort, ...arrayFilters} = request.query
-            return searchMinorities(q ?? '', {...arrayFilters, has_subgroups}, page ?? 1, sort)
-        },
+        async (request): Promise<MinoritySearchResponse> => searchMinorities(request.query),
     )
 
     fastify.get<{Querystring: SuggestQuery}>(
         '/minorities/suggest',
         {schema: {querystring: {type: 'object', properties: {q: {type: 'string'}}}}},
-        async (request): Promise<EntitySuggestResponse> => {
-            return suggestMinorities(request.query.q ?? '')
-        },
+        async (request): Promise<EntitySuggestResponse> => suggestMinorities(request.query.q ?? ''),
     )
 
-    fastify.get<{Params: ByIdParams}>(
+    fastify.get<{Params: ByQidParams}>(
         '/minorities/:qid',
         {schema: {params: {type: 'object', properties: {qid: {type: 'string'}}, required: ['qid']}}},
-        async (request): Promise<MinorityDto> => {
-            return getMinorityById(request.params.qid)
-        },
+        async (request): Promise<MinorityDto> => getMinorityByQid(request.params.qid),
+    )
+
+    const pagedTab = {
+        params: {type: 'object', properties: {qid: {type: 'string'}}, required: ['qid']},
+        querystring: {type: 'object', properties: {page: pageProp}},
+    } as const
+
+    fastify.get<{Params: ByQidParams; Querystring: PagedQuery}>(
+        '/minorities/:qid/organisations',
+        {schema: pagedTab},
+        async (request): Promise<WorkOrganisationsResponse> =>
+            getMinorityOrganisations(request.params.qid, request.query.page ?? 1),
+    )
+
+    fastify.get<{Params: ByQidParams; Querystring: PagedQuery}>(
+        '/minorities/:qid/topics',
+        {schema: pagedTab},
+        async (request): Promise<MinorityTopicsResponse> => getMinorityTopics(request.params.qid, request.query.page ?? 1),
+    )
+
+    fastify.get<{Params: ByQidParams; Querystring: PagedQuery}>(
+        '/minorities/:qid/funders',
+        {schema: pagedTab},
+        async (request): Promise<MinorityFundersResponse> => getMinorityFunders(request.params.qid, request.query.page ?? 1),
     )
 }

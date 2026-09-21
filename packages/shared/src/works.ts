@@ -85,6 +85,8 @@ export const workSearchRequestSchema = baseSearchRequestSchema.extend({
     /** Works of these projects / organisations — the reverse-lookup tabs. */
     project: z.array(z.string()).optional(),
     org: z.array(z.string()).optional(),
+    /** Minority tags, inherited from the linked project (labelled "via linked project"). */
+    minority: z.array(z.string()).optional(),
 })
 export type WorkSearchRequest = z.infer<typeof workSearchRequestSchema>
 

@@ -77,5 +77,8 @@ export type {TabbedPanelProps, TabbedPanelTab} from './TabbedPanel'
 export {YearFilter} from './YearFilter'
 export type {YearFilterProps} from './YearFilter'
 
+export {TopicsModal} from './TopicsModal'
+export type {TopicsModalProps, TopicSelectionValue} from './TopicsModal'
+
 export {ViewModeToggle} from './ViewModeToggle'
 export type {ViewModeToggleProps, ViewMode} from './ViewModeToggle'

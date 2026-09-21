@@ -1,70 +1,33 @@
 import {z} from 'zod'
+import {baseSearchRequestSchema, paginatedResponseSchema, searchResponseSchema} from './search.js'
 
-// Contract for GET /v1/minorities/search, /v1/minorities/suggest and
-// /v1/minorities/:qid, shared between apps/api (produces, mapped from the
-// OpenSearch `minorities` index — see hm_pipeline's
-// index_opensearch.py for the raw document shape) and apps/web (validates
-// at the network boundary before trusting it). Only the fields the UI
-// actually uses are modeled — the raw index also carries `diaspora` (always
-// empty), `part_of`/`has_parts`/`merged_qids` (pipeline-internal), which
-// apps/api's mapping step drops rather than passing through.
+// Contract for GET /v1/minorities/*, mapped from the core_v4 `minorities`
+// index (see hm_pipeline's export/mappings/minorities.json). 278 groups
+// derived from Wikidata, with counts denormalised from the projects and works
+// indexes.
+//
+// The index omits a field entirely when it is NULL or empty — it does not
+// store nulls — so EVERY optional field here is `.nullish()` with a
+// normalising transform, never `.nullable()`. `.nullable()` requires the key
+// to be PRESENT, which silently dropped every group without a population (see
+// the regression test in test/minorities.test.ts).
 
-// Which minorities fields are checkbox facets, their display label, and
-// primary/secondary tiering — the one place this lives on the TS side.
-// apps/api reads the field list to know which OpenSearch aggregations to
-// request; apps/web reads the whole thing to render both the sidebar and
-// the filter bar (one map, not hand-duplicated JSX) and to know which
-// MinorityFilters keys are array-valued. Mirrors (but can't literally
-// import — different language, different repo) the tiering rationale in
-// hm_pipeline's index_opensearch.py docstring; if that pipeline's facet
-// fields ever change, this is the one place the TS side needs to follow.
-export type MinorityFacetField =
-    | 'countries'
-    | 'source_class'
-    | 'religions'
-    | 'native_languages'
-    | 'subclass_of'
-    | 'admin_territory'
-    | 'ancestral_home'
-
-export interface MinorityFacetFieldConfig {
-    field: MinorityFacetField
-    label: string
-    tier: 'primary' | 'secondary'
-}
-
-export const MINORITY_FACET_FIELDS: MinorityFacetFieldConfig[] = [
-    {field: 'countries', label: 'Country', tier: 'primary'},
-    {field: 'source_class', label: 'Type', tier: 'primary'},
-    {field: 'religions', label: 'Religion', tier: 'primary'},
-    {field: 'native_languages', label: 'Language', tier: 'primary'},
-    {field: 'subclass_of', label: 'Subclass of', tier: 'secondary'},
-    {field: 'admin_territory', label: 'Admin territory', tier: 'secondary'},
-    {field: 'ancestral_home', label: 'Ancestral home', tier: 'secondary'},
-]
-
-// manual_seed/indigenous_to_europe are internal pipeline vocabulary (see
-// index_opensearch.py) and need a real relabel; the rest are already
-// human-readable words, just lowercase in the raw data, so they only need
-// capitalizing.
-// Mirrors the sortable fields on the `minorities` OpenSearch index
-// (group_name_en, population) — the one place both apps/api's querystring
-// validation and apps/web's RankingButton get this list from.
-export const MINORITY_SORT_OPTIONS = [
-    {value: 'group_name_en:asc', field: 'group_name_en', direction: 'asc', label: 'Name (A–Z)'},
-    {value: 'group_name_en:desc', field: 'group_name_en', direction: 'desc', label: 'Name (Z–A)'},
-    {value: 'population:desc', field: 'population', direction: 'desc', label: 'Population (high–low)'},
-    {value: 'population:asc', field: 'population', direction: 'asc', label: 'Population (low–high)'},
-] as const
-export type MinoritySortOption = (typeof MINORITY_SORT_OPTIONS)[number]['value']
-
-export const MINORITY_SOURCE_CLASS_LABELS: Record<string, string> = {
-    manual_seed: 'Seed group',
-    indigenous_to_europe: 'Indigenous people',
-    'ethnic group': 'Ethnic group',
-    'ethnoreligious group': 'Ethnoreligious group',
-    tribe: 'Tribe',
-}
+const nullableString = z
+    .string()
+    .nullish()
+    .transform((value) => value ?? null)
+const nullableNumber = z
+    .number()
+    .nullish()
+    .transform((value) => value ?? null)
+const nullableBoolean = z
+    .boolean()
+    .nullish()
+    .transform((value) => value ?? false)
+const stringArray = z
+    .array(z.string())
+    .nullish()
+    .transform((value) => value ?? [])
 
 export const knownSubgroupSchema = z.object({
     name: z.string(),
@@ -72,59 +35,159 @@ export const knownSubgroupSchema = z.object({
 })
 export type KnownSubgroup = z.infer<typeof knownSubgroupSchema>
 
+/** How many of a group's projects fall under one topic — the Topics tab. */
+export const minorityTopicCountSchema = z.object({
+    topic_id: z.string(),
+    n: z.number(),
+})
+export type MinorityTopicCount = z.infer<typeof minorityTopicCountSchema>
+
 export const minorityDtoSchema = z.object({
     qid: z.string(),
     group_name_en: z.string(),
-    countries: z.array(z.string()),
-    source_class: z.array(z.string()),
-    population: z.number().nullable(),
-    religions: z.array(z.string()),
-    native_languages: z.array(z.string()),
-    subclass_of: z.array(z.string()),
-    admin_territory: z.array(z.string()),
-    ancestral_home: z.array(z.string()),
-    known_subgroups: z.array(knownSubgroupSchema),
-    search_keywords: z.array(z.string()),
-    has_subgroups: z.boolean(),
+    countries: stringArray,
+    source_class: stringArray,
+    /** Double on the index; absent for most groups. */
+    population: nullableNumber,
+    religions: stringArray,
+    native_languages: stringArray,
+    subclass_of: stringArray,
+    admin_territory: stringArray,
+    ancestral_home: stringArray,
+    known_subgroups: z
+        .array(knownSubgroupSchema)
+        .nullish()
+        .transform((value) => value ?? []),
+    search_keywords: stringArray,
+    has_subgroups: nullableBoolean,
+
+    /**
+     * A group the project picked by hand as a starting point for the research,
+     * rather than one harvested from Wikidata. Replaces the old
+     * `source_class: 'manual_seed'` marker.
+     */
+    is_seed: nullableBoolean,
+    /** Denormalised from the projects/works indexes; 9 groups legitimately have 0. */
+    project_count: nullableNumber,
+    dch_project_count: nullableNumber,
+    org_count: nullableNumber,
+    work_count: nullableNumber,
+    topic_ids: stringArray,
+    topic_counts: z
+        .array(minorityTopicCountSchema)
+        .nullish()
+        .transform((value) => value ?? []),
+    /**
+     * Other Wikidata ids folded into this group. Projects may be tagged with
+     * any of them, which is why a group's projects are looked up by qid AND
+     * merged qids.
+     */
+    merged_qids: stringArray,
 })
 export type MinorityDto = z.infer<typeof minorityDtoSchema>
 
-// One entry per filterable field requested — value -> count, same shape
-// apps/api's opensearch.repository.ts flattens its terms aggregations into.
-export const minorityFacetDistributionSchema = z.record(z.string(), z.record(z.string(), z.number()))
-export type MinorityFacetDistribution = z.infer<typeof minorityFacetDistributionSchema>
+// `project_title_blob` is searchable on the index but excluded from `_source`,
+// so it is deliberately absent here: it exists to be queried, never shown.
 
-// Query-param contract for GET /v1/minorities/search, symmetric with
-// minoritySearchResponseSchema below — apps/api's route uses this for the
-// querystring's TS type (Fastify's own Ajv JSON-schema still separately
-// handles runtime coercion, that's transport-layer config, not the same
-// duplication this fixes); apps/web's useMinoritySearch builds a value of
-// this shape before serializing it to a query string.
-export const minoritySearchRequestSchema = z.object({
-    q: z.string().optional(),
-    countries: z.array(z.string()).optional(),
-    source_class: z.array(z.string()).optional(),
-    religions: z.array(z.string()).optional(),
-    native_languages: z.array(z.string()).optional(),
-    subclass_of: z.array(z.string()).optional(),
-    admin_territory: z.array(z.string()).optional(),
-    ancestral_home: z.array(z.string()).optional(),
-    has_subgroups: z.boolean().optional(),
-    sort: z.enum(['group_name_en:asc', 'group_name_en:desc', 'population:asc', 'population:desc']).optional(),
-    page: z.number().optional(),
+export type MinorityFacetField =
+    | 'countries'
+    | 'topic_ids'
+    | 'source_class'
+    | 'religions'
+    | 'native_languages'
+    | 'subclass_of'
+    | 'admin_territory'
+    | 'ancestral_home'
+
+/**
+ * Facets in sidebar order. Topics sits third, right below Country, because
+ * "which research topics does this group appear in" is the question this page
+ * exists to answer — it is the only facet whose values are ids, and the api
+ * labels them from its in-memory topics table.
+ */
+export const MINORITY_FACET_FIELDS = [
+    {field: 'countries', param: 'country', label: 'Country', size: 50, searchable: false, tier: 'primary'},
+    {field: 'topic_ids', param: 'topic', label: 'Topic', size: 25, searchable: false, tier: 'primary'},
+    {field: 'source_class', param: 'type', label: 'Type', size: 20, searchable: false, tier: 'primary'},
+    {field: 'religions', param: 'religion', label: 'Religion', size: 30, searchable: false, tier: 'primary'},
+    {field: 'native_languages', param: 'language', label: 'Language', size: 40, searchable: false, tier: 'primary'},
+    {field: 'subclass_of', param: 'subclass', label: 'Subclass of', size: 20, searchable: false, tier: 'secondary'},
+    {field: 'admin_territory', param: 'territory', label: 'Admin territory', size: 20, searchable: false, tier: 'secondary'},
+    {field: 'ancestral_home', param: 'home', label: 'Ancestral home', size: 20, searchable: false, tier: 'secondary'},
+] as const
+export type MinorityFacetConfig = (typeof MINORITY_FACET_FIELDS)[number]
+export type MinorityFacetParam = MinorityFacetConfig['param']
+
+/**
+ * Ranking. Blank: the hand-picked seed groups first, then by how much research
+ * actually mentions them — an alphabetical list of 278 groups tells nobody
+ * where the material is. With a query, `_score` decides and seeds only get a
+ * nudge.
+ */
+export const MINORITY_SORT_OPTIONS = [
+    {value: 'relevance', label: 'Relevance', direction: null},
+    {value: 'projects', label: 'Projects (high–low)', direction: 'desc'},
+    {value: 'works', label: 'Publications (high–low)', direction: 'desc'},
+    {value: 'population', label: 'Population (high–low)', direction: 'desc'},
+    {value: 'name', label: 'Name (A–Z)', direction: 'asc'},
+] as const
+export type MinoritySort = (typeof MINORITY_SORT_OPTIONS)[number]['value']
+export const minoritySortSchema = z.enum(['relevance', 'projects', 'works', 'population', 'name'])
+
+export const MINORITY_SOURCE_CLASS_LABELS: Record<string, string> = {
+    indigenous_to_europe: 'Indigenous people',
+    'ethnic group': 'Ethnic group',
+    'ethnoreligious group': 'Ethnoreligious group',
+    tribe: 'Tribe',
+}
+
+export const minoritySearchRequestSchema = baseSearchRequestSchema.extend({
+    sort: minoritySortSchema.optional(),
+    country: z.array(z.string()).optional(),
+    topic: z.array(z.string()).optional(),
+    type: z.array(z.string()).optional(),
+    religion: z.array(z.string()).optional(),
+    language: z.array(z.string()).optional(),
+    subclass: z.array(z.string()).optional(),
+    territory: z.array(z.string()).optional(),
+    home: z.array(z.string()).optional(),
+    /** Toggle, not a list: only groups that document subgroups. */
+    hasSubgroups: z.coerce.boolean().optional(),
 })
 export type MinoritySearchRequest = z.infer<typeof minoritySearchRequestSchema>
 
-export const minoritySearchResponseSchema = z.object({
-    hits: z.array(minorityDtoSchema),
-    facetDistribution: minorityFacetDistributionSchema,
-    estimatedTotalHits: z.number(),
-    page: z.number(),
-    pageCount: z.number(),
-})
+export const minoritySearchResponseSchema = searchResponseSchema(minorityDtoSchema)
 export type MinoritySearchResponse = z.infer<typeof minoritySearchResponseSchema>
 
-// Suggestions use the shared entitySuggestResponseSchema (see ./search.ts):
-// every entity's type-ahead answers the same shape, so apps/web has one
-// useEntitySuggestions hook rather than one per entity. A minority's `id` is
-// its qid, which is what lets a picked suggestion open that group directly.
+/** One row of the Topics tab: a topic the group's projects fall under. */
+export const minorityTopicSchema = z.object({
+    topic_id: z.string(),
+    topic_name: z.string(),
+    subfield_name: nullableString,
+    field_name: nullableString,
+    project_count: z.number(),
+})
+export type MinorityTopic = z.infer<typeof minorityTopicSchema>
+
+export const minorityTopicsResponseSchema = paginatedResponseSchema(minorityTopicSchema)
+export type MinorityTopicsResponse = z.infer<typeof minorityTopicsResponseSchema>
+
+/** One row of the Funding tab: a funder/programme the group's projects came through. */
+export const minorityFunderSchema = z.object({
+    funder: z.string(),
+    programmes: stringArray,
+    project_count: z.number(),
+})
+export type MinorityFunder = z.infer<typeof minorityFunderSchema>
+
+export const minorityFundersResponseSchema = paginatedResponseSchema(minorityFunderSchema)
+export type MinorityFundersResponse = z.infer<typeof minorityFundersResponseSchema>
+
+/**
+ * Wikidata is the source of every group, so its entity page is the one link
+ * that always exists. Wikipedia is derived from it by the client where a
+ * sitelink is known; the qid page itself is always reachable.
+ */
+export function minorityWikidataUrl(qid: string): string {
+    return `https://www.wikidata.org/wiki/${encodeURIComponent(qid)}`
+}

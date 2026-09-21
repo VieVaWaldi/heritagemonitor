@@ -1,4 +1,12 @@
-import {languageName, openAccessLabel, workLinks, type WorkDetail, type WorkRow} from '@heritagemonitor/shared'
+import {
+    bestFetchableSource,
+    fetchableSources,
+    languageName,
+    openAccessLabel,
+    workLinks,
+    type WorkDetail,
+    type WorkRow,
+} from '@heritagemonitor/shared'
 import {SELECTED_ENTITY_CHARS, type PageContextSection, type PageContextSource} from '@/common/llmchat/pageContext'
 import {formatAuthors, formatCitations, workTitle, workVenue} from './workFormat'
 
@@ -48,12 +56,10 @@ export function selectedWorkSection(work: WorkDetail): PageContextSection {
 
 /**
  * What Lucy may fetch: the selected work's links first, then the best single
- * link per listed work.
- *
- * `workLinks` puts a `pdf_url` before a DOI deliberately — the api allowlists
- * her fetch tool by HOSTNAME of these URLs, and a doi.org link redirects to
- * whichever publisher owns the record, a host that is then not on the list.
- * A direct PDF is both what a reader wants and what actually fetches.
+ * link per listed work — both through `fetchableSources`, which drops a
+ * doi.org link whenever a `pdf_url` can serve the same paper. Measured: the
+ * PDF fetches, the DOI does not, because the allowlist is by hostname and
+ * doi.org redirects to a publisher host that was never on it.
  */
 export function workSources(selected: WorkDetail | null, rows: WorkRow[]): PageContextSource[] {
     const sources: PageContextSource[] = []
@@ -66,10 +72,10 @@ export function workSources(selected: WorkDetail | null, rows: WorkRow[]): PageC
     }
 
     if (selected) {
-        for (const link of workLinks(selected)) add(`${workTitle(selected)} (${link.label})`, link.url)
+        for (const link of fetchableSources(workLinks(selected))) add(`${workTitle(selected)} (${link.label})`, link.url)
     }
     for (const row of rows) {
-        const best = workLinks(row)[0]
+        const best = bestFetchableSource(workLinks(row))
         if (best) add(`${workTitle(row)} (${best.label})`, best.url)
     }
 

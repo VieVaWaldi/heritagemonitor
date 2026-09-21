@@ -55,6 +55,7 @@ export async function worksRoutes(fastify: FastifyInstance) {
                         publisher: stringArrayProp,
                         project: stringArrayProp,
                         org: stringArrayProp,
+                        minority: stringArrayProp,
                         only: stringArrayProp,
                     },
                 },

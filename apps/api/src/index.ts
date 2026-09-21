@@ -7,6 +7,7 @@ import {minoritiesRoutes} from "./modules/minorities/minorities.routes.js";
 import {monitoringRoutes} from "./modules/monitoring/monitoring.routes.js";
 import {organisationsRoutes} from "./modules/organisations/organisations.routes.js";
 import {projectsRoutes} from "./modules/projects/projects.routes.js";
+import {topicsRoutes} from "./modules/topics/topics.routes.js";
 import {worksRoutes} from "./modules/works/works.routes.js";
 import foundation from './plugins/foundation.js'
 import {buildLoggerOptions} from './plugins/logging.js'
@@ -40,6 +41,7 @@ fastify.register(async (v1) => {
     v1.register(projectsRoutes)
     v1.register(organisationsRoutes)
     v1.register(worksRoutes)
+    v1.register(topicsRoutes)
     v1.register(demoRoutes)
 }, {prefix: '/v1'})
 
