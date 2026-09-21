@@ -26,7 +26,7 @@
 export const BASE_ZOOM = 4.2
 
 /** Hex radius in metres at BASE_ZOOM. */
-export const BASE_RADIUS_METERS = 10_000
+export const BASE_RADIUS_METERS = 20_000
 
 /** Elevation scale at BASE_ZOOM; multiplied by the zoom factor. */
 export const BASE_ELEVATION_SCALE = 400
