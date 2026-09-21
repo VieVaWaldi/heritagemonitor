@@ -1,7 +1,7 @@
 'use client'
 
 import {useMemo} from 'react'
-import type {MinorityDto, MinoritySortOption} from '@heritagemonitor/shared'
+import {MINORITY_SORT_OPTIONS, type MinorityDto, type MinoritySortOption} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
@@ -17,6 +17,7 @@ import {
     FilterBar,
     FilterMenuButton,
     PaginatedList,
+    RankingButton,
     TabbedPanel,
 } from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
@@ -26,7 +27,6 @@ import {formatPopulation, labelSourceClass} from './minorityFormat'
 import {MinorityOverviewTab} from './MinorityOverviewTab'
 import {MinorityResultRow} from './MinorityResultRow'
 import {MinoritySubgroupsTab} from './MinoritySubgroupsTab'
-import {RankingButton} from './RankingButton'
 import {useMinorityFacets} from './useMinorityFacets'
 import {useMinoritySearch} from './useMinoritySearch'
 import {useSelectedMinority} from './useSelectedMinority'
@@ -97,7 +97,7 @@ function ResultsHeader({count, sort, onSortChange}: ResultsHeaderProps) {
                 About {count} groups
             </Text>
             <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-                <RankingButton value={sort} onChange={onSortChange} />
+                <RankingButton options={MINORITY_SORT_OPTIONS} value={sort} onChange={onSortChange} />
                 <Tooltip title="Download results (coming soon)">
                     <span>
                         <Button

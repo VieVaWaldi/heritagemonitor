@@ -12,6 +12,10 @@
         "noEmit": true,
         "incremental": true,
         "resolveJsonModule": true,
+        // The url-codec tests are run straight from source by `node --test`,
+        // which resolves the real file name; safe here because this project
+        // is noEmit (Next does the emitting).
+        "allowImportingTsExtensions": true,
         "isolatedModules": true,
         "plugins": [
             {

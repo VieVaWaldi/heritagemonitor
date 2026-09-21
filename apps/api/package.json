@@ -10,7 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:debug": "tsx watch --inspect=0.0.0.0:9229 src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "postbuild": "mkdir -p dist/modules/llmchat && cp src/modules/llmchat/SystemPrompt.md dist/modules/llmchat/SystemPrompt.md && mkdir -p dist/modules/demo/seed && cp src/modules/demo/seed/collaboration-edges.json dist/modules/demo/seed/collaboration-edges.json",
+    "postbuild": "mkdir -p dist/modules/llmchat && cp src/modules/llmchat/SystemPrompt.md dist/modules/llmchat/SystemPrompt.md && mkdir -p dist/modules/demo/seed && cp src/modules/demo/seed/collaboration-edges.json dist/modules/demo/seed/collaboration-edges.json && mkdir -p dist/reference && cp src/reference/topics.json dist/reference/topics.json",
     "start": "node dist/index.js"
   },
   "dependencies": {

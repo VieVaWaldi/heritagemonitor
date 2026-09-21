@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test test/",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {

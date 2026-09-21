@@ -5,6 +5,7 @@ import {healthRoutes} from "./modules/health/health.routes.js";
 import {llmchatRoutes} from "./modules/llmchat/llmchat.routes.js";
 import {minoritiesRoutes} from "./modules/minorities/minorities.routes.js";
 import {monitoringRoutes} from "./modules/monitoring/monitoring.routes.js";
+import {projectsRoutes} from "./modules/projects/projects.routes.js";
 import foundation from './plugins/foundation.js'
 import {buildLoggerOptions} from './plugins/logging.js'
 import {genReqId} from './plugins/requestId.js'
@@ -34,6 +35,7 @@ fastify.register(async (v1) => {
     v1.register(monitoringRoutes)
     v1.register(llmchatRoutes)
     v1.register(minoritiesRoutes)
+    v1.register(projectsRoutes)
     v1.register(demoRoutes)
 }, {prefix: '/v1'})
 

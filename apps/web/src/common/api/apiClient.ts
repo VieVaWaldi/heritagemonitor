@@ -21,6 +21,22 @@ interface Parser<T> {
     parse(data: unknown): T
 }
 
+// api's error handler answers `{"error": "..."}` with a message written for a
+// person ("Page 501 is beyond the 10,000-result window ..."), so a 4xx is
+// worth showing as-is instead of a generic status line. A body that isn't
+// that shape falls back to the status.
+async function errorMessageOf(response: Response, path: string): Promise<string> {
+    try {
+        const body: unknown = await response.json()
+        if (typeof body === 'object' && body !== null && typeof (body as {error?: unknown}).error === 'string') {
+            return (body as {error: string}).error
+        }
+    } catch {
+        // Not JSON (a proxy error page, an empty body) — the status is all we have.
+    }
+    return `GET ${path} failed with status ${response.status}`
+}
+
 export async function apiGet<T>(path: string, schema: Parser<T>, init?: RequestInit): Promise<T> {
     const headers = new Headers(init?.headers)
     headers.set('X-Request-Id', crypto.randomUUID())
@@ -28,7 +44,7 @@ export async function apiGet<T>(path: string, schema: Parser<T>, init?: RequestI
     const response = await fetch(`${API_BASE_URL}${path}`, {...init, headers})
 
     if (!response.ok) {
-        throw new ApiError(`GET ${path} failed with status ${response.status}`, response.status)
+        throw new ApiError(await errorMessageOf(response, path), response.status)
     }
 
     return schema.parse(await response.json())

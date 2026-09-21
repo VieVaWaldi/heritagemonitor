@@ -9,6 +9,7 @@
         "dev": "next dev",
         "dev:debug": "NODE_OPTIONS='--inspect=0.0.0.0:9230' next dev",
         "build": "next build",
+        "test": "node --test test/",
         "start": "next start",
         "lint": "eslint ."
     },

@@ -50,6 +50,9 @@ export type {NavbarProps} from './Navbar'
 export {PaginatedList} from './PaginatedList'
 export type {PaginatedListProps} from './PaginatedList'
 
+export {RankingButton} from './RankingButton'
+export type {RankingButtonProps, RankingOption} from './RankingButton'
+
 export {SearchBar} from './SearchBar'
 export type {SearchBarProps} from './SearchBar'
 

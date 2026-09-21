@@ -8,43 +8,55 @@ import {alpha} from '@mui/material/styles'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import SwapVertIcon from '@mui/icons-material/SwapVert'
-import {MINORITY_SORT_OPTIONS, type MinoritySortOption} from '@heritagemonitor/shared'
 import {Text} from '@/common/text'
 
-export interface RankingButtonProps {
-    value: MinoritySortOption | null
-    onChange: (value: MinoritySortOption | null) => void
+/**
+ * One sort choice. Shaped so an entity's own option list from
+ * @heritagemonitor/shared (PROJECT_SORT_OPTIONS, MINORITY_SORT_OPTIONS, ...)
+ * can be passed straight in: the wire value is the contract, this component
+ * only renders it.
+ */
+export interface RankingOption<TValue extends string = string> {
+    value: TValue
+    label: string
+    /** Arrow shown next to the label; null for a ranking with no direction (relevance). */
+    direction?: 'asc' | 'desc' | null
+}
+
+export interface RankingButtonProps<TValue extends string = string> {
+    options: readonly RankingOption<TValue>[]
+    /** `null` = no explicit choice; the list is in whatever order its api decided. */
+    value: TValue | null
+    onChange: (value: TValue | null) => void
+    /** Label of that "no explicit choice" row. */
+    defaultLabel?: string
 }
 
 const ROW_HEIGHT = 40
 const PANEL_MIN_WIDTH = 200
 
-interface RankingRow {
-    value: MinoritySortOption | null
-    label: string
-    direction: 'asc' | 'desc' | null
-}
-
-const ROWS: RankingRow[] = [
-    {value: null, label: 'Default', direction: null},
-    ...MINORITY_SORT_OPTIONS.map((option) => ({value: option.value, label: option.label, direction: option.direction})),
-]
-
-function DirectionIcon({direction}: {direction: 'asc' | 'desc' | null}) {
+function DirectionIcon({direction}: {direction: 'asc' | 'desc' | null | undefined}) {
     if (direction === 'asc') return <ArrowUpwardIcon fontSize="small" />
     if (direction === 'desc') return <ArrowDownwardIcon fontSize="small" />
     return <SwapVertIcon fontSize="small" />
 }
 
-// Sort control for MinoritiesResultsPanel's PaginatedList header — same
-// hover-panel language as EntitySelector, just a labeled button instead of
-// an icon circle since the current ranking needs to be legible at a glance.
-export function RankingButton({value, onChange}: RankingButtonProps) {
+// Sort control for a results list's PaginatedList header — same hover-panel
+// language as EntitySelector, just a labeled button instead of an icon circle
+// since the current ranking needs to be legible at a glance. Generic over the
+// option list: every entity has its own rankings, none of them belong here.
+export function RankingButton<TValue extends string = string>({
+    options,
+    value,
+    onChange,
+    defaultLabel = 'Default',
+}: RankingButtonProps<TValue>) {
     const [open, setOpen] = useState(false)
-    const active = ROWS.find((row) => row.value === value) ?? ROWS[0]
+    const rows: RankingOption<TValue | ''>[] = [{value: '', label: defaultLabel, direction: null}, ...options]
+    const active = rows.find((row) => (row.value === '' ? value === null : row.value === value)) ?? rows[0]
 
-    function handleSelect(row: RankingRow) {
-        onChange(row.value)
+    function handleSelect(row: RankingOption<TValue | ''>) {
+        onChange(row.value === '' ? null : (row.value as TValue))
         setOpen(false)
     }
 
@@ -96,12 +108,12 @@ export function RankingButton({value, onChange}: RankingButtonProps) {
                         overflow: 'hidden',
                     }}
                 >
-                    {ROWS.map((row, index) => (
+                    {rows.map((row, index) => (
                         <Box key={row.label}>
                             {index > 0 && <Divider />}
                             <ButtonBase
                                 role="option"
-                                aria-selected={row.value === value}
+                                aria-selected={row === active}
                                 onClick={() => handleSelect(row)}
                                 sx={(theme) => ({
                                     width: '100%',
