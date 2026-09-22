@@ -1,11 +1,12 @@
 'use client'
 
 import Box from '@mui/material/Box'
-import {Navbar, NAVBAR_HEIGHT_MID} from '@/common/components'
+import {Navbar, NAVBAR_HEIGHT_TALL} from '@/common/components'
 import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
 import {useLlmChatContentSx, useLlmChatTopOffset} from '@/common/llmchat/LlmChatRuntime'
 import {HeroPage} from './HeroPage'
 import {DIGICHerSection} from './components/DIGICHerSection'
+import {DigicherNavLogo} from './components/DigicherNavLogo'
 import {InformationSection} from './components/InformationSection'
 import {Footer} from './components/Footer'
 
@@ -15,12 +16,12 @@ export function HomePage() {
     // it — and leaves matching room on the right so the panel docks beside
     // this content instead of covering it, same visual result as before
     // that panel moved out of this page's own tree.
-    useLlmChatTopOffset(NAVBAR_HEIGHT_MID)
+    useLlmChatTopOffset(NAVBAR_HEIGHT_TALL)
     const contentSx = useLlmChatContentSx()
 
     return (
         <>
-            <Navbar sticky bordered size="mid" endAction={<LlmChatNavToggle />} />
+            <Navbar sticky bordered size="tall" startAction={<DigicherNavLogo />} endAction={<LlmChatNavToggle />} />
             <Box sx={contentSx}>
                 <HeroPage />
                 <DIGICHerSection />

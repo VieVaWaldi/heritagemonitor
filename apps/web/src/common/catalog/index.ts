@@ -1,4 +1,4 @@
-export {ENTITIES} from './entities'
+export {ENTITIES, ACTION_BAR_ENTITIES} from './entities'
 export type {EntityKey, EntityOption} from './entities'
 
 export {CORPUSES, DEFAULT_CORPUS} from './corpus'

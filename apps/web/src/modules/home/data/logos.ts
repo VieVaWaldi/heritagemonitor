@@ -1,3 +1,7 @@
+// Single source of truth for the DIGICHer project URL — reused by the
+// navbar logo, the banner and DIGICHerSection's own CTA.
+export const DIGICHER_PROJECT_URL = 'https://www.digicher-project.eu/'
+
 export interface PartnerLogo {
     src: string
     /** Brightened variant for dark mode — the source logos are dark-on-transparent (or, for the EU logo, boxed in an opaque white background), so they need a recolored asset rather than a CSS filter. Omitted for logos that already work on both backgrounds. */
@@ -13,7 +17,7 @@ export const PARTNER_LOGOS: PartnerLogo[] = [
     {
         src: '/images/logos/digicher-logo.png',
         alt: 'DIGICHer',
-        href: 'https://www.digicher-project.eu/',
+        href: DIGICHER_PROJECT_URL,
         width: 817,
         height: 363,
     },

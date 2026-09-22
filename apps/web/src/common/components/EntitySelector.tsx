@@ -39,8 +39,6 @@ export interface EntitySelectorProps<Key extends string = string> {
      * the search instead of inside it. Same option list either way.
      */
     variant?: 'circle' | 'label'
-    /** Colour of the `label` trigger's text (sx colour path). Defaults to the text colour. */
-    labelColor?: string
     /** Which edge of the `label` trigger the option list lines up with: `start` (default) when the trigger sits left of the bar, `end` when it sits at the right edge, so the list never runs off screen. */
     panelAlign?: 'start' | 'end'
 }
@@ -67,7 +65,6 @@ export function EntitySelector<Key extends string = string>({
     onChange,
     interactive = true,
     variant = 'circle',
-    labelColor,
     panelAlign = 'start',
 }: EntitySelectorProps<Key>) {
     const [open, setOpen] = useState(false)
@@ -131,7 +128,10 @@ export function EntitySelector<Key extends string = string>({
                         gap: 0.25,
                         px: 0.5,
                         borderRadius: 1,
-                        color: labelColor ?? 'text.primary',
+                        // Same option-owns-its-color rule the circle variant already
+                        // follows below — the trigger just shows whichever option is
+                        // currently selected.
+                        color: selectedOption?.color ?? 'text.primary',
                         '&:hover': {backgroundColor: 'action.hover'},
                     }}
                 >

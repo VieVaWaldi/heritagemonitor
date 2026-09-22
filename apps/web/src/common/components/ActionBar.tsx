@@ -52,8 +52,6 @@ export interface ActionBarProps<EntityKey extends string = string> {
      * the circle used to be). The circle always sits on the right.
      */
     entitySelectorPlacement?: 'left' | 'right'
-    /** Colour (sx path) of the `label` variant's text — the use case's colour. */
-    entityLabelColor?: string
 }
 
 // SearchBar (a full pill) plus a circular icon-only EntitySelector floating
@@ -76,7 +74,6 @@ export function ActionBar<EntityKey extends string = string>({
     showEntitySelector = true,
     entitySelectorVariant = 'circle',
     entitySelectorPlacement = 'right',
-    entityLabelColor,
 }: ActionBarProps<EntityKey>) {
     const useLabel = entitySelectorVariant === 'label' && entitySelectorInteractive
     const labelOnLeft = useLabel && entitySelectorPlacement === 'left'
@@ -87,7 +84,6 @@ export function ActionBar<EntityKey extends string = string>({
             onChange={onEntityChange}
             interactive={entitySelectorInteractive}
             variant={useLabel ? 'label' : 'circle'}
-            labelColor={entityLabelColor}
             panelAlign={labelOnLeft ? 'start' : 'end'}
         />
     ) : null

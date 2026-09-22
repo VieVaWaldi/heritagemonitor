@@ -1,7 +1,7 @@
 'use client'
 
 import {useState} from 'react'
-import {ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
+import {ACTION_BAR_ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
 
 const DEFAULT_ENTITY: EntityKey = 'projects'
 
@@ -30,12 +30,12 @@ export function useHeroSelection() {
     // What picking a suggestion does there (default: restrict the list to it).
     const suggestionFocus = activeAction?.suggestionFocus
 
-    // Only Search lets the user actually pick an entity (ENTITIES). Every
-    // other UseCase shows one fixed, non-interactive icon — its own — no
-    // matter which entity its (sub)UseCase action targets under the hood.
+    // Only Search lets the user actually pick an entity (ACTION_BAR_ENTITIES).
+    // Every other UseCase shows one fixed, non-interactive icon — its own —
+    // no matter which entity its (sub)UseCase action targets under the hood.
     const entitySelectorInteractive = selectedUseCase.hasEntitySelector ?? false
     const entityOptions: EntityOption[] = entitySelectorInteractive
-        ? ENTITIES
+        ? ACTION_BAR_ENTITIES
         : [
               {
                   key: selectedEntity,

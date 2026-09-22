@@ -67,7 +67,6 @@ export function SearchNav({useCaseKey, subUseCaseKey}: SearchNavProps) {
                         entitySelectorInteractive={entitySelectorInteractive}
                         entitySelectorVariant="label"
                         entitySelectorPlacement="left"
-                        entityLabelColor={useCase.color}
                         suggestions={suggestions}
                         onSuggestionSelect={handleSuggestionSelect}
                         onCompositionStart={onCompositionStart}

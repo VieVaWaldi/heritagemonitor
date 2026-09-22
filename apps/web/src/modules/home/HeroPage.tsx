@@ -102,7 +102,6 @@ export function HeroPage() {
                 // the other use cases keep their static icon.
                 entitySelectorVariant="label"
                 entitySelectorPlacement="right"
-                entityLabelColor={selectedUseCase.color}
                 selectedEntity={selectedEntity}
                 onEntityChange={setSelectedEntity}
                 suggestions={suggestions}

@@ -2,7 +2,7 @@
 
 import type {EntitySuggestion} from '@heritagemonitor/shared'
 import {useCallback} from 'react'
-import {ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
+import {ACTION_BAR_ENTITIES, USE_CASES, type EntityKey, type EntityOption} from '@/common/catalog'
 import {useEntitySuggestions} from '@/common/hooks/useEntitySuggestions'
 import {buildFocusPatch, useUrlEntity, useUrlQueryDraft, useUrlState} from '@/common/url'
 
@@ -37,7 +37,7 @@ export function useUseCaseSearch(useCaseKey: string, subUseCaseKey?: string) {
     const selectedEntity = entitySelectorInteractive ? urlEntity : (action?.entity ?? DEFAULT_ENTITY)
 
     const entityOptions: EntityOption[] = entitySelectorInteractive
-        ? ENTITIES
+        ? ACTION_BAR_ENTITIES
         : [{key: selectedEntity, label: useCase.name, icon: useCase.icon, color: useCase.color}]
 
     // Which entity has a type-ahead is a capability of that entity's api, not
