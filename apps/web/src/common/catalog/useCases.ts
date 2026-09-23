@@ -99,10 +99,10 @@ export const USE_CASES: UseCase[] = [
         key: 'minorities',
         icon: PeopleAltIcon,
         color: 'secondary.main',
-        name: 'Map Minorities',
-        title: 'Map research by minorities',
+        name: 'Map Communities',
+        title: 'Map research by communities',
         description:
-            'Browse minority groups and see which projects, works, organisations and research topics are about them. Filter by country, language, religion or topic to find who is studying a community and what they have produced.',
+            'Browse indigenous, ethno-religious, linguistic and other communities to see which projects, works, organisations and research topics are about them. Filter by country, language, religion or topic to find who is studying a community and what they have produced.',
         examples: ['Roma heritage', 'indigenous knowledge systems', 'minority language archives'],
         action: {
             entity: 'minorities',
