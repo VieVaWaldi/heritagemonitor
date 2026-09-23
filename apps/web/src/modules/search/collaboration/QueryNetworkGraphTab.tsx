@@ -76,7 +76,7 @@ export function QueryNetworkGraphTab({network, model, titles, loading, layer, on
                     <ToggleButton value="arcs">Map</ToggleButton>
                 </ToggleButtonGroup>
             </Box>
-            <ClusterLegend clusters={model.clusters} titles={titles} selectedId={selectedClusterId} onSelect={onSelectCluster} />
+            {/*<ClusterLegend clusters={model.clusters} titles={titles} selectedId={selectedClusterId} onSelect={onSelectCluster} />*/}
             <Box sx={{position: 'relative', flex: '1 1 0', minHeight: 0}}>
                 <Box sx={{position: 'absolute', inset: 0}}>
                     {layer === 'network' ? (
