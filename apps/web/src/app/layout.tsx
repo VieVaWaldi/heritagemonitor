@@ -3,6 +3,7 @@ import {AppRouterCacheProvider} from '@mui/material-nextjs/v16-appRouter'
 import {NextIntlClientProvider} from 'next-intl'
 import type {Metadata} from 'next'
 import type React from 'react'
+import Script from 'next/script'
 import {ThemeModeProvider} from '@/common/theme/ThemeModeProvider'
 import {isMode, THEME_MODE_COOKIE} from '@/common/theme/themeMode'
 import {ebGaramond, inter} from '@/common/theme/fonts'
@@ -29,6 +30,21 @@ export default async function RootLayout({children}: Readonly<{children: React.R
     return (
         <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`}>
             <body>
+            {/* Matomo analytics, pointed at the boss's self-hosted instance. */}
+            <Script id="matomo" strategy="afterInteractive">
+                {`
+                    var _paq = window._paq = window._paq || [];
+                    _paq.push(['trackPageView']);
+                    _paq.push(['enableLinkTracking']);
+                    (function() {
+                        var u="//matomo.3drepo.eu/";
+                        _paq.push(['setTrackerUrl', u+'matomo.php']);
+                        _paq.push(['setSiteId', '2']);
+                        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+                        g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+                    })();
+                `}
+            </Script>
                 <AppRouterCacheProvider>
                     <ThemeModeProvider initialMode={initialMode}>
                         <NextIntlClientProvider>
@@ -53,6 +69,7 @@ export default async function RootLayout({children}: Readonly<{children: React.R
                     </ThemeModeProvider>
                 </AppRouterCacheProvider>
             </body>
+
         </html>
     )
 }
