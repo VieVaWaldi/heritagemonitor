@@ -261,6 +261,39 @@ export async function facetValues(params: FacetValuesParams): Promise<query.Term
     return aggregations?.values?.buckets ?? []
 }
 
+export interface ScanParams {
+    q: string
+    filters: query.ProjectFilters
+    batchSize: number
+}
+
+/**
+ * The WHOLE match set, past OpenSearch's 10,000-result window — for a bulk
+ * export, never a page. `search_after` on `_doc`, not a scroll: same
+ * technique as reference/organisationTable.ts's `load()`, carrying the last
+ * hit's own `sort` value forward as the next batch's cursor and stopping once
+ * a batch comes back empty. No `source`: an export wants the whole document,
+ * unlike the thin `ROW_SOURCE` the regular search list fetches.
+ */
+export async function* scan(params: ScanParams): AsyncGenerator<ProjectRawDoc[]> {
+    let searchAfter: Array<string | number> | undefined
+
+    for (;;) {
+        const {body} = await client.search({
+            index: indices.projectsIndexName,
+            body: query.projectsScanBody({q: params.q, size: params.batchSize, filters: params.filters, searchAfter}),
+        })
+
+        const hits = body.hits.hits as unknown as Array<{_source?: ProjectRawDoc; sort?: Array<string | number>}>
+        if (hits.length === 0) return
+
+        yield hits.map((hit) => hit._source).filter((doc): doc is ProjectRawDoc => doc != null)
+
+        searchAfter = hits[hits.length - 1]?.sort
+        if (!searchAfter) return
+    }
+}
+
 export interface ProjectSuggestionDoc {
     id: string
     acronym?: string

@@ -122,6 +122,11 @@ services:
       # but that ARG never persists into the running container, so it has to
       # be repeated here as an actual runtime env var.
       NODE_USE_ENV_PROXY: "1"
+      EXPORT_DIR: ${EXPORT_DIR:-/data/exports}
+      EXPORT_MAX_CONCURRENCY: ${EXPORT_MAX_CONCURRENCY:-4}
+      EXPORT_MAX_QUEUE_WAIT_MS: ${EXPORT_MAX_QUEUE_WAIT_MS:-30000}
+      EXPORT_RETENTION_HOURS: ${EXPORT_RETENTION_HOURS:-24}
+      EXPORT_STORAGE_CAP_BYTES: ${EXPORT_STORAGE_CAP_BYTES:-20000000000}
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,6 +137,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    volumes:
+      - exports-data-prod:/data/exports
 
   postgres:
     image: postgres:18
@@ -226,3 +233,4 @@ volumes:
   # run here could never accidentally read or clobber prod's real data.
   pg-data-prod:
   os-data-prod:
+  exports-data-prod:

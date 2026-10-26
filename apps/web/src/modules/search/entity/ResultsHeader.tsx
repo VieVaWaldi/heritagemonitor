@@ -2,6 +2,7 @@
 
 import Box from '@mui/material/Box'
 import Tooltip from '@mui/material/Tooltip'
+import type {ReactNode} from 'react'
 import {RankingButton, type RankingOption} from '@/common/components'
 import {Text} from '@/common/text'
 import {formatResultCount, type ResultCount} from './searchState'
@@ -13,6 +14,8 @@ export interface ResultsHeaderProps<TSort extends string> {
     sortOptions: readonly RankingOption<TSort>[]
     sort: TSort | null
     onSortChange: (value: TSort | null) => void
+    /** Optional control beside the ranking, e.g. an ExportDialog trigger. */
+    download?: ReactNode
 }
 
 /**
@@ -22,7 +25,14 @@ export interface ResultsHeaderProps<TSort extends string> {
  * number comes from a separate `_count` and is shown as a magnitude ("about
  * 3.7M"), never as a precise figure it is not.
  */
-export function ResultsHeader<TSort extends string>({count, noun, sortOptions, sort, onSortChange}: ResultsHeaderProps<TSort>) {
+export function ResultsHeader<TSort extends string>({
+    count,
+    noun,
+    sortOptions,
+    sort,
+    onSortChange,
+    download,
+}: ResultsHeaderProps<TSort>) {
     const approximate = count.totalCapped
     const tooltip = !approximate
         ? ''
@@ -37,7 +47,10 @@ export function ResultsHeader<TSort extends string>({count, noun, sortOptions, s
                     {formatResultCount(count)} {noun}
                 </Text>
             </Tooltip>
-            <RankingButton options={sortOptions} value={sort} onChange={onSortChange} />
+            <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                {download}
+                <RankingButton options={sortOptions} value={sort} onChange={onSortChange} />
+            </Box>
         </Box>
     )
 }

@@ -46,6 +46,7 @@ import {useRelatedWorks} from '../entity/useRelatedWorks'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {ResultsHeader} from '../entity/ResultsHeader'
+import {ExportDialog} from '../entity/ExportDialog'
 import {describeSearchState} from '../entity/searchState'
 import {useEntitySearch} from '../entity/useEntitySearch'
 import {YearFilter} from '@/common/components'
@@ -294,6 +295,7 @@ export function ProjectsResultsPanel() {
                             sortOptions={PROJECT_SORT_OPTIONS}
                             sort={sort}
                             onSortChange={setSort}
+                            download={<ExportDialog entity="projects" />}
                         />
                     }
                     items={data.hits}

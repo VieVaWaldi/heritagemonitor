@@ -1,4 +1,5 @@
 import {z} from 'zod'
+import {exportFormatSchema} from './exports.js'
 import {organisationRowSchema} from './organisations.js'
 import {projectRowSchema} from './projects.js'
 import {baseSearchRequestSchema, paginatedResponseSchema, searchResponseSchema} from './search.js'
@@ -92,6 +93,14 @@ export type WorkSearchRequest = z.infer<typeof workSearchRequestSchema>
 
 export const workSearchResponseSchema = searchResponseSchema(workRowSchema)
 export type WorkSearchResponse = z.infer<typeof workSearchResponseSchema>
+
+// Same filters as the search request, minus pagination/sort, plus format.
+// No equivalents of projects' excludeTranslated/includeTopic toggles — works
+// has neither an `is_translated` field nor topic classification in its index.
+export const workExportRequestSchema = workSearchRequestSchema.omit({page: true, sort: true}).extend({
+    format: exportFormatSchema,
+})
+export type WorkExportRequest = z.infer<typeof workExportRequestSchema>
 
 // --- static filter vocabularies ---------------------------------------------
 //

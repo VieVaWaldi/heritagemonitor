@@ -3,4 +3,5 @@
 // the runtime client both read from.
 
 export * from './breadcrumbs.js'
+export * from './exportJobs.js'
 export * from './health.js'

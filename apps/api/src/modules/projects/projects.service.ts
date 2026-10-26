@@ -1,5 +1,7 @@
 import type {query} from '@heritagemonitor/search'
 import {
+    EXPORT_MAX_ROWS,
+    EXPORT_SCAN_BATCH_SIZE,
     MAX_URL_TOPICS,
     PROJECT_FACET_FIELDS,
     PROJECT_YEAR_HISTOGRAM,
@@ -16,6 +18,7 @@ import {
     type FacetLabels,
     type ProjectDetail,
     type OrganisationProjectsResponse,
+    type ProjectExportRequest,
     type ProjectOrganisation,
     type ProjectOrganisationsResponse,
     type ProjectRow,
@@ -84,6 +87,40 @@ function toFilters(request: ProjectSearchRequest): query.ProjectFilters {
         orgAll: request.orgAll,
         minority: request.minority,
         only: request.only,
+    }
+}
+
+/**
+ * Same mapping as `toFilters`, plus `excludeTranslated` — the export-only
+ * toggle `ProjectSearchRequest` doesn't carry. Kept separate rather than
+ * folded into `toFilters` so the hot search path stays untouched; apps/web's
+ * own RULES.md #3 makes the same call for divergent copies.
+ */
+function toExportFilters(request: ProjectExportRequest): query.ProjectFilters {
+    const topicSelectionSize = (request.topic?.length ?? 0) + (request.subfield?.length ?? 0) + (request.field?.length ?? 0)
+    if (topicSelectionSize > MAX_URL_TOPICS) {
+        throw new AppError(`At most ${MAX_URL_TOPICS} topics can be selected at once (got ${topicSelectionSize}).`, 400)
+    }
+
+    const years = parseYearRange(request.years)
+
+    return {
+        corpus: request.c,
+        ...(years ? {year: years} : {}),
+        theme: request.theme,
+        pillar: request.pillar,
+        funder: request.funder,
+        programme: request.programme,
+        stream: request.stream,
+        region: request.region,
+        topic: request.topic,
+        subfield: request.subfield,
+        field: request.field,
+        org: request.org,
+        orgAll: request.orgAll,
+        minority: request.minority,
+        only: request.only,
+        excludeTranslated: request.excludeTranslated,
     }
 }
 
@@ -334,6 +371,33 @@ export async function getProjectById(id: string): Promise<ProjectDetail> {
         throw new AppError(`Project '${id}' failed schema validation`, 500)
     }
     return result.data
+}
+
+/**
+ * Every project matching an export request, validated and yielded one-by-one
+ * past OpenSearch's normal 10,000-result window — for a bulk CSV/JSON
+ * download, never a page. Stops at `EXPORT_MAX_ROWS` even if more would
+ * match: the scan itself is cut short, not just the output.
+ */
+export async function* exportProjects(request: ProjectExportRequest): AsyncGenerator<ProjectDetail> {
+    let yielded = 0
+
+    for await (const batch of opensearchRepository.scan({
+        q: request.q ?? '',
+        filters: toExportFilters(request),
+        batchSize: EXPORT_SCAN_BATCH_SIZE,
+    })) {
+        for (const raw of batch) {
+            const result = projectDetailSchema.safeParse({...raw, topic: topicOf(raw.topic_id)})
+            if (!result.success) {
+                console.warn(`Project document '${raw?.id ?? 'unknown'}' failed export validation:`, result.error.issues)
+                continue
+            }
+            yield result.data
+            yielded += 1
+            if (yielded >= EXPORT_MAX_ROWS) return
+        }
+    }
 }
 
 function toOrganisation(raw: OrganisationRawDoc, coordinatorIds: Set<string>): ProjectOrganisation | null {

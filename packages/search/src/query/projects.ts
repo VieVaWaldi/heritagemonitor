@@ -32,6 +32,8 @@ export interface ProjectFilters {
     orgAll?: string[]
     /** Deep link: restrict to these document ids (`_id` == `id` on this index). */
     only?: string[]
+    /** Export-only toggle: drop projects whose title/summary was machine-translated via NLLB. */
+    excludeTranslated?: boolean
 }
 
 const TERM_FIELDS: ReadonlyArray<[keyof ProjectFilters, string]> = [
@@ -67,6 +69,10 @@ export function projectFilters(filters: ProjectFilters = {}): QueryClause[] {
     for (const orgId of filters.orgAll ?? []) clauses.push({term: {org_ids: orgId}})
 
     if (filters.only?.length) clauses.push(idsQuery(filters.only))
+
+    // `is_translated` marks a project whose title/summary was machine-translated
+    // via NLLB; excluding it is a user-facing export toggle, not a UI filter today.
+    if (filters.excludeTranslated) clauses.push({bool: {must_not: {term: {is_translated: true}}}})
 
     return clauses
 }
@@ -141,6 +147,34 @@ export function projectsBody({
         ...(source ? {_source: [...source]} : {}),
         ...(suggest ? {suggest: suggestBlock(q, TYPO_POLICY.projects.suggestField)} : {}),
         ...(timeout ? {timeout} : {}),
+    }
+}
+
+export interface ProjectsScanBodyOptions {
+    q?: string
+    size: number
+    filters?: ProjectFilters
+    source?: readonly string[]
+    /** The `sort` array's last value from the previous batch's last hit; omit for the first batch. */
+    searchAfter?: Array<string | number>
+}
+
+/**
+ * A body for scanning the WHOLE match set past OpenSearch's 10,000-result
+ * window, via `search_after` on `_doc` — same technique as
+ * apps/api/src/reference/organisationTable.ts, used here for bulk CSV/JSON
+ * exports instead of the in-memory reference table. No aggregations, no
+ * `from` (search_after replaces it), `track_total_hits: false` (a count is
+ * not needed mid-scan).
+ */
+export function projectsScanBody({q = '', size, filters, source, searchAfter}: ProjectsScanBodyOptions): Record<string, unknown> {
+    return {
+        size,
+        track_total_hits: false,
+        query: {bool: {must: projectTextQuery(q, 'strict'), filter: projectFilters(filters)}},
+        sort: [{_doc: 'asc'}],
+        ...(source ? {_source: [...source]} : {}),
+        ...(searchAfter ? {search_after: searchAfter} : {}),
     }
 }
 

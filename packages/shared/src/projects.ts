@@ -1,4 +1,5 @@
 import {z} from 'zod'
+import {exportFormatSchema} from './exports.js'
 import {organisationRowSchema} from './organisations.js'
 import {baseSearchRequestSchema, paginatedResponseSchema, searchResponseSchema} from './search.js'
 
@@ -161,6 +162,18 @@ export type ProjectSearchRequest = z.infer<typeof projectSearchRequestSchema>
 
 export const projectSearchResponseSchema = searchResponseSchema(projectRowSchema)
 export type ProjectSearchResponse = z.infer<typeof projectSearchResponseSchema>
+
+// Same filters as the search request, minus pagination/sort (an export has
+// neither), plus the format and two export-only toggles. `excludeTranslated`
+// filters out `is_translated` docs rather than just reporting the flag;
+// `includeTopic` controls whether resolved topic/subfield/field/domain names
+// are added as extra columns downstream.
+export const projectExportRequestSchema = projectSearchRequestSchema.omit({page: true, sort: true}).extend({
+    format: exportFormatSchema,
+    excludeTranslated: z.boolean().optional(),
+    includeTopic: z.boolean().optional(),
+})
+export type ProjectExportRequest = z.infer<typeof projectExportRequestSchema>
 
 /**
  * Faceted fields of the projects index, in sidebar order, each with the URL

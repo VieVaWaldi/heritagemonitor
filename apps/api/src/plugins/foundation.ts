@@ -5,6 +5,7 @@ import {registerAuthPlaceholder} from './auth.js'
 import {InMemoryCache} from './cache.js'
 import {registerErrorHandling} from './errors.js'
 import {registerNoStore} from './noStore.js'
+import {registerRateLimit} from './rateLimit.js'
 import {registerRecentRequestsLog} from './recentRequestsLog.js'
 import {registerRequestLog} from './requestLog.js'
 import {registerRequestMetrics} from './requestMetrics.js'
@@ -20,6 +21,7 @@ declare module 'fastify' {
 // Must be registered before the /v1 prefix in index.ts.
 async function foundation(fastify: FastifyInstance) {
     await fastify.register(compress, {encodings: ['gzip', 'deflate']})
+    await registerRateLimit(fastify)
 
     registerErrorHandling(fastify)
     registerAuthPlaceholder(fastify)

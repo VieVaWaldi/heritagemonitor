@@ -97,6 +97,34 @@ export function worksBody({
     }
 }
 
+export interface WorksScanBodyOptions {
+    q?: string
+    size: number
+    filters?: WorkFilters
+    source?: readonly string[]
+    /** The `sort` array's last value from the previous batch's last hit; omit for the first batch. */
+    searchAfter?: Array<string | number>
+}
+
+/**
+ * A body for scanning the WHOLE match set past OpenSearch's 10,000-result
+ * window, via `search_after` on `_doc` — same technique as
+ * apps/api/src/reference/organisationTable.ts, used here for bulk CSV/JSON
+ * exports instead of the in-memory reference table. No aggregations, no
+ * `from` (search_after replaces it), `track_total_hits: false` (a count is
+ * not needed mid-scan).
+ */
+export function worksScanBody({q = '', size, filters, source, searchAfter}: WorksScanBodyOptions): Record<string, unknown> {
+    return {
+        size,
+        track_total_hits: false,
+        query: {bool: {must: workTextQuery(q, 'strict'), filter: workFilters(filters)}},
+        sort: [{_doc: 'asc'}],
+        ...(source ? {_source: [...source]} : {}),
+        ...(searchAfter ? {search_after: searchAfter} : {}),
+    }
+}
+
 export function worksCountBody({
     q = '',
     filters,

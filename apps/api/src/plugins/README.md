@@ -69,7 +69,8 @@ at most 3 rotated files and drops the oldest beyond that.
    from the client if it looks like a UUID, otherwise generates one.
 2. CORS (`@fastify/cors`, registered in `index.ts`)
 3. `foundation.ts`, in order: compression (`@fastify/compress`, gzip/deflate only — no
-   brotli, its better ratio isn't worth the extra CPU here), error handler + 404 handler
+   brotli, its better ratio isn't worth the extra CPU here), per-IP rate limit
+   (`rateLimit.ts`, 300/min globally; routes tighten it via `config.rateLimit`), error handler + 404 handler
    (`errors.ts`), auth placeholder (`auth.ts`), request-log hook (`requestLog.ts`), cache
    decorator (`cache.ts`)
 4. Per-route schema validation (Ajv, via each route's Fastify schema option)
