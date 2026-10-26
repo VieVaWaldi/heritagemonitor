@@ -1,8 +1,9 @@
 import type {CollaborationEdge} from '@heritagemonitor/shared'
-import {ArcCollaborationLayer, collaborationEdgeId} from './arcCollaborationLayer'
+import {formatCount, type ExplorerItem} from '@/common/deckgl'
+import {ArcNetworkLayer} from '@/common/deckgl'
+import {arcLinksFromEdges, arcNodesFromEdges, collaborationEdgeId} from './collaborationArcs'
 import {CollaborationDetail} from './detail/CollaborationDetail'
-import type {ExplorerItem, Visualization} from './explorerTypes'
-import {formatCount} from './format'
+import type {Visualization} from './explorerTypes'
 
 function toItem(edge: CollaborationEdge): ExplorerItem {
     const countries = [edge.institution_country, edge.collaborator_country].filter(Boolean).join(' – ')
@@ -21,22 +22,31 @@ export const arcsVisualization: Visualization = {
     description: 'Arcs between collaborating institutions, weighted by shared projects',
     itemNoun: 'collaborations',
     emptyDetailHint: 'Select a collaboration from the list or click an arc on the map.',
-    prepare: (edges) => ({
-        items: [...edges].sort((a, b) => b.project_count - a.project_count).map(toItem),
-        createLayers: (colors, {selectedId, onSelect}) => [
-            new ArcCollaborationLayer({
-                id: 'collaboration-arcs',
-                data: edges,
-                primaryColorHex: colors.primary,
-                secondaryColorHex: colors.secondary,
-                highlightColorHex: colors.highlight,
-                selectedEdgeId: selectedId,
-                // Shared with the institution icons, which have no edge to select.
-                onClick: (info) => {
-                    const object = info.object as Partial<CollaborationEdge> | undefined
-                    if (object?.collaborator_id) onSelect(collaborationEdgeId(object as CollaborationEdge))
-                },
-            }),
-        ],
-    }),
+    prepare: (edges) => {
+        // Adapted once per dataset, not per render: the generic layer takes
+        // plain links and nodes, so the edge shape stops here.
+        const links = arcLinksFromEdges(edges)
+        const nodes = arcNodesFromEdges(edges)
+
+        return {
+            items: [...edges].sort((a, b) => b.project_count - a.project_count).map(toItem),
+            createLayers: (colors, {selectedId, onSelect}) => [
+                new ArcNetworkLayer({
+                    id: 'collaboration-arcs',
+                    data: links,
+                    nodes,
+                    primaryColorHex: colors.primary,
+                    secondaryColorHex: colors.secondary,
+                    highlightColorHex: colors.highlight,
+                    selectedLinkId: selectedId,
+                    // Shared with the institution icons, which have no link to select.
+                    onClick: (info) => {
+                        const object = info.object as {id?: string; linkCount?: number} | undefined
+                        // A node has no link id; only arcs select.
+                        if (object?.id && object.linkCount === undefined) onSelect(object.id)
+                    },
+                }),
+            ],
+        }
+    },
 }

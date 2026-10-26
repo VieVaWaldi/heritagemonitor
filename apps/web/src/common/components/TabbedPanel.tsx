@@ -19,8 +19,16 @@ export interface TabbedPanelTab {
 
 export interface TabbedPanelProps {
     tabs: TabbedPanelTab[]
-    /** Which tab is selected initially. Defaults to the first tab. */
+    /** Which tab is selected initially, when the panel manages its own state. Defaults to the first tab. */
     defaultValue?: string
+    /**
+     * Controlled mode: the caller owns the active tab. Pass this together
+     * with `onChange` when the tab belongs in the URL (see common/url's
+     * useUrlTab) — a shared link should open on the tab its sender was
+     * looking at, and back should undo a tab switch like any other choice.
+     */
+    value?: string
+    onChange?: (value: string) => void
 }
 
 // MUI Tabs' default strip height, border included (see the Tabs comment below).
@@ -29,8 +37,17 @@ const TAB_STRIP_HEIGHT = 48
 // Generic rectangular container that fills 100% of whatever height its
 // parent gives it: a tab strip hugs the top, and the active tab's content
 // fills the rest. Doesn't know what's inside a tab — that's the caller's.
-export function TabbedPanel({tabs, defaultValue}: TabbedPanelProps) {
-    const [value, setValue] = useState(defaultValue ?? tabs[0]?.value)
+export function TabbedPanel({tabs, defaultValue, value: controlledValue, onChange}: TabbedPanelProps) {
+    const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? tabs[0]?.value)
+    // Controlled when the caller passes a value; otherwise the panel keeps
+    // its own — both callers exist (the demo map panel owns nothing, a
+    // results panel owns the tab via the URL).
+    const value = controlledValue ?? uncontrolledValue
+
+    function selectTab(next: string) {
+        if (controlledValue === undefined) setUncontrolledValue(next)
+        onChange?.(next)
+    }
 
     return (
         <Paper
@@ -45,7 +62,7 @@ export function TabbedPanel({tabs, defaultValue}: TabbedPanelProps) {
         >
             <Tabs
                 value={value}
-                onChange={(_event, newValue) => setValue(newValue)}
+                onChange={(_event, newValue: string) => selectTab(newValue)}
                 // Default height is 48px border included — PaginatedList's
                 // header box is pinned to the same 48px by hand so the two
                 // line up when they sit side by side.

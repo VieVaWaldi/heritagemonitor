@@ -8,6 +8,7 @@ import {Navbar, NAVBAR_HEIGHT_TALL} from '@/common/components'
 import {USE_CASES} from '@/common/catalog'
 import {LlmChatNavToggle} from '@/common/llmchat/LlmChatNavToggle'
 import {useLlmChatContentSx, useLlmChatTopOffset} from '@/common/llmchat/LlmChatRuntime'
+import {CorpusUrlBinding} from './components/CorpusUrlBinding'
 import {SearchNav} from './components/SearchNav'
 import {SearchResultsPanel} from './components/SearchResultsPanel'
 import {RESULTS_PANEL_BY_USE_CASE} from './resultsPanelRegistry'
@@ -32,7 +33,12 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
     const useCase = USE_CASES.find((candidate) => candidate.key === useCaseKey) ?? USE_CASES[0]
     const subUseCase = useCase.subUseCases?.find((candidate) => candidate.key === subUseCaseKey)
     const hasResultsPanel = subUseCase?.hasResultsPanel ?? useCase.hasResultsPanel ?? false
-    const ResultsPanel = RESULTS_PANEL_BY_USE_CASE[useCaseKey] ?? SearchResultsPanel
+    // A sub-use-case may have its own panel (`collaboration/organisationNetwork`);
+    // otherwise the use case's panel, otherwise the placeholder.
+    const ResultsPanel =
+        (subUseCaseKey ? RESULTS_PANEL_BY_USE_CASE[`${useCaseKey}/${subUseCaseKey}`] : undefined) ??
+        RESULTS_PANEL_BY_USE_CASE[useCaseKey] ??
+        SearchResultsPanel
 
     return (
         <>
@@ -44,6 +50,14 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
             <Suspense fallback={<Navbar size="tall" bordered sticky endAction={<LlmChatNavToggle />} />}>
                 <SearchNav useCaseKey={useCaseKey} subUseCaseKey={subUseCaseKey} />
             </Suspense>
+            {/* Renders nothing: it hands CorpusContext a two-way binding to
+                `?c=` for as long as a /search route is open. Needs its own
+                Suspense boundary for the same useSearchParams() reason as
+                SearchNav — and it cannot live in the root layout's provider,
+                which would opt every page out of static rendering. */}
+            <Suspense fallback={null}>
+                <CorpusUrlBinding />
+            </Suspense>
             {/* Leaves room on the right for the app-wide Lucy panel to dock
                 beside this content instead of covering it — see
                 LlmChatRuntime and HomePage for the same pattern. */}
@@ -53,8 +67,13 @@ export function UseCaseSearchPage({useCaseKey, subUseCaseKey}: UseCaseSearchPage
                         {/* Falls back to the shared empty-data placeholder for
                             any UseCase not yet registered in
                             resultsPanelRegistry.ts — i.e. one without a real
-                            backend behind it yet. */}
-                        <ResultsPanel />
+                            backend behind it yet. Suspense: a real panel reads
+                            its whole state from the URL (common/url), and Next
+                            requires useSearchParams() to sit under a boundary
+                            or it bails the page out of static rendering. */}
+                        <Suspense fallback={null}>
+                            <ResultsPanel />
+                        </Suspense>
                     </Box>
                 ) : (
                     <Box sx={{display: 'flex', justifyContent: 'center', py: fluidUnit(8), px: 3}}>

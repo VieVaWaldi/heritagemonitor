@@ -6,6 +6,7 @@ import {FacetSection, FacetSidebar, FilterBar, FilterMenuButton, PaginatedList, 
 import {Text} from '@/common/text'
 import type {SearchResultRowData} from './SearchResultRow'
 import {SearchResultRow} from './SearchResultRow'
+import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
 
 function ResultCountHeader({count, noun}: {count: number; noun: string}) {
     return (
@@ -35,7 +36,7 @@ export function SearchResultsPanel() {
     const [discipline, setDiscipline] = useState<string[]>([])
 
     return (
-        <Box sx={{width: '80%', mx: 'auto', height: '100%', display: 'flex', gap: 3}}>
+        <Box sx={SEARCH_BLOCK_SX}>
             {/* Options are empty until each UseCase's own OpenSearch index
                 is wired up — no real facet values to show yet. */}
             <FacetSidebar>

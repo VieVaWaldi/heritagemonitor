@@ -1,8 +1,6 @@
+import {createHexFundingLayer, formatCount, formatFunding, hexBinsFromOrganisations, type HexBin} from '@/common/deckgl'
 import {OrganisationDetail} from './detail/OrganisationDetail'
 import type {Visualization} from './explorerTypes'
-import {formatCount, formatFunding} from './format'
-import {hexBinsFromOrganisations, type HexBin} from './hexBins'
-import {createHexFundingLayer} from './hexFundingLayer'
 import {organisationsFromEdges} from './organisations'
 
 export const hexesVisualization: Visualization = {
@@ -37,8 +35,6 @@ export const hexesVisualization: Visualization = {
                 createHexFundingLayer({
                     id: 'funding-hexes',
                     data: bins,
-                    lowColorHex: colors.primaryLight,
-                    highColorHex: colors.secondary,
                     highlightColorHex: colors.highlight,
                     selectedHex: selectedId ? (binByOrganisationId.get(selectedId)?.hex ?? null) : null,
                     // A hexagon holds several organisations; select its biggest one.

@@ -6,6 +6,7 @@ import ButtonBase from '@mui/material/ButtonBase'
 import Divider from '@mui/material/Divider'
 import {alpha} from '@mui/material/styles'
 import {Text} from '@/common/text'
+import {FieldLabel} from './FieldLabel'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {CORPUSES, useCorpus, type CorpusKey, type CorpusOption} from '@/common/catalog'
 
@@ -109,9 +110,7 @@ export function CorpusPanel() {
                     px: fluidUnit(1.25),
                 }}
             >
-                <Text variant="button" sx={{color: 'text.disabled'}}>
-                    Corpus
-                </Text>
+                <FieldLabel>Corpus</FieldLabel>
                 <Text variant="button" sx={{color: selected.color}}>
                     {selected.label}
                 </Text>

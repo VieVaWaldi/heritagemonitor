@@ -7,9 +7,10 @@ import {Text} from '@/common/text'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {ActionBar} from '@/common/components'
 import {useCorpus} from '@/common/catalog'
-import {buildSearchUrl} from '@/common/url'
+import {buildSearchUrl, buildSuggestionLink} from '@/common/url'
 import {useCyclingPlaceholder} from '@/common/hooks/useCyclingPlaceholder'
-import {useMinoritySuggestions} from '@/common/hooks/useMinoritySuggestions'
+import type {EntitySuggestion} from '@heritagemonitor/shared'
+import {useEntitySuggestions} from '@/common/hooks/useEntitySuggestions'
 import {useHeroSelection} from './hooks/useHeroSelection'
 import {useHeroTitle} from './hooks/useHeroTitle'
 import {UseCaseSection} from './components/UseCaseSection'
@@ -29,6 +30,7 @@ export function HeroPage() {
         selectedSubUseCase,
         activeExamples,
         activeRoute,
+        suggestionFocus,
         selectedEntity,
         entityOptions,
         entitySelectorInteractive,
@@ -42,13 +44,13 @@ export function HeroPage() {
 
     const placeholder = useCyclingPlaceholder(activeExamples)
     const {title: heroTitle, isIntro, notifyUseCaseSelected} = useHeroTitle(selectedUseCase.title)
-    const suggestions = useMinoritySuggestions(Boolean(selectedUseCase.hasAutoSuggestions), searchValue)
+    const suggestions = useEntitySuggestions(selectedEntity, searchValue)
 
     // Accepts an explicit query so a suggestion click can submit the value
     // it just picked without waiting on setSearchValue's state update to
     // land first (React state isn't synchronous — reading `searchValue`
     // from the closure here would still see the pre-click value).
-    function handleSearchSubmit(query?: string) {
+    function handleSearchSubmit(query?: string, selection?: string) {
         if (!activeRoute) return
         router.push(
             buildSearchUrl({
@@ -56,13 +58,25 @@ export function HeroPage() {
                 query: query ?? searchValue,
                 entity: selectedEntity,
                 corpus: selectedCorpus,
+                selection,
             }),
         )
     }
 
-    function handleSuggestionSelect(value: string) {
-        setSearchValue(value)
-        handleSearchSubmit(value)
+    // A suggestion that carries an id lands on a list of only that document,
+    // open, rather than on a text search for its name.
+    function handleSuggestionSelect(suggestion: EntitySuggestion) {
+        if (suggestion.id && activeRoute && suggestionFocus !== 'query') {
+            // Only that document, selected (or the centre of the network) — see
+            // buildSuggestionLink. Not a text search for its name, which would
+            // list everything similar too.
+            router.push(
+                buildSuggestionLink({route: activeRoute, entity: selectedEntity, id: suggestion.id, corpus: selectedCorpus, focus: suggestionFocus}),
+            )
+            return
+        }
+        setSearchValue(suggestion.label)
+        handleSearchSubmit(suggestion.label)
     }
 
     const slots: HeroLayoutSlots = {
@@ -83,6 +97,11 @@ export function HeroPage() {
                 placeholder={placeholder}
                 entityOptions={entityOptions}
                 entitySelectorInteractive={entitySelectorInteractive}
+                // The Search use case's picker is the same text variant the /search
+                // navbar uses, at the right end of the bar where the circle sat;
+                // the other use cases keep their static icon.
+                entitySelectorVariant="label"
+                entitySelectorPlacement="right"
                 selectedEntity={selectedEntity}
                 onEntityChange={setSelectedEntity}
                 suggestions={suggestions}

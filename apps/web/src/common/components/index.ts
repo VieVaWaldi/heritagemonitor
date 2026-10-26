@@ -12,6 +12,9 @@ export {CorpusPanel} from './CorpusPanel'
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
 
+export {FieldLabel} from './FieldLabel'
+export type {FieldLabelProps} from './FieldLabel'
+
 export {FacetSection} from './FacetSection'
 export type {FacetSectionProps} from './FacetSection'
 
@@ -47,8 +50,14 @@ export type {MultiSelectDropdownProps, MultiSelectOption} from './MultiSelectDro
 export {Navbar, NAVBAR_HEIGHT, NAVBAR_HEIGHT_MID, NAVBAR_HEIGHT_TALL, NAVBAR_BORDER_COLOR} from './Navbar'
 export type {NavbarProps} from './Navbar'
 
+export {NoticeBar} from './NoticeBar'
+export type {NoticeBarProps, NoticeTone} from './NoticeBar'
+
 export {PaginatedList} from './PaginatedList'
 export type {PaginatedListProps} from './PaginatedList'
+
+export {RankingButton} from './RankingButton'
+export type {RankingButtonProps, RankingOption} from './RankingButton'
 
 export {SearchBar} from './SearchBar'
 export type {SearchBarProps} from './SearchBar'
@@ -67,6 +76,12 @@ export type {DualSliderProps} from './DualSlider'
 
 export {TabbedPanel} from './TabbedPanel'
 export type {TabbedPanelProps, TabbedPanelTab} from './TabbedPanel'
+
+export {YearFilter} from './YearFilter'
+export type {YearFilterProps} from './YearFilter'
+
+export {TopicsModal} from './TopicsModal'
+export type {TopicsModalProps, TopicSelectionValue} from './TopicsModal'
 
 export {ViewModeToggle} from './ViewModeToggle'
 export type {ViewModeToggleProps, ViewMode} from './ViewModeToggle'

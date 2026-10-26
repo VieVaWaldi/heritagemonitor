@@ -138,6 +138,16 @@ function getComponents(mode: ThemeMode): ThemeOptions['components'] {
             },
         },
         MuiTooltip: {
+            // Above the text, everywhere. Almost every tooltip in this app
+            // exists because a label was truncated, and one that opens BELOW
+            // covers the next row of the list the user is reading — which is
+            // usually the thing they were comparing it against. MUI still
+            // flips it collision-safely when there is no room above.
+            //
+            // Set here rather than per call site: there are tooltips on facet
+            // rows, filter pills, dropdown options, result rows and chips, and
+            // "most of them, but not that one" is not a rule anybody can keep.
+            defaultProps: {placement: 'top'},
             styleOverrides: {tooltip: {borderRadius: 6}},
         },
         MuiAlert: {

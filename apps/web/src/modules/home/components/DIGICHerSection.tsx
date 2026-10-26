@@ -3,17 +3,19 @@ import Button from '@mui/material/Button'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import {useTranslations} from 'next-intl'
 import {Text} from '@/common/text'
-
-const DIGICHER_URL = 'https://www.digicher-project.eu/'
+import {DIGICHER_PROJECT_URL} from '../data/logos'
+import {DigicherBanner} from './DigicherBanner'
 
 // Sits right after HeroPage (which renders LogoBanner right below its own
 // scrollHint/footerCta). Static content, no hooks — same reasoning as
-// InformationSection for not forcing a client boundary.
+// InformationSection for not forcing a client boundary (DigicherBanner is
+// its own small client island for the one bit that needs a media query).
 export function DIGICHerSection() {
     const t = useTranslations('Home.digicher')
 
     return (
         <Box component="section" sx={{backgroundColor: 'background.paper'}}>
+            <DigicherBanner />
             <Box sx={{maxWidth: 760, mx: 'auto', textAlign: 'center', px: {xs: 3, md: 4}, pt: 10, pb: 6}}>
                 <Text
                     variant="overline"
@@ -26,7 +28,7 @@ export function DIGICHerSection() {
                     {t('body')}
                 </Text>
                 <Button
-                    href={DIGICHER_URL}
+                    href={DIGICHER_PROJECT_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="outlined"

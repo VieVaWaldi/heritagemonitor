@@ -6,6 +6,8 @@ import CloseIcon from '@mui/icons-material/Close'
 import {createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode} from 'react'
 import {NAVBAR_BORDER_COLOR} from '@/common/components'
 import {useIsMobile} from '@/common/hooks/useIsMobile'
+import {usePathname} from 'next/navigation'
+import {isLandingPath, resolveChatOpen} from './chatOpen'
 import {LlmChatBox} from './LlmChatBox'
 
 // Fluid width shared by the desktop-docked panel and (mirrored) by
@@ -66,12 +68,16 @@ export function useLlmChatContentSx(): {marginRight: string | number} {
 // comment on why this module doesn't reach into @mui/x-chat-headless), so a
 // full remount via `key` is the supported way to reset it.
 export function LlmChatRuntimeProvider({children}: {children: ReactNode}) {
-    const [open, setOpen] = useState(false)
+    // null = the user has not touched the toggle: the default applies (see
+    // resolveChatOpen). Once they have, their choice wins for the session.
+    const [userChoice, setUserChoice] = useState<boolean | null>(null)
     const [topOffset, setTopOffset] = useState(0)
     const [resetKey, setResetKey] = useState(0)
     const isMobile = useIsMobile()
+    const isLanding = isLandingPath(usePathname())
+    const open = resolveChatOpen({userChoice, isLanding, isMobile})
 
-    const toggle = useCallback(() => setOpen((current) => !current), [])
+    const toggle = useCallback(() => setUserChoice(!open), [open])
     const clear = useCallback(() => setResetKey((key) => key + 1), [])
 
     const runtimeValue = useMemo<LlmChatRuntimeValue>(

@@ -69,6 +69,24 @@ export function HMMenu() {
                     pointerEvents: open ? 'auto' : 'none',
                 }}
             >
+                {/* Dims the page behind the menu and swallows the click that
+                    dismisses it. Below SideMenu's own z-index (1000) so the
+                    panel stays lit, and only interactive while open — a
+                    permanently mounted overlay would eat every click on the
+                    site. */}
+                {open && (
+                    <Box
+                        onClick={close}
+                        aria-hidden
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            zIndex: 999,
+                            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                        }}
+                    />
+                )}
+
                 <SideMenu
                     side="left"
                     title={

@@ -9,6 +9,13 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 export interface UseCaseAction {
     entity: EntityKey
     route?: string
+    /**
+     * What picking an autocomplete suggestion does on this route. Default
+     * `only`: the list is restricted to that one document. `center`: the
+     * document becomes the centre of the organisation network. `query`: the
+     * suggestion's text is searched (the query network is a text search).
+     */
+    suggestionFocus?: 'only' | 'center' | 'query'
 }
 
 export interface SubUseCase {
@@ -52,15 +59,6 @@ export interface UseCase {
      * tabs, not this same panel — undecided until that's built.
      */
     hasResultsPanel?: boolean
-    /**
-     * Whether this UseCase's ActionBar (both on the hero page and its own
-     * /search/* route) offers typeahead autocomplete while typing. Only
-     * controls *whether* it's wired up — the suggestion source itself
-     * (today: useMinoritySuggestions, hitting /v1/minorities/suggest) is
-     * still specific to the UseCase that has one; making that pluggable
-     * per-UseCase is a later generalization, not implied by this flag.
-     */
-    hasAutoSuggestions?: boolean
 }
 
 export const USE_CASES: UseCase[] = [
@@ -71,7 +69,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Search',
         title: 'Search, download & AI chat',
         description:
-            'Search across projects, works and organisations all linked together from the biggest data providers. Use AI to summarize the results or fetch PDFs. ... ',
+            'Search 3.9M projects, 50M works, 494K organisations and their funding streams, all linked to each other. Filter by topic, funder, programme, region and year, then open any result to see everything connected to it.',
         examples: ['digicher', 'conservation', 'BIM', 'photogrammetry AND heritage preservation -consumer'],
         action: {
             entity: 'projects',
@@ -88,7 +86,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Find Experts',
         title: 'Find someone to help you',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'Find the organisations that have actually done the most work on your subject, ranked by how many matching projects they ran. Open one to see those projects, its works and how much funding reached it.',
         examples: ['3D scanning specialist', 'heritage conservation architect', 'digitisation consultant'],
         action: {
             entity: 'experts',
@@ -101,17 +99,16 @@ export const USE_CASES: UseCase[] = [
         key: 'minorities',
         icon: PeopleAltIcon,
         color: 'secondary.main',
-        name: 'Map Minorities',
-        title: 'Map research by minorities',
+        name: 'Map Communities',
+        title: 'Map research by communities',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'Browse indigenous, ethno-religious, linguistic and other communities to see which projects, works, organisations and research topics are about them. Filter by country, language, religion or topic to find who is studying a community and what they have produced.',
         examples: ['Roma heritage', 'indigenous knowledge systems', 'minority language archives'],
         action: {
             entity: 'minorities',
             route: '/search/minorities',
         },
         hasResultsPanel: true,
-        hasAutoSuggestions: true,
         tip: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
     {
@@ -121,7 +118,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Track Funding',
         title: 'Map research by funding',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'See where research money actually lands on a map of the best-funded organisations for your search. Explore the funding streams behind it and narrow everything to one programme, country or institution type.',
         examples: ['Horizon Europe heritage grant', 'national conservation fund', 'UNESCO heritage grant'],
         action: {
             entity: 'grants',
@@ -137,7 +134,7 @@ export const USE_CASES: UseCase[] = [
         name: 'Visualise Collaborations',
         title: 'Map who works with whom',
         description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+            'Draw the network of who works with whom, as arcs between organisations that shared a project. Centre it on one institution or on a whole query to see which partnerships a research area is built on.',
         defaultSubUseCaseKey: 'organisationNetwork',
         subUseCases: [
             {
@@ -147,16 +144,20 @@ export const USE_CASES: UseCase[] = [
                 action: {
                     entity: 'organisations',
                     route: '/search/collaboration/organisationNetwork',
+                    suggestionFocus: 'center',
                 },
+                hasResultsPanel: true,
             },
             {
                 key: 'queryNetwork',
                 name: 'Network of a query',
-                examples: ['Leiden University'],
+                examples: ['digital archaeology', 'virtual reality heritage'],
                 action: {
                     entity: 'projects',
                     route: '/search/collaboration/queryNetwork',
+                    suggestionFocus: 'query',
                 },
+                hasResultsPanel: true,
             },
         ],
     },

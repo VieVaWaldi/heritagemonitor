@@ -31,23 +31,32 @@ export interface NavbarProps {
      * away with the page. */
     sticky?: boolean
     /** 'tall' doubles the bar's height (see NAVBAR_HEIGHT_TALL) — for
-     * content heavier than a tab strip, e.g. /search's ActionBar. 'mid' is
-     * 1.5x height (see NAVBAR_HEIGHT_MID) — used by the home page. Defaults
-     * to 'default'. */
+     * content heavier than a tab strip, e.g. /search's ActionBar, and for
+     * the home page (the DIGICHer logo's descender needs the extra room to
+     * sit centered against HMMenu without crowding the bar's edge). 'mid'
+     * is 1.5x height (see NAVBAR_HEIGHT_MID), currently unused but kept for
+     * routes that land between the two. Defaults to 'default'. */
     size?: 'default' | 'mid' | 'tall'
     /** Page-specific content, placed between HMMenu and the corpus selector — e.g. a route's own tab strip. */
     children?: ReactNode
+    /** Extra content hugging the left edge right after HMMenu, e.g. the home
+     * page's DIGICHer logo — set off from HMMenu by a vertical divider so it
+     * doesn't read as part of the menu button. Omitted entirely (no divider
+     * either) on pages with nothing to put there. */
+    startAction?: ReactNode
     /** Extra action(s) hugging the right edge past the corpus selector, e.g.
      * the Lucy chat toggle — set off from CorpusPanel by a vertical divider
      * so it doesn't read as part of the corpus control. Omitted entirely
      * (no divider either) on pages with nothing to put there. */
     endAction?: ReactNode
+    /** A vertical divider right after HMMenu, the same one that sets endAction off from the corpus selector — for pages whose own content starts at the menu's edge (the search pages' use-case label). */
+    startDivider?: boolean
 }
 
 // App-wide top bar: HMMenu hugs the left edge, the corpus selector hugs the
 // right, and any page-specific content (tabs, an ActionBar, etc.) fills the
 // middle.
-export function Navbar({bordered = false, sticky = false, size = 'default', children, endAction}: NavbarProps) {
+export function Navbar({bordered = false, sticky = false, size = 'default', children, startAction, endAction, startDivider = false}: NavbarProps) {
     return (
         <Box
             component="nav"
@@ -64,7 +73,14 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
             }}
         >
             <HMMenu />
-            <Box sx={{flex: 1, minWidth: 0, height: '100%', display: 'flex', alignItems: 'center', px: 2}}>
+            {startAction && (
+                <>
+                    <Divider orientation="vertical" flexItem sx={{my: 1}} />
+                    <Box sx={{display: 'flex', alignItems: 'center', px: 1}}>{startAction}</Box>
+                </>
+            )}
+            {startDivider && <Divider orientation="vertical" flexItem sx={{my: 1}} />}
+            <Box sx={{flex: 1, minWidth: 0, height: '100%', display: 'flex', alignItems: 'center', px: startDivider ? 1.5 : 2}}>
                 {children}
             </Box>
             <CorpusPanel />

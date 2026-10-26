@@ -16,7 +16,10 @@ export interface FilterBarProps {
 export function FilterBar({children}: FilterBarProps) {
     return (
         <Paper variant="outlined" sx={{px: 2, py: 1.5, flexShrink: 0}}>
-            <Stack direction="row" spacing={1.5} sx={{flexWrap: 'wrap'}}>
+            {/* useFlexGap + an explicit rowGap: Stack's `spacing` is margin
+                based, so when the filters wrap onto a second row the rows sit
+                flush against each other. A real gap separates them. */}
+            <Stack direction="row" useFlexGap sx={{flexWrap: 'wrap', columnGap: 1.5, rowGap: 1}}>
                 {children}
             </Stack>
         </Paper>

@@ -35,6 +35,8 @@ export interface DeckMapViewState {
     reset: () => void
     zoomBy: (delta: number) => void
     geolocate: () => void
+    /** Fly to a place, keeping tilt and bearing — e.g. the new centre of a network. */
+    flyTo: (target: {latitude: number; longitude: number; zoom?: number}) => void
     isGlobe: boolean
     toggleGlobe: () => void
 }
@@ -98,7 +100,18 @@ export function useDeckMapViewState(defaultViewState: PartialViewState): DeckMap
         })
     }, [])
 
+    const flyTo = useCallback((target: {latitude: number; longitude: number; zoom?: number}) => {
+        const current = viewStateRef.current
+        setCommandedViewState({
+            ...current,
+            ...target,
+            zoom: target.zoom ?? current.zoom,
+            transitionDuration: RESET_DURATION_MS,
+            transitionInterpolator: new FlyToInterpolator(),
+        })
+    }, [])
+
     const toggleGlobe = useCallback(() => setIsGlobe((prev) => !prev), [])
 
-    return {initialViewState, commandedViewState, onViewStateChange, reset, zoomBy, geolocate, isGlobe, toggleGlobe}
+    return {initialViewState, commandedViewState, onViewStateChange, reset, zoomBy, geolocate, flyTo, isGlobe, toggleGlobe}
 }

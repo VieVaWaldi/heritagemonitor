@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box'
 import {styled} from '@mui/material/styles'
-import {NAVBAR_HEIGHT_MID} from '@/common/components'
+import {NAVBAR_HEIGHT_TALL} from '@/common/components'
 import {fluidUnit} from '@/common/theme/fluidUnit'
 import {HERO_FLUID_UNIT_DECLARATION} from './heroFluidUnit'
 import type {HeroLayoutSlots} from './types'
@@ -51,9 +51,10 @@ export function HeroLayout({
                 // can stay sticky across the whole page, not just the hero) —
                 // subtracting its height here is what keeps the bottom-pinned
                 // footerCta/logoBanner landing at the viewport edge instead of
-                // being pushed NAVBAR_HEIGHT_MID past it. HomePage's Navbar uses
-                // size="mid", so this must match.
-                minHeight: `calc(100dvh - ${NAVBAR_HEIGHT_MID}px)`,
+                // being pushed NAVBAR_HEIGHT_TALL past it. HomePage's Navbar uses
+                // size="tall" (room for the DIGICHer logo's descender), so this
+                // must match.
+                minHeight: `calc(100dvh - ${NAVBAR_HEIGHT_TALL}px)`,
                 display: 'flex',
                 flexDirection: 'column',
                 // Matches DIGICHerSection's background — the hero now flows straight

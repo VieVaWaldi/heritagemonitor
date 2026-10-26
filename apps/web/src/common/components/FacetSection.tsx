@@ -4,17 +4,25 @@ import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
 import Checkbox from '@mui/material/Checkbox'
 import Paper from '@mui/material/Paper'
+import Tooltip from '@mui/material/Tooltip'
 import {alpha} from '@mui/material/styles'
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import type {ReactNode} from 'react'
 import {Text} from '@/common/text'
+import {FieldLabel} from './FieldLabel'
 import type {FilterOption} from './FilterMenuButton'
 
 export interface FacetSectionProps {
+    /** The card heading — the full descriptive title, see modules/search/entity/facetTitles. */
     label: string
+    /** Pinned above the checkbox list, e.g. the topic browser's button. */
+    header?: ReactNode
     options: FilterOption[]
     value: string[]
     onChange: (value: string[]) => void
+    /** One grey line under the list. */
+    hint?: string
 }
 
 const ROW_HEIGHT = 28
@@ -27,16 +35,15 @@ const MAX_VISIBLE_OPTIONS = 6
 // FacetSidebar can stack several without them fusing into a single tall
 // block. Rows reuse FilterMenuButton's checkbox styling, just always
 // visible instead of tucked behind a click.
-export function FacetSection({label, options, value, onChange}: FacetSectionProps) {
+export function FacetSection({label, header, options, value, onChange, hint}: FacetSectionProps) {
     function toggleOption(optionValue: string) {
         onChange(value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue])
     }
 
     return (
         <Paper variant="outlined" sx={{p: 2}}>
-            <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 0.5}}>
-                {label}
-            </Text>
+            <FieldLabel sx={{display: 'block', mb: 0.5}}>{label}</FieldLabel>
+            {header && <Box sx={{mb: 1}}>{header}</Box>}
             <Box
                 sx={{
                     display: 'flex',
@@ -55,8 +62,14 @@ export function FacetSection({label, options, value, onChange}: FacetSectionProp
                 {options.map((option) => {
                     const selected = value.includes(option.value)
                     return (
+                        // Labels are truncated to keep the column narrow, so
+                        // the full text has to be reachable some other way:
+                        // the tooltip opens on hover AND on keyboard focus
+                        // (the row is a ButtonBase, so it is in the tab
+                        // order), and `describeChild` lets a screen reader
+                        // read the row's own text rather than replacing it.
+                        <Tooltip key={option.value} title={option.label} describeChild enterDelay={400}>
                         <ButtonBase
-                            key={option.value}
                             role="option"
                             aria-selected={selected}
                             onClick={() => toggleOption(option.value)}
@@ -92,9 +105,15 @@ export function FacetSection({label, options, value, onChange}: FacetSectionProp
                                 </Text>
                             )}
                         </ButtonBase>
+                        </Tooltip>
                     )
                 })}
             </Box>
+            {hint && (
+                <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
+                    {hint}
+                </Text>
+            )}
         </Paper>
     )
 }

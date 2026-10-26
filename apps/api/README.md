@@ -17,7 +17,7 @@ Two unrelated things, both called "cache":
   above; this is about external HTTP caching, not the api's own internal one.
 
 `no-store` being global is correct today (nothing here benefits from caching), but it'll need
-to become per-route once a genuinely cacheable endpoint exists — e.g. a publication detail
+to become per-route once a genuinely cacheable endpoint exists — e.g. a work detail
 view, safe to cache for a day+ given the dataset only refreshes monthly. For that kind of
 route, prefer actively invalidating `fastify.cache` when the ingestion pipeline loads new data
 over guessing a TTL, and consider a permissive header (`Cache-Control: public, max-age=...`)

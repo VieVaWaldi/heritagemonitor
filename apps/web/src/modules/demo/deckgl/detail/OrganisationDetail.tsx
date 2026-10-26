@@ -3,15 +3,12 @@
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import {Text} from '@/common/text'
-import {formatCount, formatFunding} from '../format'
-import type {Organisation} from '../organisations'
-import {OrganisationCard} from './OrganisationCard'
-import {ProjectList} from './ProjectList'
+import {formatCount, formatFunding, OrganisationCard, ProjectList, type MapOrganisation} from '@/common/deckgl'
 
 export interface OrganisationDetailProps {
-    organisation: Organisation
+    organisation: MapOrganisation
     /** Other organisations sharing this organisation's hex */
-    neighbours: Organisation[]
+    neighbours: MapOrganisation[]
     onSelectOrganisation: (id: string) => void
 }
 

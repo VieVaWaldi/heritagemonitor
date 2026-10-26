@@ -22,10 +22,14 @@ import {
 import {useSelectedCorpusReader, USE_CASES} from '@/common/catalog'
 import {useActiveUseCase} from '@/common/hooks/useActiveUseCase'
 import {Text} from '@/common/text'
+import {normalizeAppLink} from '@/common/url'
+import {classifyChatLink} from './chatLinks'
 import {createLlmChatAdapter} from './adapter'
 import {ChatEventIndicator} from './ChatEventIndicator'
 import {LlmChatHeaderRight} from './LlmChatHeader'
+import {currentTrail, describeLinkVocabulary, describeTrail} from '@/common/url'
 import {usePageChatContextReader} from './PageChatContext'
+import {resolvePageContext} from './pageContext'
 
 export interface LlmChatBoxProps {
     sx?: SxProps<Theme>
@@ -36,6 +40,14 @@ export interface LlmChatBoxProps {
 }
 
 const CONVERSATION_ID = 'llmchat'
+
+// How long a send may wait for the selected entity's related lists.
+const RELATED_CONTEXT_TIMEOUT_MS = 4_000
+
+// Lucy's first message on the landing page. "showcase" is a word her system
+// prompt knows (see the api's SystemPrompt.md), so offering it here is a promise she keeps.
+const LANDING_WELCOME =
+    'Hey, I am Lucy. Ask me for a showcase if you want help. I know the HM and can see your selected data.'
 
 // Referentially stable — passed as ChatBox's `initialConversations`, which
 // (like `initialMessages` below) only matters on first mount. A literal
@@ -169,13 +181,41 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // identity is stable (see usePageChatContextReader), so this still only
     // constructs the adapter once despite depending on it.
     const getPageContext = usePageChatContextReader()
+    // Where this visitor has already been. Recorded by the same hook that
+    // posts to /v1/breadcrumbs, kept in a ref so the adapter (created once per
+    // session) reads the CURRENT trail on every send rather than the one that
+    // existed when the chat opened.
+
+    const getContextWithTrail = useCallback(async (signal: AbortSignal) => {
+        // The lazy related lists, bounded: a slow api must not hold up the
+        // message — on timeout Lucy just gets the eager context.
+        const context = await resolvePageContext(
+            getPageContext(),
+            AbortSignal.any([signal, AbortSignal.timeout(RELATED_CONTEXT_TIMEOUT_MS)]),
+        )
+        // Module-level store, read at send time — see common/url/breadcrumbStore.
+        const trail = currentTrail()
+        // The link guide goes in EVERY message: Lucy writes app links in most
+        // answers, and one wrong param name produces a link that looks right
+        // and silently does nothing (see linkVocabulary).
+        const lines = [...context.lines, ...describeLinkVocabulary()]
+        if (trail.length < 2) return {...context, lines}
+        return {
+            ...context,
+            lines: [
+                ...lines,
+                'Pages this visitor has already looked at, oldest first. Use them to work out what they are really after — someone who went from a topic search to a funding stream to one organisation is probably building a picture of who funds that subject, and you should offer that rather than answer only the literal question.',
+                ...describeTrail(trail),
+            ],
+        }
+    }, [getPageContext])
     const getSelectedCorpus = useSelectedCorpusReader()
     // Drives the `streamingIndicator` slot override below — see adapter.ts's
     // watchChatEvents for where this gets called.
     const [eventMessage, setEventMessage] = useState<string | null>(null)
     const adapter = useMemo(
-        () => createLlmChatAdapter(getPageContext, getSelectedCorpus, setEventMessage),
-        [getPageContext, getSelectedCorpus, setEventMessage],
+        () => createLlmChatAdapter(getContextWithTrail, getSelectedCorpus, setEventMessage),
+        [getContextWithTrail, getSelectedCorpus, setEventMessage],
     )
 
     // Swaps ChatBox's own animated-dots streamingIndicator for
@@ -217,14 +257,16 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // `initialMessages` prop's content after ChatBox has already initialized
     // from it, which is exactly the "changing the default state of an
     // uncontrolled ChatProvider" case @mui/x-chat warns about.
-    const [pageName] = useState(() => {
+    const [welcomeText] = useState(() => {
         const useCase = USE_CASES.find((uc) => uc.key === useCaseKey)
-        if (!useCase) return 'landing page'
+        // No use case = the landing page (or an unmatched route): Lucy
+        // introduces herself and offers a showcase instead of naming the page.
+        if (!useCase) return LANDING_WELCOME
         const subUseCase = useCase.subUseCases?.find((sub) => sub.key === subUseCaseKey)
-        return subUseCase?.name ?? useCase.name
+        return `Welcome to HeritageMonitor, we are on ${subUseCase?.name ?? useCase.name}.`
     })
 
-    // Memoized for the same reason as INITIAL_CONVERSATIONS above — pageName
+    // Memoized for the same reason as INITIAL_CONVERSATIONS above — welcomeText
     // is frozen at mount (see above), so this now computes once and never
     // changes identity afterwards.
     const initialMessages = useMemo(
@@ -237,12 +279,12 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                 parts: [
                     {
                         type: 'text' as const,
-                        text: `Welcome to HeritageMonitor, we are on ${pageName}.`,
+                        text: welcomeText,
                     },
                 ],
             },
         ],
-        [pageName],
+        [welcomeText],
     )
 
     // undefined (not a no-op) when onClear isn't passed — e.g. the demo page
@@ -258,21 +300,29 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
     // renderer (MarkdownLink in renderMarkdown.js, not something this module
     // has a supported hook into — see the module comment above on why this
     // file avoids @mui/x-chat-headless internals), which hardcodes
-    // target="_blank" — every link opens a new, separate tab with its own
-    // fresh chat instance instead of the one the user was just talking to.
-    // Intercepting the click here (delegated, since the anchors themselves
-    // aren't ours to attach a handler to) and navigating this tab instead —
-    // via next/navigation's router for an in-app link, so the singleton chat
-    // (see LlmChatRuntime) survives it same as any other in-app navigation —
-    // is the one thing this component *can* control without needing
-    // @mui/x-chat to expose link behavior as a prop.
+    // target="_blank". Intercepting the click here (delegated, since the
+    // anchors themselves aren't ours to attach a handler to) is the one thing
+    // this component *can* control, and the two link kinds want opposite
+    // things — see classifyChatLink:
+    //
+    // - an IN-APP link is taken over and pushed through next/navigation, so
+    //   this tab navigates and the singleton chat (mounted in the root layout,
+    //   see LlmChatRuntime — outside `children`, so a route change never
+    //   remounts it) keeps the conversation. Lucy's answers are often lists of
+    //   heritagemonitor URLs used as a table of contents; opening each in its
+    //   own tab with a fresh, empty chat would defeat the point.
+    // - an OUTBOUND link keeps the renderer's own target="_blank" and is left
+    //   to the browser, so leaving for doi.org does not throw the conversation
+    //   away. `rel` is set here because the anchor is not ours to author:
+    //   browsers already imply `noopener` for target="_blank", and this makes
+    //   it explicit rather than inherited from a default that could change.
     const router = useRouter()
     const handleContentClick = useCallback(
         (event: MouseEvent<HTMLElement>) => {
             // Middle-click, and ctrl/cmd/shift/alt-click, are the standard
             // browser gestures for "open in a new tab/window regardless of
             // what the link normally does" — respect that intent instead of
-            // forcing every click to stay in this tab.
+            // forcing every click through this handler.
             if (
                 event.button !== 0 ||
                 event.metaKey ||
@@ -281,15 +331,25 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                 event.altKey
             )
                 return
+
             const anchor = (event.target as HTMLElement).closest('a')
-            const href = anchor?.getAttribute('href')
-            if (!href) return
-            event.preventDefault()
-            const url = new URL(href, window.location.origin)
-            if (url.origin === window.location.origin) {
-                router.push(`${url.pathname}${url.search}${url.hash}`)
-            } else {
-                window.location.assign(href)
+            if (!anchor) return
+
+            const target = classifyChatLink(anchor.getAttribute('href'), window.location.origin)
+            if (target.kind === 'internal') {
+                event.preventDefault()
+                // Seatbelt: repair a link Lucy got slightly wrong (`?corpus=dch`
+                // -> `?c=dch`) before following it, and write the corrected URL
+                // back onto the anchor so the link the user sees, copies and
+                // hovers is the one that actually works.
+                const href = normalizeAppLink(target.href)
+                anchor.setAttribute('href', href)
+                router.push(href)
+                return
+            }
+            if (target.kind === 'external') {
+                anchor.target = '_blank'
+                anchor.rel = 'noopener noreferrer'
             }
         },
         [router],

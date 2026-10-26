@@ -3,12 +3,10 @@
 import {useCallback, useMemo, useState} from 'react'
 import type {CollaborationEdge} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
-import {useTheme} from '@mui/material/styles'
 import {NAVBAR_HEIGHT, PaginatedList, TabbedPanel} from '@/common/components'
-import {useDeckMapViewState} from '@/common/deckgl'
+import {ExplorerRow, useDeckMapViewState, useVisualizationColors} from '@/common/deckgl'
 import {Text} from '@/common/text'
 import {DeckGlMapTab} from './deckgl/DeckGlMapTab'
-import {ExplorerRow} from './deckgl/ExplorerRow'
 import {useCollaborationEdges} from './deckgl/useCollaborationEdges'
 import {DEFAULT_VISUALIZATION_ID, VISUALIZATIONS} from './deckgl/visualizations'
 
@@ -27,22 +25,13 @@ const EMPTY_EDGES: CollaborationEdge[] = []
 // left, a tabbed panel (map / selected item) on the right. The list, the map
 // and the detail tab all share one selectedId.
 export function DeckGlMapDemoPage() {
-    const theme = useTheme()
     const edgesState = useCollaborationEdges()
     const [visualizationId, setVisualizationId] = useState(DEFAULT_VISUALIZATION_ID)
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const [page, setPage] = useState(1)
     const viewState = useDeckMapViewState(DEFAULT_VIEW_STATE)
 
-    const colors = useMemo(
-        () => ({
-            primary: theme.palette.primary.main,
-            primaryLight: theme.palette.primary.light,
-            secondary: theme.palette.secondary.main,
-            highlight: theme.palette.warning.main,
-        }),
-        [theme],
-    )
+    const colors = useVisualizationColors()
 
     const edges = edgesState.state === 'ok' ? edgesState.edges : EMPTY_EDGES
     const visualization = VISUALIZATIONS.find((v) => v.id === visualizationId) ?? VISUALIZATIONS[0]

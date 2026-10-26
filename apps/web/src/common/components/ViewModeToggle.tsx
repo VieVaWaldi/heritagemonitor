@@ -57,7 +57,7 @@ export function ViewModeToggle({value, onChange}: ViewModeToggleProps) {
                     </Box>
                 </ToggleButton>
             </Tooltip>
-            <Tooltip title="Select List View. Search and filter institutions, projects, or publications in a classic list.">
+            <Tooltip title="Select List View. Search and filter institutions, projects, or works in a classic list.">
                 <ToggleButton value="list" aria-label="List view">
                     <Box sx={{display: 'flex', alignItems: 'center', gap: 0.75}}>
                         <FormatListBulletedIcon fontSize="small" />

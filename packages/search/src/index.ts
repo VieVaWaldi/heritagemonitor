@@ -1,15 +1,9 @@
-import {Client} from '@opensearch-project/opensearch'
+// The OpenSearch layer: one configured client, the index names, the id-lookup
+// helpers and the pure query builders. No domain logic — that belongs to
+// apps/api's services (see apps/api/RULES.md rule 3).
 
-// Reads the same OPENSEARCH_* vars infra/docker-compose.yml already defines.
-// apps/api's Dockerfile/compose service must pass these through as env vars.
-// Security is disabled for local dev (plugins.security.disabled=true in
-// docker-compose.yml), so auth is only wired up when credentials are actually
-// present — prod sets these once plugins.security.disabled=false there.
-export const client = new Client({
-    node: `http://${process.env.OPENSEARCH_HOST ?? 'opensearch'}:${process.env.OPENSEARCH_PORT ?? 9200}`,
-    ...(process.env.OPENSEARCH_USERNAME && process.env.OPENSEARCH_PASSWORD
-        ? {auth: {username: process.env.OPENSEARCH_USERNAME, password: process.env.OPENSEARCH_PASSWORD}}
-        : {}),
-})
+export {client} from './client.js'
+export {getDocument, mgetDocuments} from './documents.js'
 
 export * as indices from './indices/index.js'
+export * as query from './query/index.js'

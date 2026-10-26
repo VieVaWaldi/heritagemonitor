@@ -108,7 +108,7 @@ function watchChatEvents(body: ReadableStream<Uint8Array>, onEvent: (message: st
 // accessor for CorpusContext's current selection. `onEvent` drives
 // LlmChatBox's inline status indicator, see watchChatEvents above.
 export function createLlmChatAdapter(
-    getPageContext: () => PageContext,
+    getPageContext: (signal: AbortSignal) => Promise<PageContext>,
     getSelectedCorpus: () => CorpusKey,
     onEvent: (message: string | null) => void,
 ) {
@@ -116,6 +116,11 @@ export function createLlmChatAdapter(
         stream: async ({messages, signal}) => {
             const headers = new Headers({'Content-Type': 'application/json'})
             headers.set('X-Request-Id', crypto.randomUUID())
+
+            // Read ONCE per send, and awaited: the page's lazy parts (the
+            // selected entity's related lists) are fetched now, not while the
+            // user browses. See resolvePageContext.
+            const pageContext = await getPageContext(signal)
 
             const response = await fetch(`${API_BASE_URL}/v1/llmchat/stream`, {
                 method: 'POST',
@@ -141,12 +146,12 @@ export function createLlmChatAdapter(
                         // Only populated when the current page's results
                         // panel has published something — empty everywhere
                         // else. See PageChatContext.tsx.
-                        ...getPageContext().lines,
+                        ...pageContext.lines,
                     ],
                     // Approved fetch targets that came from the same
                     // published page context — never model-invented, see
                     // llmchat.ts's sourceUrls doc comment.
-                    sourceUrls: getPageContext().sources,
+                    sourceUrls: pageContext.sources,
                 }),
                 signal,
             })

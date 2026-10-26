@@ -3,10 +3,7 @@
 import type {CollaborationEdge} from '@heritagemonitor/shared'
 import Box from '@mui/material/Box'
 import {Text} from '@/common/text'
-import {formatCount} from '../format'
-import type {ProjectSummary} from '../organisations'
-import {OrganisationCard} from './OrganisationCard'
-import {ProjectList} from './ProjectList'
+import {formatCount, OrganisationCard, ProjectList, type ProjectSummary} from '@/common/deckgl'
 
 // Both organisations of one arc, plus the projects they shared. A shared
 // project's cost is the two partners' costs added together.
