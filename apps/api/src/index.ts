@@ -6,6 +6,8 @@ import {breadcrumbsRoutes} from "./modules/breadcrumbs/breadcrumbs.routes.js";
 import {startBreadcrumbSweep} from "./modules/breadcrumbs/breadcrumbs.service.js";
 import {demoRoutes} from "./modules/demo/demo.routes.js";
 import {expertsRoutes} from "./modules/experts/experts.routes.js";
+import {exportsRoutes} from "./modules/exports/exports.routes.js";
+import {startExportSweep} from "./modules/exports/exports.sweep.js";
 import {fundingRoutes} from "./modules/funding/funding.routes.js";
 import {collaborationRoutes} from "./modules/collaboration/collaboration.routes.js";
 import {grantsRoutes} from "./modules/grants/grants.routes.js";
@@ -63,6 +65,7 @@ fastify.register(async (v1) => {
     v1.register(worksRoutes)
     v1.register(topicsRoutes)
     v1.register(expertsRoutes)
+    v1.register(exportsRoutes)
     v1.register(grantsRoutes)
     v1.register(fundingRoutes)
     v1.register(collaborationRoutes)
@@ -100,6 +103,8 @@ const start = async () => {
     // visitor pays for their own page. Neither can fail the process.
     // Housekeeping, not a request path: ages out breadcrumbs hourly.
     startBreadcrumbSweep((message) => fastify.log.warn(message))
+    // Ages out export files and their rows, and keeps them under the disk cap.
+    startExportSweep((message) => fastify.log.warn(message))
 
     void startOrganisationTableLoad((message) => fastify.log.info(message))
         .then(() => runWarmUp({info: (m) => fastify.log.info(m), warn: (m) => fastify.log.warn(m)}))

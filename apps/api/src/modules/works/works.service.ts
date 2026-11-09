@@ -1,9 +1,12 @@
 import type {query} from '@heritagemonitor/search'
 import {
+    EXPORT_MAX_ROWS,
+    EXPORT_SCAN_BATCH_SIZE,
     parseYearRange,
     workDetailSchema,
     workRowSchema,
     type WorkDetail,
+    type WorkExportRequest,
     type WorkOrganisationsResponse,
     type WorkProjectsResponse,
     type WorkRow,
@@ -43,6 +46,25 @@ function resolveSort(q: string, requested: WorkSearchRequest['sort']): query.Wor
 function toFilters(request: WorkSearchRequest): query.WorkFilters {
     // An unparseable `years` drops the year filter rather than failing the
     // request — the value comes from a URL a user may have edited.
+    const years = parseYearRange(request.years)
+
+    return {
+        corpus: request.c,
+        ...(years ? {year: years} : {}),
+        oa: request.oa,
+        language: request.language,
+        publisher: request.publisher,
+        project: request.project,
+        org: request.org,
+        minority: request.minority,
+        only: request.only,
+    }
+}
+
+// Same fields `toFilters` maps, for the export path instead of the hot search
+// path — kept separate rather than shared, matching apps/web/RULES.md #3: the
+// two will diverge once works gets its own export-only toggles.
+function toExportFilters(request: WorkExportRequest): query.WorkFilters {
     const years = parseYearRange(request.years)
 
     return {
@@ -115,6 +137,35 @@ export async function getWorkById(id: string): Promise<WorkDetail> {
         throw new AppError(`Work '${id}' failed schema validation`, 500)
     }
     return result.data
+}
+
+/**
+ * Every work matching an export request, past the 10,000-result search
+ * window, for a bulk CSV/JSON download. Scans in `EXPORT_SCAN_BATCH_SIZE`
+ * batches and stops as soon as `EXPORT_MAX_ROWS` have been yielded, even if
+ * more would match.
+ */
+export async function* exportWorks(request: WorkExportRequest): AsyncGenerator<WorkDetail> {
+    const q = request.q ?? ''
+    let yielded = 0
+
+    for await (const batch of opensearchRepository.scan({
+        q,
+        filters: toExportFilters(request),
+        batchSize: EXPORT_SCAN_BATCH_SIZE,
+    })) {
+        for (const raw of batch) {
+            const result = workDetailSchema.safeParse(raw)
+            if (!result.success) {
+                console.warn(`Work document '${raw.id ?? 'unknown'}' failed export validation:`, result.error.issues)
+                continue
+            }
+
+            yield result.data
+            yielded += 1
+            if (yielded >= EXPORT_MAX_ROWS) return
+        }
+    }
 }
 
 /** The projects a work belongs to — an id lookup, delegated to their module. */

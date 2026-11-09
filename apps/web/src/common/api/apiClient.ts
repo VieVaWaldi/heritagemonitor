@@ -4,6 +4,11 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
+/** Absolute api url for a path — for links the browser follows itself (e.g. a file download). */
+export function apiUrl(path: string): string {
+    return `${API_BASE_URL}${path}`
+}
+
 export class ApiError extends Error {
     constructor(
         message: string,
@@ -41,7 +46,7 @@ export async function apiGet<T>(path: string, schema: Parser<T>, init?: RequestI
     const headers = new Headers(init?.headers)
     headers.set('X-Request-Id', crypto.randomUUID())
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {...init, headers})
+    const response = await fetch(apiUrl(path), {...init, headers})
 
     if (!response.ok) {
         throw new ApiError(await errorMessageOf(response, path), response.status)

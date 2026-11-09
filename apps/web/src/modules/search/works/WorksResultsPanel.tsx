@@ -38,6 +38,7 @@ import {DeepLinkNotice} from '../entity/DeepLinkNotice'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
 import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {ResultsHeader} from '../entity/ResultsHeader'
+import {ExportDialog} from '../entity/ExportDialog'
 import {describeSearchState} from '../entity/searchState'
 import type {EntityFacet} from '../entity/useEntityFacets'
 import {useEntitySearch} from '../entity/useEntitySearch'
@@ -253,6 +254,7 @@ export function WorksResultsPanel() {
                             sortOptions={WORK_SORT_OPTIONS}
                             sort={sort}
                             onSortChange={setSort}
+                            download={<ExportDialog entity="works" />}
                         />
                     }
                     items={data.hits}

@@ -112,3 +112,36 @@ export async function countWorks(q: string, filters: query.WorkFilters, timeoutM
 export async function getById(id: string): Promise<WorkRawDoc | null> {
     return getDocument<WorkRawDoc>(indices.worksIndexName, id)
 }
+
+export interface WorkScanParams {
+    q: string
+    filters: query.WorkFilters
+    batchSize: number
+}
+
+/**
+ * Scans the WHOLE match set past OpenSearch's 10,000-result window, for a
+ * bulk export. `search_after` on `_doc`, not a scroll — same technique as
+ * apps/api/src/reference/organisationTable.ts's `load()`, carrying the sort
+ * cursor forward from batch to batch instead of loading everything into
+ * memory at once. No `source`: an export wants the whole document, unlike the
+ * thin `ROW_SOURCE` the regular search list uses above.
+ */
+export async function* scan(params: WorkScanParams): AsyncGenerator<WorkRawDoc[]> {
+    let searchAfter: Array<string | number> | undefined
+
+    for (;;) {
+        const {body} = await client.search({
+            index: indices.worksIndexName,
+            body: query.worksScanBody({q: params.q, size: params.batchSize, filters: params.filters, searchAfter}),
+        })
+
+        const hits = body.hits.hits as unknown as Array<{_source?: WorkRawDoc; sort?: Array<string | number>}>
+        if (hits.length === 0) return
+
+        yield hits.filter((hit) => hit._source).map((hit) => hit._source as WorkRawDoc)
+
+        searchAfter = hits[hits.length - 1]?.sort
+        if (!searchAfter) return
+    }
+}

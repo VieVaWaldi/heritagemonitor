@@ -61,7 +61,7 @@ const pageProp = {type: 'integer', minimum: 1, default: 1} as const
 
 // One definition, used by /projects/search and /projects/facet-values: the
 // value lists must be aggregated under exactly the params the search ran with.
-const projectSearchQueryProperties = {
+export const projectSearchQueryProperties = {
     q: {type: 'string'},
     c: {type: 'string', enum: [...CORPUS_KEYS]},
     page: pageProp,
