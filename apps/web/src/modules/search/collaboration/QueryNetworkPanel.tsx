@@ -20,7 +20,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
 import {CORPUSES} from '@/common/catalog'
-import {FacetSidebar, FilterBar, NoticeBar, PaginatedList, SingleSlider, TabbedPanel, YearFilter} from '@/common/components'
+import {FilterBar, NoticeBar, PaginatedList, SingleSlider, TabbedPanel, YearFilter} from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
 import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
@@ -42,7 +42,7 @@ import {
     useUrlState,
     useUrlYears,
 } from '@/common/url'
-import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
+import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {FacetValuesMenuButton} from '../entity/FacetValuesMenuButton'
 import {RelatedList, type RelatedRow} from '../entity/RelatedList'
 import {queryNetworkHiddenTabs, visibleTabs} from '../entity/tabAvailability'
@@ -269,26 +269,27 @@ export function QueryNetworkPanel() {
     const selectedTitle = selectedCluster ? (titles.get(selectedCluster.id) ?? {title: `Cluster ${selectedCluster.id}`, subtitle: ''}) : null
 
     return (
-        <Box sx={SEARCH_BLOCK_SX}>
-            <FacetSidebar>
-                <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} />
-                <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
-                    <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 1}}>
-                        Collaborations used
-                    </Text>
-                    <SingleSlider min={minEdges} max={maxEdgesCap} step={10} value={maxEdges} onChange={setMaxEdges} label="Strongest collaborations" playable={false} />
-                    <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
-                        The cap keeps the collaborations with the most shared projects and, among equals, those in the best-ranked projects. Clusters are found in what is kept.
-                    </Text>
-                </Box>
-                <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
-                    <Text variant="caption" color="text.secondary" sx={{display: 'block'}}>
-                        {NETWORK_COVERAGE_NOTE}
-                    </Text>
-                </Box>
-            </FacetSidebar>
-
-            <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
+        <EntityResultsPanel
+            facets={
+                <>
+                    <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} />
+                    <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
+                        <Text variant="overline" color="text.secondary" sx={{fontWeight: 600, display: 'block', mb: 1}}>
+                            Collaborations used
+                        </Text>
+                        <SingleSlider min={minEdges} max={maxEdgesCap} step={10} value={maxEdges} onChange={setMaxEdges} label="Strongest collaborations" playable={false} />
+                        <Text variant="caption" color="text.secondary" sx={{display: 'block', mt: 1}}>
+                            The cap keeps the collaborations with the most shared projects and, among equals, those in the best-ranked projects. Clusters are found in what is kept.
+                        </Text>
+                    </Box>
+                    <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
+                        <Text variant="caption" color="text.secondary" sx={{display: 'block'}}>
+                            {NETWORK_COVERAGE_NOTE}
+                        </Text>
+                    </Box>
+                </>
+            }
+            filters={
                 <FilterBar>
                     <Tooltip title="Reset all filters">
                         <span>
@@ -311,171 +312,169 @@ export function QueryNetworkPanel() {
                     ))}
                     <TopicsFilterButton entity="projects" countNoun="projects" />
                 </FilterBar>
-
-                {error && <NoticeBar tone="warning">{error}</NoticeBar>}
-                {!meta.complete && (
-                    <NoticeBar tone="note">The organisation table on the server is still loading — the network will appear in a moment.</NoticeBar>
-                )}
-                {meta.mode === 'fuzzy' && (
-                    <NoticeBar tone="note">
-                        Few results for <strong>{query}</strong>, showing close matches instead.
-                    </NoticeBar>
-                )}
-                {model.clusters.length > 0 && <NoticeBar tone="note">Clusters depend on your search and on the edge cap.</NoticeBar>}
-                {edgeCount > 0 && meta.capped && (
-                    <NoticeBar tone="note">
-                        Using the {edgeCount.toLocaleString('en-US')} strongest of {meta.edgesFound.toLocaleString('en-US')} collaborations. Raise the cap on the left to see more.
-                    </NoticeBar>
-                )}
-                {layer === 'arcs' && edgeCount > 0 && arcsDrawn < edgeCount && (
-                    <NoticeBar tone="note">
-                        {(edgeCount - arcsDrawn).toLocaleString('en-US')} collaborations involve an organisation without a location and are not drawn on the map; the clusters still count them.
-                    </NoticeBar>
-                )}
-
-                {layer === 'arcs' && selectedCluster && selectedUnlocated && (
-                    <NoticeBar tone="note">
-                        None of the organisations in cluster {selectedCluster.id} has a location, so the map cannot show it. Switch to the Network layout to see it.
-                    </NoticeBar>
-                )}
-
-                <Box sx={{flex: '1 1 auto', minHeight: 0, display: 'flex', gap: 3}}>
-                    <Box sx={{flex: '1 1 0', minWidth: 0}}>
-                        <PaginatedList
-                            header={
-                                <Text variant="body2" truncate color="text.secondary">
-                                    {model.clusters.length.toLocaleString('en-US')} cluster{model.clusters.length === 1 ? '' : 's'} · strongest first
-                                </Text>
-                            }
-                            items={pageClusters}
-                            getItemKey={(cluster) => cluster.id}
-                            renderItem={(cluster) => {
-                                const entry = titles.get(cluster.id)
-                                return (
-                                    <ClusterRow
-                                        cluster={cluster}
-                                        title={entry?.title ?? `Cluster ${cluster.id}`}
-                                        subtitle={clusterRowSubtitle(cluster, entry?.subtitle ?? '')}
-                                        selected={cluster.id === selectedCluster?.id}
-                                        onSelect={selectCluster}
+            }
+            notice={
+                <>
+                    {error && <NoticeBar tone="warning">{error}</NoticeBar>}
+                    {!meta.complete && (
+                        <NoticeBar tone="note">The organisation table on the server is still loading — the network will appear in a moment.</NoticeBar>
+                    )}
+                    {meta.mode === 'fuzzy' && (
+                        <NoticeBar tone="note">
+                            Few results for <strong>{query}</strong>, showing close matches instead.
+                        </NoticeBar>
+                    )}
+                    {model.clusters.length > 0 && <NoticeBar tone="note">Clusters depend on your search and on the edge cap.</NoticeBar>}
+                    {edgeCount > 0 && meta.capped && (
+                        <NoticeBar tone="note">
+                            Using the {edgeCount.toLocaleString('en-US')} strongest of {meta.edgesFound.toLocaleString('en-US')} collaborations. Raise the cap on the left to see more.
+                        </NoticeBar>
+                    )}
+                    {layer === 'arcs' && edgeCount > 0 && arcsDrawn < edgeCount && (
+                        <NoticeBar tone="note">
+                            {(edgeCount - arcsDrawn).toLocaleString('en-US')} collaborations involve an organisation without a location and are not drawn on the map; the clusters still count them.
+                        </NoticeBar>
+                    )}
+                    {layer === 'arcs' && selectedCluster && selectedUnlocated && (
+                        <NoticeBar tone="note">
+                            None of the organisations in cluster {selectedCluster.id} has a location, so the map cannot show it. Switch to the Network layout to see it.
+                        </NoticeBar>
+                    )}
+                </>
+            }
+            list={
+                <PaginatedList
+                    header={
+                        <Text variant="body2" truncate color="text.secondary">
+                            {model.clusters.length.toLocaleString('en-US')} cluster{model.clusters.length === 1 ? '' : 's'} · strongest first
+                        </Text>
+                    }
+                    items={pageClusters}
+                    getItemKey={(cluster) => cluster.id}
+                    renderItem={(cluster) => {
+                        const entry = titles.get(cluster.id)
+                        return (
+                            <ClusterRow
+                                cluster={cluster}
+                                title={entry?.title ?? `Cluster ${cluster.id}`}
+                                subtitle={clusterRowSubtitle(cluster, entry?.subtitle ?? '')}
+                                selected={cluster.id === selectedCluster?.id}
+                                onSelect={selectCluster}
+                            />
+                        )
+                    }}
+                    page={currentPage}
+                    pageCount={pageCount}
+                    onPageChange={setPage}
+                />
+            }
+            detail={
+                <TabbedPanel
+                    value={tab}
+                    onChange={(next) => setTab(next as (typeof TAB_LIST)[number])}
+                    tabs={visibleTabs(
+                        [
+                            {
+                                value: 'graph',
+                                label: 'Graph',
+                                // fill + keepMounted: the canvas owns a WebGL
+                                // context and its own camera; unmounting it
+                                // on a tab switch would reset the view.
+                                fill: true,
+                                keepMounted: true,
+                                content: (
+                                    <QueryNetworkGraphTab
+                                        network={network}
+                                        model={model}
+                                        titles={titles}
+                                        loading={loading}
+                                        layer={layer}
+                                        onLayerChange={setLayer}
+                                        selectedClusterId={selectedCluster?.id ?? null}
+                                        onSelectCluster={selectCluster}
+                                        initialView={initialView}
+                                        onViewChange={onViewChange}
                                     />
-                                )
-                            }}
-                            page={currentPage}
-                            pageCount={pageCount}
-                            onPageChange={setPage}
-                        />
-                    </Box>
-
-                    <Box sx={{flex: '1 1 0', minWidth: 0}}>
-                        <TabbedPanel
-                            value={tab}
-                            onChange={(next) => setTab(next as (typeof TAB_LIST)[number])}
-                            tabs={visibleTabs(
-                                [
-                                    {
-                                        value: 'graph',
-                                        label: 'Graph',
-                                        // fill + keepMounted: the canvas owns a WebGL
-                                        // context and its own camera; unmounting it
-                                        // on a tab switch would reset the view.
-                                        fill: true,
-                                        keepMounted: true,
-                                        content: (
-                                            <QueryNetworkGraphTab
-                                                network={network}
-                                                model={model}
-                                                titles={titles}
-                                                loading={loading}
-                                                layer={layer}
-                                                onLayerChange={setLayer}
-                                                selectedClusterId={selectedCluster?.id ?? null}
-                                                onSelectCluster={selectCluster}
-                                                initialView={initialView}
-                                                onViewChange={onViewChange}
-                                            />
-                                        ),
-                                    },
-                                    {
-                                        value: 'overview',
-                                        label: 'Overview',
-                                        content:
-                                            selectedCluster && selectedTitle ? (
-                                                <ClusterOverviewTab
-                                                    cluster={selectedCluster}
-                                                    title={selectedTitle.title}
-                                                    subtitle={selectedTitle.subtitle}
-                                                    network={network}
-                                                    model={model}
-                                                    titles={titles}
-                                                    topicLabel={topicLabel}
-                                                    onOpenOrganisation={openOrganisation}
-                                                    onSelectCluster={selectCluster}
-                                                    onOpenBridges={() => setTab('bridges')}
-                                                />
-                                            ) : (
-                                                <EmptyTabMessage message="No clusters for this search. Try a broader query or fewer filters." />
-                                            ),
-                                    },
-                                    {
-                                        value: 'organisations',
-                                        label: 'Organisations',
-                                        content: selectedCluster ? (
-                                            <RelatedList
-                                                caption={`${selectedCluster.members.length.toLocaleString('en-US')} organisations in this cluster, most connected first`}
-                                                rows={memberRows}
-                                                page={dpage}
-                                                pageCount={pageCountOf(selectedCluster.members.length, QUERY_LIST_PAGE_SIZE)}
-                                                onPageChange={setDetailPage}
-                                                loading={false}
-                                                emptyMessage="No organisations."
-                                                onSelect={openOrganisation}
-                                            />
-                                        ) : (
-                                            <EmptyTabMessage message="Select a cluster to see its organisations." />
-                                        ),
-                                    },
-                                    {
-                                        value: 'projects',
-                                        label: 'Projects',
-                                        content: selectedCluster ? (
-                                            <RelatedList
-                                                caption={`${clusterProjectIds.length.toLocaleString('en-US')} of the scanned projects belong to this cluster (most of their organisations are members), best-ranked first`}
-                                                rows={projectRows}
-                                                page={dpage}
-                                                pageCount={pageCountOf(clusterProjectIds.length, QUERY_LIST_PAGE_SIZE)}
-                                                onPageChange={setDetailPage}
-                                                loading={projectsTab.loading}
-                                                emptyMessage="No scanned project belongs to this cluster."
-                                                onSelect={openProject}
-                                            />
-                                        ) : (
-                                            <EmptyTabMessage message="Select a cluster to see its projects." />
-                                        ),
-                                    },
-                                    {
-                                        value: 'bridges',
-                                        label: 'Bridges',
-                                        content: (
-                                            <BridgesTab
-                                                network={network}
-                                                model={model}
-                                                titles={titles}
-                                                projects={bridgeHits}
-                                                projectPlacements={bridgePlacements}
-                                                onOpenOrganisation={openOrganisation}
-                                                onOpenProject={openProject}
-                                                onSelectCluster={selectCluster}
-                                            />
-                                        ),
-                                    },
-                                ],
-                                available,
-                            )}
-                        />
-                    </Box>
-                </Box>
-            </Box>
-        </Box>
+                                ),
+                            },
+                            {
+                                value: 'overview',
+                                label: 'Overview',
+                                content:
+                                    selectedCluster && selectedTitle ? (
+                                        <ClusterOverviewTab
+                                            cluster={selectedCluster}
+                                            title={selectedTitle.title}
+                                            subtitle={selectedTitle.subtitle}
+                                            network={network}
+                                            model={model}
+                                            titles={titles}
+                                            topicLabel={topicLabel}
+                                            onOpenOrganisation={openOrganisation}
+                                            onSelectCluster={selectCluster}
+                                            onOpenBridges={() => setTab('bridges')}
+                                        />
+                                    ) : (
+                                        <EmptyTabMessage message="No clusters for this search. Try a broader query or fewer filters." />
+                                    ),
+                            },
+                            {
+                                value: 'organisations',
+                                label: 'Organisations',
+                                content: selectedCluster ? (
+                                    <RelatedList
+                                        caption={`${selectedCluster.members.length.toLocaleString('en-US')} organisations in this cluster, most connected first`}
+                                        rows={memberRows}
+                                        page={dpage}
+                                        pageCount={pageCountOf(selectedCluster.members.length, QUERY_LIST_PAGE_SIZE)}
+                                        onPageChange={setDetailPage}
+                                        loading={false}
+                                        emptyMessage="No organisations."
+                                        onSelect={openOrganisation}
+                                    />
+                                ) : (
+                                    <EmptyTabMessage message="Select a cluster to see its organisations." />
+                                ),
+                            },
+                            {
+                                value: 'projects',
+                                label: 'Projects',
+                                content: selectedCluster ? (
+                                    <RelatedList
+                                        caption={`${clusterProjectIds.length.toLocaleString('en-US')} of the scanned projects belong to this cluster (most of their organisations are members), best-ranked first`}
+                                        rows={projectRows}
+                                        page={dpage}
+                                        pageCount={pageCountOf(clusterProjectIds.length, QUERY_LIST_PAGE_SIZE)}
+                                        onPageChange={setDetailPage}
+                                        loading={projectsTab.loading}
+                                        emptyMessage="No scanned project belongs to this cluster."
+                                        onSelect={openProject}
+                                    />
+                                ) : (
+                                    <EmptyTabMessage message="Select a cluster to see its projects." />
+                                ),
+                            },
+                            {
+                                value: 'bridges',
+                                label: 'Bridges',
+                                content: (
+                                    <BridgesTab
+                                        network={network}
+                                        model={model}
+                                        titles={titles}
+                                        projects={bridgeHits}
+                                        projectPlacements={bridgePlacements}
+                                        onOpenOrganisation={openOrganisation}
+                                        onOpenProject={openProject}
+                                        onSelectCluster={selectCluster}
+                                    />
+                                ),
+                            },
+                        ],
+                        available,
+                    )}
+                />
+            }
+        />
     )
 }

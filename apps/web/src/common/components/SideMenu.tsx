@@ -26,6 +26,27 @@ export interface SideMenuProps {
     onClose: () => void
     /** Width of the menu (default: 400) */
     width?: number | string
+    /**
+     * Keeps `children` mounted (hidden off-screen, not unmounted) while
+     * closed instead of the default mountOnEnter/unmountOnExit — for content
+     * whose state must survive being closed, e.g. Lucy's chat singleton
+     * (see LlmChatRuntime), which is otherwise destroyed and loses the whole
+     * conversation the moment this slides shut. Defaults false: HMMenu's own
+     * content is cheap to remount and has nothing worth preserving.
+     */
+    keepMounted?: boolean
+    /** Drops the content box's default padding/scroll chrome so a child that
+     * manages its own internal scrolling and edge-to-edge layout (e.g. a chat
+     * box with a pinned composer) can fill it exactly — the child owns
+     * scrolling instead of this wrapping it in a second scroll container. */
+    disableBodyPadding?: boolean
+    /** Omits the title/close header row entirely — for a caller whose child
+     * already renders its own equivalent header (e.g. Lucy's desktop panel,
+     * see LlmChatRuntime, which keeps ChatBox's own "Lucy" header rather than
+     * showing it twice) and needs this to contribute only its sliding panel
+     * chrome. `onClose`/the Escape-to-close affordance still belongs to the
+     * caller in that case. Defaults false. */
+    hideHeader?: boolean
 }
 
 export function SideMenu({
@@ -36,12 +57,20 @@ export function SideMenu({
     open,
     onClose,
     width = SIDE_MENU_WIDTH,
+    keepMounted = false,
+    disableBodyPadding = false,
+    hideHeader = false,
 }: SideMenuProps) {
     const isLeft = side === 'left'
     const slideDirection = isLeft ? 'right' : 'left'
 
     return (
-        <Slide direction={slideDirection} in={open} mountOnEnter unmountOnExit>
+        <Slide
+            direction={slideDirection}
+            in={open}
+            mountOnEnter={!keepMounted}
+            unmountOnExit={!keepMounted}
+        >
             <Paper
                 sx={{
                     position: 'absolute',
@@ -57,58 +86,70 @@ export function SideMenu({
                     flexDirection: 'column',
                     overflow: 'hidden',
                     zIndex: 1000,
+                    // keepMounted leaves this in the DOM while Slide has
+                    // already transformed it off-screen — without this it
+                    // would still be focusable/clickable through wherever it
+                    // currently sits transformed to.
+                    ...(keepMounted && !open && {pointerEvents: 'none'}),
                 }}
             >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: 1,
-                        borderColor: 'divider',
-                        flexDirection: !isLeft ? 'row-reverse' : 'row',
-                    }}
-                >
-                    <Text variant="h5" sx={{fontWeight: 500}}>
-                        {title}
-                    </Text>
-
+                {!hideHeader && (
                     <Box
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 1,
+                            justifyContent: 'space-between',
+                            px: 2,
+                            py: 1.5,
+                            borderBottom: 1,
+                            borderColor: 'divider',
                             flexDirection: !isLeft ? 'row-reverse' : 'row',
                         }}
                     >
-                        {headerActions}
-                        <IconButton
-                            onClick={onClose}
-                            size="small"
-                            sx={{color: 'text.secondary', '&:hover': {color: 'text.primary'}}}
+                        <Text variant="h5" sx={{fontWeight: 500}}>
+                            {title}
+                        </Text>
+
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                flexDirection: !isLeft ? 'row-reverse' : 'row',
+                            }}
                         >
-                            <CloseIcon />
-                        </IconButton>
+                            {headerActions}
+                            <IconButton
+                                onClick={onClose}
+                                size="small"
+                                sx={{color: 'text.secondary', '&:hover': {color: 'text.primary'}}}
+                            >
+                                <CloseIcon />
+                            </IconButton>
+                        </Box>
                     </Box>
-                </Box>
+                )}
 
                 <Box
                     sx={{
                         flex: 1,
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
-                        scrollbarWidth: 'thin',
-                        scrollbarColor: 'rgba(0,0,0,0.2) transparent',
-                        '&::-webkit-scrollbar': {width: 6},
-                        '&::-webkit-scrollbar-track': {background: 'transparent'},
-                        '&::-webkit-scrollbar-thumb': {
-                            backgroundColor: 'rgba(0,0,0,0.2)',
-                            borderRadius: 3,
-                        },
-                        py: 2,
-                        px: 2.5,
+                        minHeight: 0,
+                        ...(disableBodyPadding
+                            ? {overflow: 'hidden', display: 'flex', flexDirection: 'column'}
+                            : {
+                                  overflowY: 'auto',
+                                  overflowX: 'hidden',
+                                  scrollbarWidth: 'thin',
+                                  scrollbarColor: 'rgba(0,0,0,0.2) transparent',
+                                  '&::-webkit-scrollbar': {width: 6},
+                                  '&::-webkit-scrollbar-track': {background: 'transparent'},
+                                  '&::-webkit-scrollbar-thumb': {
+                                      backgroundColor: 'rgba(0,0,0,0.2)',
+                                      borderRadius: 3,
+                                  },
+                                  py: 2,
+                                  px: 2.5,
+                              }),
                     }}
                 >
                     {children}

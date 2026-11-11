@@ -2,11 +2,11 @@
 
 import {useState} from 'react'
 import Box from '@mui/material/Box'
-import {FacetSection, FacetSidebar, FilterBar, FilterMenuButton, PaginatedList, TabbedPanel} from '@/common/components'
+import {FacetSection, FilterBar, FilterMenuButton, PaginatedList, TabbedPanel} from '@/common/components'
 import {Text} from '@/common/text'
 import type {SearchResultRowData} from './SearchResultRow'
 import {SearchResultRow} from './SearchResultRow'
-import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
+import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 
 function ResultCountHeader({count, noun}: {count: number; noun: string}) {
     return (
@@ -36,61 +36,58 @@ export function SearchResultsPanel() {
     const [discipline, setDiscipline] = useState<string[]>([])
 
     return (
-        <Box sx={SEARCH_BLOCK_SX}>
-            {/* Options are empty until each UseCase's own OpenSearch index
-                is wired up — no real facet values to show yet. */}
-            <FacetSidebar>
-                <FacetSection label="Year" options={[]} value={year} onChange={setYear} />
-                <FacetSection label="Discipline" options={[]} value={discipline} onChange={setDiscipline} />
-            </FacetSidebar>
-
-            <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
+        <EntityResultsPanel
+            // Options are empty until each UseCase's own OpenSearch index is
+            // wired up — no real facet values to show yet.
+            facets={
+                <>
+                    <FacetSection label="Year" options={[]} value={year} onChange={setYear} />
+                    <FacetSection label="Discipline" options={[]} value={discipline} onChange={setDiscipline} />
+                </>
+            }
+            filters={
                 <FilterBar>
                     <FilterMenuButton label="Year" options={[]} value={year} onChange={setYear} />
                     <FilterMenuButton label="Discipline" options={[]} value={discipline} onChange={setDiscipline} />
                 </FilterBar>
-
-                <Box sx={{flex: '1 1 auto', minHeight: 0, display: 'flex', gap: 3}}>
-                    <Box sx={{flex: '1 1 0'}}>
-                        <PaginatedList
-                            header={<ResultCountHeader count={items.length} noun="results" />}
-                            items={items}
-                            getItemKey={(item) => item.title}
-                            renderItem={(item) => <SearchResultRow {...item} />}
-                            page={1}
-                            pageCount={1}
-                            onPageChange={() => {}}
-                        />
-                    </Box>
-
-                    <Box sx={{flex: '1 1 0'}}>
-                        <TabbedPanel
-                            tabs={[
-                                {
-                                    value: 'overview',
-                                    label: 'Overview',
-                                    content: <EmptyTabMessage message="No overview available yet." />,
-                                },
-                                {
-                                    value: 'deliverables',
-                                    label: 'Deliverables',
-                                    content: (
-                                        <PaginatedList
-                                            header={<ResultCountHeader count={0} noun="deliverables" />}
-                                            items={items}
-                                            getItemKey={(item) => item.title}
-                                            renderItem={(item) => <SearchResultRow {...item} />}
-                                            page={1}
-                                            pageCount={1}
-                                            onPageChange={() => {}}
-                                        />
-                                    ),
-                                },
-                            ]}
-                        />
-                    </Box>
-                </Box>
-            </Box>
-        </Box>
+            }
+            list={
+                <PaginatedList
+                    header={<ResultCountHeader count={items.length} noun="results" />}
+                    items={items}
+                    getItemKey={(item) => item.title}
+                    renderItem={(item) => <SearchResultRow {...item} />}
+                    page={1}
+                    pageCount={1}
+                    onPageChange={() => {}}
+                />
+            }
+            detail={
+                <TabbedPanel
+                    tabs={[
+                        {
+                            value: 'overview',
+                            label: 'Overview',
+                            content: <EmptyTabMessage message="No overview available yet." />,
+                        },
+                        {
+                            value: 'deliverables',
+                            label: 'Deliverables',
+                            content: (
+                                <PaginatedList
+                                    header={<ResultCountHeader count={0} noun="deliverables" />}
+                                    items={items}
+                                    getItemKey={(item) => item.title}
+                                    renderItem={(item) => <SearchResultRow {...item} />}
+                                    page={1}
+                                    pageCount={1}
+                                    onPageChange={() => {}}
+                                />
+                            ),
+                        },
+                    ]}
+                />
+            }
+        />
     )
 }

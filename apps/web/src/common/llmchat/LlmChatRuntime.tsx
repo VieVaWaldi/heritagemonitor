@@ -1,10 +1,8 @@
 'use client'
 
 import Box from '@mui/material/Box'
-import IconButton from '@mui/material/IconButton'
-import CloseIcon from '@mui/icons-material/Close'
 import {createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode} from 'react'
-import {NAVBAR_BORDER_COLOR} from '@/common/components'
+import {MOBILE_SIDE_MENU_WIDTH, SideMenu} from '@/common/components'
 import {useIsMobile} from '@/common/hooks/useIsMobile'
 import {usePathname} from 'next/navigation'
 import {isLandingPath, resolveChatOpen} from './chatOpen'
@@ -85,34 +83,42 @@ export function LlmChatRuntimeProvider({children}: {children: ReactNode}) {
         [open, toggle, topOffset],
     )
 
-    // One <Box> and one <LlmChatBox> call site regardless of isMobile — not
-    // two separate mobile/desktop JSX branches each with their own
-    // <LlmChatBox> — so flipping isMobile (resizing across the breakpoint,
-    // or the SSR-vs-hydration mismatch useMediaQuery can momentarily produce
-    // on first paint) only changes props on the same elements instead of
-    // swapping in a structurally different subtree. React only preserves a
-    // component's state (here, the whole conversation) across a re-render
-    // when it's the same element type at the same position in its parent's
-    // children — two separate branches would each mount their own
-    // <LlmChatBox> and lose this one's state the moment isMobile changed.
+    // One <Box>, one <SideMenu> and one <LlmChatBox> call site regardless of
+    // isMobile — not two separate mobile/desktop JSX branches each with
+    // their own <LlmChatBox> — so flipping isMobile (resizing across the
+    // breakpoint, or the SSR-vs-hydration mismatch useMediaQuery can
+    // momentarily produce on first paint) only changes props on the same
+    // elements instead of swapping in a structurally different subtree.
+    // React only preserves a component's state (here, the whole
+    // conversation) across a re-render when it's the same element type at
+    // the same position in its parent's children — two separate branches,
+    // even ones that both end in a <LlmChatBox>, would make its nearest
+    // differing ancestor remount, which remounts everything below it too.
     return (
         <LlmChatRuntimeContext.Provider value={runtimeValue}>
             {children}
 
+            {/* Ancestor positions this for the current breakpoint — full-
+                viewport overlay (mobile, so SideMenu's absolute panel and the
+                backdrop below have something to position against) or a
+                simple fixed dock beside content (desktop, unchanged from
+                before this used SideMenu). <SideMenu> itself is ALWAYS the
+                one call site below regardless of isMobile — same reasoning
+                as LlmChatBox's own singleton comment: a ternary that swapped
+                the WRAPPER's component type between breakpoints would make
+                React remount everything inside it, including LlmChatBox,
+                the moment the window crossed the breakpoint — losing the
+                conversation. Only props (width, hideHeader) and the
+                mobile-only backdrop sibling differ; SideMenu and LlmChatBox
+                both stay put. */}
             <Box
                 sx={
                     isMobile
                         ? {
-                              // Full-screen overlay, same "fixed + inset:0 +
-                              // zIndex.drawer" recipe as HMMenu/SideMenu —
-                              // covers everything (including the page's own
-                              // Navbar) rather than docking beside content.
                               position: 'fixed',
                               inset: 0,
                               zIndex: (theme) => theme.zIndex.drawer,
-                              display: open ? 'flex' : 'none',
-                              flexDirection: 'column',
-                              backgroundColor: 'background.paper',
+                              pointerEvents: open ? 'auto' : 'none',
                           }
                         : {
                               // Fixed (not sticky-in-a-flex-row) so this can
@@ -129,11 +135,6 @@ export function LlmChatRuntimeProvider({children}: {children: ReactNode}) {
                               right: 0,
                               bottom: 0,
                               width: LLM_CHAT_PANEL_WIDTH,
-                              display: open ? 'block' : 'none',
-                              border: '1px solid',
-                              borderTop: 'none',
-                              borderColor: NAVBAR_BORDER_COLOR,
-                              overflow: 'hidden',
                               // One below appBar, not appBar itself: Navbar
                               // and SearchBar's suggestions dropdown (see
                               // Navbar.tsx, SearchBar.tsx) both sit at
@@ -143,32 +144,43 @@ export function LlmChatRuntimeProvider({children}: {children: ReactNode}) {
                               // keeps it clear of the Navbar) covering a
                               // dropdown that happens to render near it.
                               zIndex: (theme) => theme.zIndex.appBar - 1,
+                              pointerEvents: open ? 'auto' : 'none',
                           }
                 }
             >
-                {/* Mobile only — covers the nav toggle that would otherwise
-                    close this, so it needs its own close affordance.
-                    top-left, not top-right: the header's own "Lucy" + icon
-                    (see LlmChatHeaderRight) is pushed to the far right of
-                    that same row, so a right-aligned close button would sit
-                    on top of it. */}
-                {isMobile && (
-                    <IconButton
+                {/* Mobile only, same backdrop HMMenu's own left menu dims the
+                    page with — the panel is no longer full width, so there is
+                    page behind it to dim and a tap-outside-to-close target. */}
+                {isMobile && open && (
+                    <Box
                         onClick={toggle}
-                        aria-label="close Lucy chat"
-                        size="small"
-                        sx={{position: 'absolute', top: 8, left: 8, zIndex: 1}}
-                    >
-                        <CloseIcon fontSize="small" />
-                    </IconButton>
+                        aria-hidden
+                        sx={{position: 'absolute', inset: 0, zIndex: 999, backgroundColor: 'rgba(0, 0, 0, 0.45)'}}
+                    />
                 )}
-                {/* display:'none' on the wrapper above (not conditionally
-                    rendering this) while closed keeps this instance
-                    permanently mounted whether open or not — that, plus
-                    this being the one and only call site regardless of
-                    isMobile, is what makes the conversation survive both
-                    navigation and breakpoint changes. */}
-                <LlmChatBox key={resetKey} onClear={clear} sx={isMobile ? {flex: 1, minHeight: 0} : {height: '100%'}} />
+                <SideMenu
+                    side="right"
+                    // Desktop keeps ChatBox's own "Lucy" + icon header
+                    // (LlmChatHeaderRight, via LlmChatBox's showHeader) rather
+                    // than this one, via hideHeader — so there's nothing to
+                    // title here on that breakpoint.
+                    title={isMobile ? 'Lucy' : null}
+                    open={open}
+                    onClose={toggle}
+                    width={isMobile ? MOBILE_SIDE_MENU_WIDTH : LLM_CHAT_PANEL_WIDTH}
+                    // Must survive being closed — see the module comment
+                    // above and LlmChatBox's own singleton comment: this is
+                    // one conversation that outlives navigation, not a menu
+                    // that's cheap to rebuild from nothing each time.
+                    keepMounted
+                    // LlmChatBox manages its own scrolling (a pinned composer
+                    // below a scrolling message list) — wrapping it in a
+                    // second padded scroll container would fight that.
+                    disableBodyPadding
+                    hideHeader={!isMobile}
+                >
+                    <LlmChatBox key={resetKey} onClear={clear} showHeader={!isMobile} sx={{flex: 1, minHeight: 0}} />
+                </SideMenu>
             </Box>
         </LlmChatRuntimeContext.Provider>
     )

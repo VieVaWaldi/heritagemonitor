@@ -15,7 +15,7 @@ import Tooltip from '@mui/material/Tooltip'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
 import {CORPUSES} from '@/common/catalog'
-import {FacetSidebar, NoticeBar, PaginatedList, TabbedPanel} from '@/common/components'
+import {NoticeBar, PaginatedList, TabbedPanel} from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
 import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
@@ -36,9 +36,9 @@ import {
     useUrlTab,
 } from '@/common/url'
 import {EntityFacetSidebar, EntityFilterBar, type EntityFiltersProps} from '../entity/EntityFilters'
+import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {useEntityFacets} from '../entity/useEntityFacets'
 import {useRelatedRequest} from '../entity/useRelatedRequest'
-import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
 import {CoordinatorsToggle, readCoordinatorsOnly} from '../entity/CoordinatorsToggle'
 import {SelectionDroppedNotice} from '../entity/SelectionDroppedNotice'
 import {useSelectedEntity} from '../entity/useSelectedEntity'
@@ -218,119 +218,114 @@ export function FundingResultsPanel() {
     usePageChatContextPublisher(pageContext)
 
     return (
-        <Box sx={SEARCH_BLOCK_SX}>
-            <FacetSidebar>
-                <EntityFacetSidebar {...filterProps} />
-            </FacetSidebar>
-
-            <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
-            <EntityFilterBar {...filterProps} />
-            <SelectionDroppedNotice show={selectionDropped} />
-            {error && <NoticeBar tone="warning">{error}</NoticeBar>}
-            {!data.complete && (
-                <NoticeBar tone="note">
-                    The organisation table on the server is still loading — the ranking will appear in a moment.
-                </NoticeBar>
-            )}
-
-            <Box sx={{flex: '1 1 auto', minHeight: 0, display: 'flex', gap: 3}}>
-                <Box sx={{flex: '1 1 0', minWidth: 0}}>
-                    <PaginatedList
-                        // One line: PaginatedList's header is a fixed 48px
-                        // strip so it lines up with the tab bar beside it. The
-                        // caveat is too long to sit there, so it rides as a
-                        // tooltip on the word that needs it — and in full on
-                        // the Organisation tab and in Lucy's context.
-                        header={
-                            <Tooltip title={FUNDING_AMOUNT_CAVEAT}>
-                                <Box component="span" sx={{minWidth: 0}}>
-                                    <Text variant="body2" truncate color="text.secondary">
-                                        {data.estimatedTotalHits.toLocaleString('en-US')} organisations
-                                        {data.capped ? ' (best-funded 500)' : ''} · {formatCompactEur(data.totalFundingEur)} total,
-                                        approx.
-                                    </Text>
-                                </Box>
-                            </Tooltip>
-                        }
-                        items={data.hits}
-                        getItemKey={(item) => item.id}
-                        renderItem={(item, index) => (
-                            <FundingOrganisationRow
-                                organisation={item}
-                                rank={(data.page - 1) * PAGE_SIZE + index + 1}
-                                selected={item.id === selectedId}
-                                onSelect={select}
-                            />
-                        )}
-                        page={page}
-                        pageCount={data.pageCount}
-                        onPageChange={setPage}
-                    />
-                </Box>
-
-                <Box sx={{flex: '1 1 0', minWidth: 0}}>
-                    <TabbedPanel
-                        value={tab}
-                        onChange={(next) => setTab(next as (typeof TABS)[number])}
-                        tabs={[
-                            {
-                                value: 'map',
-                                label: 'Map',
-                                // fill + keepMounted: the map owns a WebGL
-                                // context and its own camera. Unmounting it on
-                                // a tab switch would throw both away and reset
-                                // the view the user just panned to.
-                                fill: true,
-                                keepMounted: true,
-                                content: (
-                                    <FundingMapTab
-                                        data={mapData}
-                                        loading={mapLoading}
-                                        selectedId={selectedId}
-                                        onSelect={select}
-                                        initialView={initialView}
-                                        onViewChange={onViewChange}
-                                    />
-                                ),
-                            },
-                            {
-                                value: 'organisation',
-                                label: 'Overview',
-                                content: selectedOrganisation ? (
-                                    <FundingOrganisationTab
-                                        filterCaption={projectsRelated.caption}
-                                        organisation={selectedOrganisation}
-                                        projects={projects}
-                                        page={projectsPage}
-                                        onPageChange={setProjectsPage}
-                                        loading={projectsLoading}
-                                        onSelectProject={openProject}
-                                    />
-                                ) : (
-                                    <EmptyTabMessage message="Select an organisation from the ranking or click a hexagon on the map." />
-                                ),
-                            },
-                            {
-                                value: 'programmes',
-                                label: 'Programmes',
-                                fill: true,
-                                content: (
-                                    <FundingProgrammesTab
-                                        params={grantParams}
-                                        selectedStream={selectedStream}
-                                        onSortChange={(sort) => update({[SEARCH_PARAM.sort]: sort})}
-                                        onPageChange={setGrantsPage}
-                                        onFacetChange={(facet, values) => update({[SEARCH_PARAM[facet]]: values})}
-                                        onSelectGrant={selectGrant}
-                                        onClearStream={clearStream}
-                                    />
-                                ),
-                            },
-                        ]}
-                    />
-                </Box>
-            </Box>
-            </Box>
-        </Box>
+        <EntityResultsPanel
+            facets={<EntityFacetSidebar {...filterProps} />}
+            filters={<EntityFilterBar {...filterProps} />}
+            notice={
+                <>
+                    <SelectionDroppedNotice show={selectionDropped} />
+                    {error && <NoticeBar tone="warning">{error}</NoticeBar>}
+                    {!data.complete && (
+                        <NoticeBar tone="note">
+                            The organisation table on the server is still loading — the ranking will appear in a moment.
+                        </NoticeBar>
+                    )}
+                </>
+            }
+            list={
+                <PaginatedList
+                    // One line: PaginatedList's header is a fixed 48px
+                    // strip so it lines up with the tab bar beside it. The
+                    // caveat is too long to sit there, so it rides as a
+                    // tooltip on the word that needs it — and in full on
+                    // the Organisation tab and in Lucy's context.
+                    header={
+                        <Tooltip title={FUNDING_AMOUNT_CAVEAT}>
+                            <Box component="span" sx={{minWidth: 0}}>
+                                <Text variant="body2" truncate color="text.secondary">
+                                    {data.estimatedTotalHits.toLocaleString('en-US')} organisations
+                                    {data.capped ? ' (best-funded 500)' : ''} · {formatCompactEur(data.totalFundingEur)} total,
+                                    approx.
+                                </Text>
+                            </Box>
+                        </Tooltip>
+                    }
+                    items={data.hits}
+                    getItemKey={(item) => item.id}
+                    renderItem={(item, index) => (
+                        <FundingOrganisationRow
+                            organisation={item}
+                            rank={(data.page - 1) * PAGE_SIZE + index + 1}
+                            selected={item.id === selectedId}
+                            onSelect={select}
+                        />
+                    )}
+                    page={page}
+                    pageCount={data.pageCount}
+                    onPageChange={setPage}
+                />
+            }
+            detail={
+                <TabbedPanel
+                    value={tab}
+                    onChange={(next) => setTab(next as (typeof TABS)[number])}
+                    tabs={[
+                        {
+                            value: 'map',
+                            label: 'Map',
+                            // fill + keepMounted: the map owns a WebGL
+                            // context and its own camera. Unmounting it on
+                            // a tab switch would throw both away and reset
+                            // the view the user just panned to.
+                            fill: true,
+                            keepMounted: true,
+                            content: (
+                                <FundingMapTab
+                                    data={mapData}
+                                    loading={mapLoading}
+                                    selectedId={selectedId}
+                                    onSelect={select}
+                                    initialView={initialView}
+                                    onViewChange={onViewChange}
+                                />
+                            ),
+                        },
+                        {
+                            value: 'organisation',
+                            label: 'Overview',
+                            content: selectedOrganisation ? (
+                                <FundingOrganisationTab
+                                    filterCaption={projectsRelated.caption}
+                                    organisation={selectedOrganisation}
+                                    projects={projects}
+                                    page={projectsPage}
+                                    onPageChange={setProjectsPage}
+                                    loading={projectsLoading}
+                                    onSelectProject={openProject}
+                                />
+                            ) : (
+                                <EmptyTabMessage message="Select an organisation from the ranking or click a hexagon on the map." />
+                            ),
+                        },
+                        {
+                            value: 'programmes',
+                            label: 'Programmes',
+                            fill: true,
+                            content: (
+                                <FundingProgrammesTab
+                                    params={grantParams}
+                                    selectedStream={selectedStream}
+                                    onSortChange={(sort) => update({[SEARCH_PARAM.sort]: sort})}
+                                    onPageChange={setGrantsPage}
+                                    onFacetChange={(facet, values) => update({[SEARCH_PARAM[facet]]: values})}
+                                    onSelectGrant={selectGrant}
+                                    onClearStream={clearStream}
+                                />
+                            ),
+                        },
+                    ]}
+                />
+            }
+        />
     )
 }

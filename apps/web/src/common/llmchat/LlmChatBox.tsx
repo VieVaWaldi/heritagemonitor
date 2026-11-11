@@ -37,6 +37,11 @@ export interface LlmChatBoxProps {
      * LlmChatRuntime) owns actually resetting the conversation — ChatBox is
      * uncontrolled internally, so this component can't reset itself. */
     onClear?: () => void
+    /** False drops the "Lucy" header row (LlmChatHeaderRight) — for a host
+     * that already renders its own title, e.g. mobile's SideMenu (see
+     * LlmChatRuntime), which would otherwise show "Lucy" twice stacked.
+     * Defaults true, unchanged everywhere else. */
+    showHeader?: boolean
 }
 
 const CONVERSATION_ID = 'llmchat'
@@ -174,7 +179,7 @@ function createComposerRootWithClear(onClear: () => void) {
 // the page rather than a distinct surface) — none of this drops down to
 // @mui/x-chat-headless, which its own README marks as an internal, unstable
 // implementation detail not meant for direct use.
-export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
+export function LlmChatBox({sx, onClear, showHeader = true}: LlmChatBoxProps) {
     // useMemo, not a fresh adapter per render: createAiSdkAdapter closes over
     // a per-call synthetic-message-id counter that should live for the
     // component's lifetime, not reset on every re-render. getPageContext's
@@ -380,7 +385,12 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                 initialConversations={INITIAL_CONVERSATIONS}
                 initialActiveConversationId={CONVERSATION_ID}
                 initialMessages={initialMessages}
-                features={{attachments: false}}
+                // conversationHeader: false (not just nulling the actions
+                // slot) drops the header row's own reserved 56px strip
+                // entirely, not just what's drawn in it — needed so a host
+                // with its own title row (mobile's SideMenu) doesn't end up
+                // with a second, blank header strip above it.
+                features={{attachments: false, conversationHeader: showHeader}}
                 slots={{
                     // No per-bubble timestamp in either layout variant.
                     messageInlineMeta: null,
@@ -394,6 +404,8 @@ export function LlmChatBox({sx, onClear}: LlmChatBoxProps) {
                     messageAvatar: null,
                     // Repurposes the (now-empty-titled) header's actions slot for
                     // the "Lucy" title/icon instead of the default title/subtitle.
+                    // Irrelevant when showHeader is false — the whole header row
+                    // is gone then (see features.conversationHeader above).
                     conversationHeaderActions: LlmChatHeaderRight,
                     ...(ComposerRootWithClear ? {composerRoot: ComposerRootWithClear} : {}),
                     ...(streamingIndicatorSlot ? {streamingIndicator: streamingIndicatorSlot} : {}),

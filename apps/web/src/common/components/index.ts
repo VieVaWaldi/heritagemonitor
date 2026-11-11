@@ -9,6 +9,8 @@ export {
 
 export {CorpusPanel} from './CorpusPanel'
 
+export {CorpusMenuList} from './CorpusMenuList'
+
 export {EntitySelector} from './EntitySelector'
 export type {EntitySelectorProps, SelectorOption, IconComponent} from './EntitySelector'
 
@@ -33,7 +35,8 @@ export type {FilterChipProps} from './FilterChip'
 export {FilterSection} from './FilterSection'
 export type {FilterSectionProps} from './FilterSection'
 
-export {HMMenu} from './HMMenu'
+export {HMMenu, MenuSection} from './HMMenu'
+export type {HMMenuProps} from './HMMenu'
 
 export {IconTextButton} from './IconTextButton'
 export type {IconTextButtonProps} from './IconTextButton'
@@ -64,6 +67,13 @@ export type {SearchBarProps} from './SearchBar'
 
 export {SideMenu, SIDE_MENU_WIDTH} from './SideMenu'
 export type {SideMenuProps} from './SideMenu'
+
+export {
+    MOBILE_BOTTOM_BAR_HEIGHT,
+    MOBILE_BOTTOM_BAR_GUTTER,
+    MOBILE_FAB_SIZE,
+    MOBILE_SIDE_MENU_WIDTH,
+} from './mobileLayout'
 
 export {SingleSlider} from './SingleSlider'
 export type {SingleSliderProps} from './SingleSlider'

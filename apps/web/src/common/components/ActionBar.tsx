@@ -89,7 +89,18 @@ export function ActionBar<EntityKey extends string = string>({
     ) : null
 
     return (
-        <Box sx={{display: 'flex', alignItems: 'stretch', gap: fluidUnit(1), width: '100%'}}>
+        <Box
+            sx={{
+                display: 'flex',
+                alignItems: 'stretch',
+                // A label-on-left selector reads as part of the bar, not a
+                // separate control beside it — flush against the search
+                // icon saves the one gap mobile's squished nav can't spare.
+                // The circle variant keeps its usual breathing room.
+                gap: labelOnLeft ? {xs: 0, sm: fluidUnit(1)} : fluidUnit(1),
+                width: '100%',
+            }}
+        >
             {labelOnLeft && selector}
             <Box sx={{flex: 1, minWidth: 0}}>
                 <SearchBar

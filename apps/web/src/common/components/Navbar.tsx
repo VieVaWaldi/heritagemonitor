@@ -51,12 +51,31 @@ export interface NavbarProps {
     endAction?: ReactNode
     /** A vertical divider right after HMMenu, the same one that sets endAction off from the corpus selector — for pages whose own content starts at the menu's edge (the search pages' use-case label). */
     startDivider?: boolean
+    /** Replaces the default `<HMMenu/>` — e.g. /search's mobile layout
+     * rendering its own HMMenu with trigger="fab" and extraSections, since
+     * Corpus and Lucy move into the menu there. Defaults to `<HMMenu/>`,
+     * unchanged from today. */
+    menuSlot?: ReactNode
+    /** Drops CorpusPanel from the bar — for a route whose mobile layout has
+     * moved corpus selection elsewhere (e.g. into HMMenu's extraSections).
+     * Defaults false: every page keeps CorpusPanel on the bar as today. */
+    hideCorpus?: boolean
 }
 
 // App-wide top bar: HMMenu hugs the left edge, the corpus selector hugs the
 // right, and any page-specific content (tabs, an ActionBar, etc.) fills the
 // middle.
-export function Navbar({bordered = false, sticky = false, size = 'default', children, startAction, endAction, startDivider = false}: NavbarProps) {
+export function Navbar({
+    bordered = false,
+    sticky = false,
+    size = 'default',
+    children,
+    startAction,
+    endAction,
+    startDivider = false,
+    menuSlot,
+    hideCorpus = false,
+}: NavbarProps) {
     return (
         <Box
             component="nav"
@@ -72,7 +91,7 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
                 borderColor: NAVBAR_BORDER_COLOR,
             }}
         >
-            <HMMenu />
+            {menuSlot ?? <HMMenu />}
             {startAction && (
                 <>
                     <Divider orientation="vertical" flexItem sx={{my: 1}} />
@@ -83,7 +102,7 @@ export function Navbar({bordered = false, sticky = false, size = 'default', chil
             <Box sx={{flex: 1, minWidth: 0, height: '100%', display: 'flex', alignItems: 'center', px: startDivider ? 1.5 : 2}}>
                 {children}
             </Box>
-            <CorpusPanel />
+            {!hideCorpus && <CorpusPanel />}
             {endAction && (
                 <>
                     <Divider orientation="vertical" flexItem sx={{my: 1}} />

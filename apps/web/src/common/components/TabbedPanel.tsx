@@ -63,6 +63,14 @@ export function TabbedPanel({tabs, defaultValue, value: controlledValue, onChang
             <Tabs
                 value={value}
                 onChange={(_event, newValue: string) => selectTab(newValue)}
+                // Scrollable with auto buttons (desktop AND touch, via
+                // allowScrollButtonsMobile) — a narrow mobile pane showing all
+                // of this panel's own tabs has far less width than a desktop
+                // half-column, so a fixed row would overflow instead of
+                // adapting like everything else here.
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
                 // Default height is 48px border included — PaginatedList's
                 // header box is pinned to the same 48px by hand so the two
                 // line up when they sit side by side.

@@ -8,7 +8,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import {useRouter} from 'next/navigation'
 import {useCallback, useMemo} from 'react'
 import {CORPUSES} from '@/common/catalog'
-import {FacetSidebar, FilterBar, NoticeBar, PaginatedList, TabbedPanel, YearFilter} from '@/common/components'
+import {FilterBar, NoticeBar, PaginatedList, TabbedPanel, YearFilter} from '@/common/components'
 import {buildPageContext} from '@/common/llmchat/pageContext'
 import {usePageChatContextPublisher} from '@/common/llmchat/PageChatContext'
 import {Text} from '@/common/text'
@@ -25,7 +25,7 @@ import {
     useUrlState,
     useUrlYears,
 } from '@/common/url'
-import {SEARCH_BLOCK_SX} from '../entity/EntityResultsPanel'
+import {EntityResultsPanel} from '../entity/EntityResultsPanel'
 import {FacetValuesMenuButton} from '../entity/FacetValuesMenuButton'
 import {RelatedList, type RelatedRow} from '../entity/RelatedList'
 import {TopicsFilterButton} from '../entity/TopicsFilterButton'
@@ -240,17 +240,18 @@ export function OrganisationNetworkPanel() {
     const noLocation = network.meta.withoutGeo
 
     return (
-        <Box sx={SEARCH_BLOCK_SX}>
-            <FacetSidebar>
-                <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} />
-                <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
-                    <Text variant="caption" color="text.secondary" sx={{display: 'block'}}>
-                        {NETWORK_COVERAGE_NOTE}
-                    </Text>
-                </Box>
-            </FacetSidebar>
-
-            <Box sx={{flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2}}>
+        <EntityResultsPanel
+            facets={
+                <>
+                    <YearFilter value={years} onChange={setYears} min={minYear} max={maxYear} />
+                    <Box sx={{border: 1, borderColor: 'divider', borderRadius: 3, p: 2}}>
+                        <Text variant="caption" color="text.secondary" sx={{display: 'block'}}>
+                            {NETWORK_COVERAGE_NOTE}
+                        </Text>
+                    </Box>
+                </>
+            }
+            filters={
                 <FilterBar>
                     <Tooltip title="Reset all filters">
                         <span>
@@ -274,122 +275,121 @@ export function OrganisationNetworkPanel() {
                     ))}
                     <TopicsFilterButton entity="projects" countNoun="projects" />
                 </FilterBar>
-
-                {error && <NoticeBar tone="warning">{error}</NoticeBar>}
-                {loadingTable && (
-                    <NoticeBar tone="note">The organisation table on the server is still loading — the network will appear in a moment.</NoticeBar>
-                )}
-                {centre && centre.lat === null && (
-                    <NoticeBar tone="note">
-                        {centre.name} has no location, so no arcs can be drawn from it. Its partners are still listed.
-                    </NoticeBar>
-                )}
-                {centre && noLocation > 0 && (
-                    <NoticeBar tone="note">
-                        {noLocation.toLocaleString('en-US')} partner{noLocation === 1 ? ' has' : 's have'} no location and {noLocation === 1 ? 'is' : 'are'} not drawn or listed.
-                    </NoticeBar>
-                )}
-                {centre && network.meta.capped && (
-                    <NoticeBar tone="note">Showing the strongest {network.meta.partners.toLocaleString('en-US')} partners; there are more.</NoticeBar>
-                )}
-
-                <Box sx={{flex: '1 1 auto', minHeight: 0, display: 'flex', gap: 3}}>
-                    <Box sx={{flex: '1 1 0', minWidth: 0}}>
-                        <PaginatedList
-                            header={
-                                <Text variant="body2" truncate color="text.secondary">
-                                    {centre
-                                        ? `${network.meta.partners.toLocaleString('en-US')} collaborations${noLocation > 0 ? ` · ${noLocation.toLocaleString('en-US')} without location` : ''}`
-                                        : 'Collaborations'}
-                                </Text>
-                            }
-                            items={pageNodes}
-                            getItemKey={(node) => node.id}
-                            renderItem={(node) => (
-                                <PartnerRow
-                                    node={node}
-                                    isCentre={node.id === centre?.id}
-                                    selected={node.id === selectedNode?.id}
-                                    onSelect={selectPartner}
+            }
+            notice={
+                <>
+                    {error && <NoticeBar tone="warning">{error}</NoticeBar>}
+                    {loadingTable && (
+                        <NoticeBar tone="note">The organisation table on the server is still loading — the network will appear in a moment.</NoticeBar>
+                    )}
+                    {centre && centre.lat === null && (
+                        <NoticeBar tone="note">
+                            {centre.name} has no location, so no arcs can be drawn from it. Its partners are still listed.
+                        </NoticeBar>
+                    )}
+                    {centre && noLocation > 0 && (
+                        <NoticeBar tone="note">
+                            {noLocation.toLocaleString('en-US')} partner{noLocation === 1 ? ' has' : 's have'} no location and {noLocation === 1 ? 'is' : 'are'} not drawn or listed.
+                        </NoticeBar>
+                    )}
+                    {centre && network.meta.capped && (
+                        <NoticeBar tone="note">Showing the strongest {network.meta.partners.toLocaleString('en-US')} partners; there are more.</NoticeBar>
+                    )}
+                </>
+            }
+            list={
+                <PaginatedList
+                    header={
+                        <Text variant="body2" truncate color="text.secondary">
+                            {centre
+                                ? `${network.meta.partners.toLocaleString('en-US')} collaborations${noLocation > 0 ? ` · ${noLocation.toLocaleString('en-US')} without location` : ''}`
+                                : 'Collaborations'}
+                        </Text>
+                    }
+                    items={pageNodes}
+                    getItemKey={(node) => node.id}
+                    renderItem={(node) => (
+                        <PartnerRow
+                            node={node}
+                            isCentre={node.id === centre?.id}
+                            selected={node.id === selectedNode?.id}
+                            onSelect={selectPartner}
+                            onCentre={centreOn}
+                        />
+                    )}
+                    page={currentPage}
+                    pageCount={pageCount}
+                    onPageChange={setPage}
+                />
+            }
+            detail={
+                <TabbedPanel
+                    value={tab}
+                    onChange={(next) => setTab(next as (typeof TABS)[number])}
+                    tabs={visibleTabs([
+                        {
+                            value: 'map',
+                            label: 'Map',
+                            // fill + keepMounted: the map owns a WebGL
+                            // context and its own camera; unmounting it
+                            // on a tab switch would reset the view.
+                            fill: true,
+                            keepMounted: true,
+                            content: (
+                                <NetworkMapTab
+                                    network={centreId ? network : EMPTY_NETWORK}
+                                    loading={loading}
+                                    selectedId={selectedNode?.id ?? null}
+                                    onSelectPartner={selectPartnerFromMap}
                                     onCentre={centreOn}
+                                    initialView={initialView}
+                                    onViewChange={onViewChange}
                                 />
-                            )}
-                            page={currentPage}
-                            pageCount={pageCount}
-                            onPageChange={setPage}
-                        />
-                    </Box>
-
-                    <Box sx={{flex: '1 1 0', minWidth: 0}}>
-                        <TabbedPanel
-                            value={tab}
-                            onChange={(next) => setTab(next as (typeof TABS)[number])}
-                            tabs={visibleTabs([
-                                {
-                                    value: 'map',
-                                    label: 'Map',
-                                    // fill + keepMounted: the map owns a WebGL
-                                    // context and its own camera; unmounting it
-                                    // on a tab switch would reset the view.
-                                    fill: true,
-                                    keepMounted: true,
-                                    content: (
-                                        <NetworkMapTab
-                                            network={centreId ? network : EMPTY_NETWORK}
-                                            loading={loading}
-                                            selectedId={selectedNode?.id ?? null}
-                                            onSelectPartner={selectPartnerFromMap}
-                                            onCentre={centreOn}
-                                            initialView={initialView}
-                                            onViewChange={onViewChange}
-                                        />
-                                    ),
-                                },
-                                {
-                                    value: 'detail',
-                                    label: 'Overview',
-                                    content:
-                                        centre && selectedNode ? (
-                                            <NetworkDetailTab
-                                                node={selectedNode}
-                                                centre={centre}
-                                                detail={detail}
-                                                shared={sharedTab.data}
-                                                sharedPage={sharedTab.page}
-                                                onSharedPageChange={sharedTab.setPage}
-                                                sharedLoading={sharedTab.loading}
-                                                filterCaption={related.caption}
-                                                onCentre={centreOn}
-                                                onSelectProject={openProject}
-                                            />
-                                        ) : (
-                                            <EmptyTabMessage message="Pick an organisation in the search bar to see its collaborations." />
-                                        ),
-                                },
-                                {
-                                    value: 'projects',
-                                    label: 'Projects',
-                                    content: centre ? (
-                                        <RelatedList
-                                            caption={`${centreProjectsTab.data.estimatedTotalHits.toLocaleString('en-US')} projects of ${centre.name}`}
-                                            filterCaption={related.caption}
-                                            rows={centreProjectsTab.data.hits.map(projectRow)}
-                                            page={centreProjectsTab.page}
-                                            pageCount={centreProjectsTab.data.pageCount}
-                                            onPageChange={centreProjectsTab.setPage}
-                                            loading={centreProjectsTab.loading}
-                                            emptyMessage="No projects of this organisation match the filters."
-                                            onSelect={openProject}
-                                        />
-                                    ) : (
-                                        <EmptyTabMessage message="Pick an organisation in the search bar to see its projects." />
-                                    ),
-                                },
-                            ], available)}
-                        />
-                    </Box>
-                </Box>
-            </Box>
-        </Box>
+                            ),
+                        },
+                        {
+                            value: 'detail',
+                            label: 'Overview',
+                            content:
+                                centre && selectedNode ? (
+                                    <NetworkDetailTab
+                                        node={selectedNode}
+                                        centre={centre}
+                                        detail={detail}
+                                        shared={sharedTab.data}
+                                        sharedPage={sharedTab.page}
+                                        onSharedPageChange={sharedTab.setPage}
+                                        sharedLoading={sharedTab.loading}
+                                        filterCaption={related.caption}
+                                        onCentre={centreOn}
+                                        onSelectProject={openProject}
+                                    />
+                                ) : (
+                                    <EmptyTabMessage message="Pick an organisation in the search bar to see its collaborations." />
+                                ),
+                        },
+                        {
+                            value: 'projects',
+                            label: 'Projects',
+                            content: centre ? (
+                                <RelatedList
+                                    caption={`${centreProjectsTab.data.estimatedTotalHits.toLocaleString('en-US')} projects of ${centre.name}`}
+                                    filterCaption={related.caption}
+                                    rows={centreProjectsTab.data.hits.map(projectRow)}
+                                    page={centreProjectsTab.page}
+                                    pageCount={centreProjectsTab.data.pageCount}
+                                    onPageChange={centreProjectsTab.setPage}
+                                    loading={centreProjectsTab.loading}
+                                    emptyMessage="No projects of this organisation match the filters."
+                                    onSelect={openProject}
+                                />
+                            ) : (
+                                <EmptyTabMessage message="Pick an organisation in the search bar to see its projects." />
+                            ),
+                        },
+                    ], available)}
+                />
+            }
+        />
     )
 }
