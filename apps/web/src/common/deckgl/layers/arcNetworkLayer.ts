@@ -96,6 +96,14 @@ export class ArcNetworkLayer extends CompositeLayer<ArcNetworkLayerProps> {
             widthMinPixels: MIN_ARC_WIDTH,
             greatCircle: true,
             pickable: true,
+            // GlobeView defaults to cullMode: 'back' (to hide the sphere's far
+            // side) applied across every layer it draws — but an arc's ribbon
+            // geometry isn't a closed surface, so stretches of it legitimately
+            // wind "backwards" relative to the camera and get culled along
+            // with the globe's hidden side. Override it back to 'none' here so
+            // the arcs stay fully visible instead of disappearing right after
+            // their start point.
+            parameters: {cullMode: 'none'},
             onHover,
             onClick,
             updateTriggers: {
@@ -116,6 +124,8 @@ export class ArcNetworkLayer extends CompositeLayer<ArcNetworkLayerProps> {
             widthMinPixels: SELECTED_ARC_WIDTH,
             greatCircle: true,
             pickable: false,
+            // Same cullMode override as arcLayer above — same reason.
+            parameters: {cullMode: 'none'},
         })
 
         // Two icon layers: the emphasized organisations get a larger floor and
