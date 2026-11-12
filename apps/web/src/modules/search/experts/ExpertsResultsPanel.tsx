@@ -35,7 +35,6 @@ import {
     describeUrlParams,
     readText,
     SEARCH_PARAM,
-    toApiSearchParams,
     useUrlCorpus,
     useUrlFilters,
     useUrlPage,
@@ -61,6 +60,7 @@ import {useSelectedEntity} from '../entity/useSelectedEntity'
 import {organisationHiddenTabs, visibleTabs} from '../entity/tabAvailability'
 import {useAvailableTab} from '../entity/useAvailableTab'
 import {useTopicNames} from '../entity/useTopicBrowser'
+import {useRelatedRequest} from '../entity/useRelatedRequest'
 import {OrganisationOverviewTab} from '../organisations/OrganisationOverviewTab'
 import {ExpertResultRow} from './ExpertResultRow'
 import {expertSources, selectedExpertSection, summarizeExpertRow} from './expertsChatContext'
@@ -111,7 +111,8 @@ export function ExpertsResultsPanel() {
     const router = useRouter()
     const {params, update} = useUrlState()
     const query = readText(params, SEARCH_PARAM.query)
-    const apiParams = toApiSearchParams(params)
+    // What of this page carries into the projects tab — see entity/relatedParams.
+    const projectsRelated = useRelatedRequest('experts:projects')
     const {submit} = useUrlQueryDraft()
     const {corpus} = useUrlCorpus()
     const {sort, setSort} = useUrlSort<ExpertSort>(SORT_VALUES)
@@ -135,11 +136,18 @@ export function ExpertsResultsPanel() {
     const selectedRow = data.hits.find((hit) => hit.id === selectedId) ?? null
 
     // The matching projects, not all of this organisation's: the same query
-    // and filters plus `org=<id>`, so the tab answers "what did they do that
-    // I was looking for".
+    // and filters plus `org=<id>` for every id this institution merges into
+    // (D19) — the header's count sums all of them, so the list has to match
+    // every one of them too, or it undercounts what the header promised.
+    const mergedOrgIds = useMemo(() => selectedRow?.mergedIds ?? (selectedId ? [selectedId] : []), [selectedRow, selectedId])
     const projectsTab = useRelatedSearch({
-        key: selectedId,
-        path: (dpage) => relatedPaths.expertProjects(apiParams, selectedId ?? '', dpage),
+        // Keyed on the resolved id SET, not just `selectedId`: on a deep link
+        // `data.hits` (and so `selectedRow.mergedIds`) can still be loading
+        // when this first fires, which would otherwise fetch — and get stuck
+        // showing — only the representative id's own projects. Once the row
+        // loads and the set actually grows, the key changes and this refetches.
+        key: mergedOrgIds.length > 0 ? mergedOrgIds.join(',') : null,
+        path: (dpage) => relatedPaths.expertProjects(projectsRelated.search, mergedOrgIds, dpage),
         schema: projectSearchResponseSchema,
         empty: EMPTY_PROJECTS,
         enabled: tab === 'projects',
@@ -252,9 +260,15 @@ export function ExpertsResultsPanel() {
                 ],
                 sources: expertSources(detail, data.hits),
                 // The selected entity's related lists, fetched when a message is sent.
-                lazy: detail ? relatedLazyContext('organisation (expert)', expertRelatedLists({apiParams, organisationId: detail.id, corpus, worksQuery}), hiddenTabs) : undefined,
+                lazy: detail
+                    ? relatedLazyContext(
+                          'organisation (expert)',
+                          expertRelatedLists({search: projectsRelated.search, organisationId: detail.id, organisationIds: mergedOrgIds, corpus, worksQuery}),
+                          hiddenTabs,
+                      )
+                    : undefined,
             }),
-        [data, query, corpus, sort, detail, selectedRow, params, labelUrlValue, apiParams, worksQuery, hiddenTabs],
+        [data, query, corpus, sort, detail, selectedRow, params, labelUrlValue, projectsRelated.search, mergedOrgIds, worksQuery, hiddenTabs],
     )
     usePageChatContextPublisher(pageContext)
 
@@ -380,6 +394,7 @@ export function ExpertsResultsPanel() {
                             content: detail ? (
                                 <RelatedList
                                     caption={`${formatResultCount(projectsTab.data)} of this organisation's projects match your search`}
+                                    filterCaption={projectsRelated.caption}
                                     rows={projectRows}
                                     closeMatches={projectsTab.data.mode === 'fuzzy'}
                                     page={projectsTab.page}

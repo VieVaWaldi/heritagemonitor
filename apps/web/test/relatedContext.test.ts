@@ -85,7 +85,7 @@ test('every related list that carries the page\'s text asks for the STRICT searc
     // These hang off a parent's number (an expert's "3 matching projects"); the
     // api's typo fallback would otherwise widen them to "199" on their own.
     const lists = [
-        relatedPaths.expertProjects('q=bim&c=science', 'o', 1),
+        relatedPaths.expertProjects('q=bim&c=science', ['o'], 1),
         relatedPaths.expertWorks('o', 1, 'science', 'bim'),
         relatedPaths.grantProjects('f::p', 'science', 1, 'q=bim'),
         relatedPaths.minorityProjects('Q1', 1, 'q=bim'),
@@ -95,6 +95,14 @@ test('every related list that carries the page\'s text asks for the STRICT searc
     ]
     for (const path of lists) assert.equal(params(path).get('strict'), 'true', path)
     // the parent's own text is still there
-    assert.equal(params(relatedPaths.expertProjects('q=bim&c=science', 'o', 1)).get('q'), 'bim')
-    assert.equal(params(relatedPaths.expertProjects('q=bim&c=science', 'o', 1)).get('org'), 'o')
+    assert.equal(params(relatedPaths.expertProjects('q=bim&c=science', ['o'], 1)).get('q'), 'bim')
+    assert.equal(params(relatedPaths.expertProjects('q=bim&c=science', ['o'], 1)).get('org'), 'o')
+})
+
+test('expertProjects sends one org per id this institution merges into (D19)', () => {
+    // The header's "matching projects" count sums every merged id's matches;
+    // the list has to query all of them too, or it undercounts what the
+    // header promised (see mergeByNameKey in experts.service.ts).
+    const all = params(relatedPaths.expertProjects('q=bim&c=science', ['a', 'b'], 1)).getAll('org')
+    assert.deepEqual(all, ['a', 'b'])
 })

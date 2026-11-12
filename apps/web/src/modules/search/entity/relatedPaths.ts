@@ -54,9 +54,14 @@ export const relatedPaths = {
     minorityOrganisations: (qid: string, page: number, search = '') =>
         `/v1/minorities/${enc(qid)}/organisations?page=${page}&${search}`,
 
-    /** An expert's matching projects: the page's own query and filters plus `org`. */
-    expertProjects: (apiParams: string, organisationId: string, page: number) =>
-        `/v1/projects/search?${apiParams}&org=${enc(organisationId)}&page=${page}&${STRICT}`,
+    /**
+     * An expert's matching projects: the relation's carried filters (never
+     * `page` — see useRelatedRequest) plus one `org` per id this institution
+     * merges into (D19) — the count above the tab sums all of them, so the
+     * list has to match every one of them or it undercounts.
+     */
+    expertProjects: (search: string, organisationIds: readonly string[], page: number) =>
+        `/v1/projects/search?${search}&${organisationIds.map((id) => `org=${enc(id)}`).join('&')}&page=${page}&${STRICT}`,
     /** An expert's works, by default narrowed to the page's text (see ExpertsResultsPanel). */
     expertWorks: (organisationId: string, page: number, corpus: string, query: string) =>
         `/v1/organisations/${enc(organisationId)}/works?page=${page}&c=${enc(corpus)}&${STRICT}` + (query ? `&q=${enc(query)}` : ''),

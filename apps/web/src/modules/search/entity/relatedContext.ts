@@ -202,9 +202,15 @@ export function minorityRelatedLists(qid: string, projectsSearch: string, worksS
     ]
 }
 
-export function expertRelatedLists(options: {apiParams: string; organisationId: string; corpus: string; worksQuery: string}): RelatedListSpec[] {
+export function expertRelatedLists(options: {
+    search: string
+    organisationId: string
+    organisationIds: readonly string[]
+    corpus: string
+    worksQuery: string
+}): RelatedListSpec[] {
     return [
-        projectsOf('Matching projects of this organisation', relatedPaths.expertProjects(options.apiParams, options.organisationId, 1), projectSearchResponseSchema),
+        projectsOf('Matching projects of this organisation', relatedPaths.expertProjects(options.search, options.organisationIds, 1), projectSearchResponseSchema),
         worksOf('Works of this organisation', relatedPaths.expertWorks(options.organisationId, 1, options.corpus, options.worksQuery)),
     ]
 }
