@@ -71,8 +71,12 @@ export function ProjectOverviewTab({project}: ProjectOverviewTabProps) {
                 <Stack direction="row" spacing={1} sx={{flexShrink: 0}}>
                     {project.is_ch && <Chip label="DCH" size="small" color="secondary" />}
                     {/* The title/summary of a non-English project was machine
-                        translated during the pipeline — worth saying so. */}
-                    {project.is_translated && <Chip label="Translated" size="small" variant="outlined" />}
+                        translated during the pipeline — worth saying so either way. */}
+                    {project.is_translated ? (
+                        <Chip label="Translated" size="small" variant="outlined" />
+                    ) : (
+                        <Chip label="Not translated" size="small" variant="outlined" />
+                    )}
                 </Stack>
             </Box>
 
