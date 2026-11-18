@@ -78,7 +78,7 @@ export type OrganisationNetworkResponse = z.infer<typeof organisationNetworkResp
 export const QUERY_NETWORK_DEFAULT_MAX_EDGES = 100
 export const QUERY_NETWORK_MIN_EDGES = 10
 /** The most edges a request may ask for — a hard server cap, the force layout gets slow beyond it. */
-export const QUERY_NETWORK_HARD_MAX_EDGES = 300
+export const QUERY_NETWORK_HARD_MAX_EDGES = 10000
 /** Projects counted: the top of the ranking. The UI says "based on the top N matching projects". */
 export const QUERY_NETWORK_PROJECTS_SCANNED = 2000
 
